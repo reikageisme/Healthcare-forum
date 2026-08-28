@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Send, Sparkles, X, Plus, Hash } from 'lucide-react';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { ImageUploader } from '../components/common/ImageUploader';
@@ -8,7 +8,6 @@ import { categoryService } from '../services/categoryService';
 import { tagService } from '../services/tagService';
 import { Category, TagWithCount, PostType } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import LoginModal from '../components/Auth/LoginModal';
 
 const POST_TYPES: { type: PostType; label: string; desc: string }[] = [
   { type: 'ARTICLE', label: 'Bài viết', desc: 'Kiến thức y khoa, cẩm nang sức khỏe' },
@@ -19,9 +18,9 @@ const POST_TYPES: { type: PostType; label: string; desc: string }[] = [
 
 export const CreatePostPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Form State
   const initialType = (searchParams.get('type') || 'ARTICLE').toUpperCase() as PostType;
@@ -41,9 +40,9 @@ export const CreatePostPage: React.FC = () => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setShowLoginModal(true);
+      navigate('/login', { state: { from: location } });
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate, location]);
 
   useEffect(() => {
     const loadCategoriesAndTags = async () => {
@@ -86,7 +85,7 @@ export const CreatePostPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      setShowLoginModal(true);
+      navigate('/login', { state: { from: location } });
       return;
     }
 
@@ -330,8 +329,6 @@ export const CreatePostPage: React.FC = () => {
           </button>
         </div>
       </form>
-
-      {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
     </div>
   );
 };

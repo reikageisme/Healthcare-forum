@@ -3,7 +3,7 @@ import { Lightbulb, Heart, Info, Loader2 } from 'lucide-react';
 import { reactionService } from '../../services/reactionService';
 import { useAuth } from '../../hooks/useAuth';
 import { ReactionCounts } from '../../types';
-import LoginModal from '../Auth/LoginModal';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 
 interface ReactionButtonsProps {
@@ -22,16 +22,17 @@ export const ReactionButtons: React.FC<ReactionButtonsProps> = ({
   size = 'md',
 }) => {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [counts, setCounts] = useState<ReactionCounts>(initialCounts);
   const [userReaction, setUserReaction] = useState<string | null>(
     initialUserReaction ? initialUserReaction.toLowerCase() : null
   );
   const [isLoading, setIsLoading] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleReact = async (type: 'helpful' | 'like' | 'informative') => {
     if (!isAuthenticated) {
-      setShowLoginModal(true);
+      navigate('/login', { state: { from: location } });
       return;
     }
 
@@ -153,8 +154,6 @@ export const ReactionButtons: React.FC<ReactionButtonsProps> = ({
           <span className="hidden md:inline">Thông tin</span>
         </button>
       </div>
-
-      {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
     </>
   );
 };

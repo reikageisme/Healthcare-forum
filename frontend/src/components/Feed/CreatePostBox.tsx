@@ -1,18 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PenLine, MessageCircle, Star, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import LoginModal from '../Auth/LoginModal';
 import { getAvatarUrl } from '../../lib/utils';
 
 export const CreatePostBox: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
-  const [showLogin, setShowLogin] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleAction = (postType = 'ARTICLE') => {
     if (!isAuthenticated) {
-      setShowLogin(true);
+      navigate('/login', { state: { from: location } });
       return;
     }
     navigate(`/create-post?type=${postType}`);
@@ -63,8 +62,6 @@ export const CreatePostBox: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     </>
   );
 };

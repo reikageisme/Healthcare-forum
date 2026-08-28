@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bookmark, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import FeedCard from '../components/Feed/FeedCard';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
 import { bookmarkService } from '../services/bookmarkService';
 import { Post } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import LoginModal from '../components/Auth/LoginModal';
 
 export const BookmarksPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -25,7 +24,7 @@ export const BookmarksPage: React.FC = () => {
   const fetchBookmarks = useCallback(async () => {
     if (!isAuthenticated) {
       setIsLoadingInitial(false);
-      setShowLoginModal(true);
+      navigate('/login', { state: { from: location } });
       return;
     }
 
@@ -115,51 +114,48 @@ export const BookmarksPage: React.FC = () => {
           <PostCardSkeleton />
         </div>
       ) : !isAuthenticated ? (
-        <EmptyState
+        <EmptyState 
           icon={Bookmark}
           title="Vui lòng đăng nhập"
           description="Đăng nhập để xem danh sách các bài viết bạn đã lưu và lưu trữ tài liệu sức khỏe hữu ích."
           actionText="Đăng nhập ngay"
-          onAction={() => setShowLoginModal(true)}
+          onAction={() => navigate('/login', { state: { from: location } })}
         />
       ) : posts.length === 0 ? (
-        <EmptyState
+        <EmptyState 
           icon={Bookmark}
-          title="Chưa có bài viết đã lưu"
-          description="Bạn chưa lưu bài viết nào. Hãy nhấn vào biểu tượng dấu trang trên các bài viết hữu ích để xem lại tại đây sau!"
-          actionText="Khám phá bài viết"
-          actionHref="/"
+          title="Chưa có bài viết nào được lưu"
+          description="Lưu những bài viết hữu ích để dễ dàng đọc lại bất cứ lúc nào."
+          actionText="Khám phá ngay"
+          onAction={() => navigate('/')}
         />
       ) : (
         <div className="space-y-4">
-          {posts.map((post) => (
-            <FeedCard
-              key={post.id}
-              post={{ ...post, is_bookmarked: true }}
+          {posts.map(post => (
+            <FeedCard 
+              key={post.id} 
+              post={{ ...post, is_bookmarked: true }} 
               onBookmarkToggle={handleBookmarkToggle}
             />
           ))}
+          
+          {/* Infinite Scroll Trigger */}
+          {hasMore && (
+            <div 
+              ref={observerTargetRef} 
+              className="w-full flex justify-center py-6"
+            >
+              {isFetchingNext && <Loader2 size={24} className="animate-spin text-primary" />}
+            </div>
+          )}
+          
+          {!hasMore && posts.length > 0 && (
+            <div className="py-8 text-center text-sm font-medium text-slate-500 bg-white rounded-xl border border-slate-100 mt-6 shadow-sm">
+              Bạn đã xem hết bài viết đã lưu.
+            </div>
+          )}
         </div>
       )}
-
-      {/* Infinite Scroll Sentinel */}
-      <div ref={observerTargetRef} className="py-6 flex flex-col items-center justify-center">
-        {isFetchingNext && (
-          <div className="flex items-center gap-2 text-primary text-sm font-medium py-2">
-            <Loader2 className="w-6 h-6 animate-spin" />
-            <span>Đang tải thêm...</span>
-          </div>
-        )}
-
-        {!hasMore && !isLoadingInitial && posts.length > 0 && (
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-text-secondary bg-slate-100 px-4 py-2 rounded-full mt-2">
-            <CheckCircle2 size={16} className="text-emerald-500" />
-            <span>Đã hiển thị tất cả bài viết đã lưu</span>
-          </div>
-        )}
-      </div>
-
-      {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
     </div>
   );
 };

@@ -20,9 +20,14 @@ import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
 
+// Auth
+import LoginPage from './pages/LoginPage';
+
 function App() {
   return (
     <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      
       {/* Client / Public Routes */}
       <Route path="/" element={<MainLayout />}>
         {/* Home & Filters */}

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Search, Moon, Sun, Bell, Menu, HeartPulse, UserCircle, LogOut, Plus, ShieldCheck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import LoginModal from '../Auth/LoginModal';
 import { getAvatarUrl } from '../../lib/utils';
 
 interface HeaderProps {
@@ -12,7 +11,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
   const { isAuthenticated, user, logout, canModerate } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const navigate = useNavigate();
 
@@ -154,21 +152,18 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                   )}
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowLoginModal(true)}
+                <Link
+                  to="/login"
                   className="flex items-center gap-1.5 bg-primary text-white px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold hover:bg-primary-dark shadow-sm transition-colors"
                 >
                   <UserCircle size={18} />
                   <span>Đăng nhập</span>
-                </button>
+                </Link>
               )}
             </div>
           </div>
         </div>
       </header>
-
-      {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
     </>
   );
 };

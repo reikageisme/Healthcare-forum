@@ -11,8 +11,9 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    allowedHosts: true,
     proxy: {
-      '/api': 'http://localhost:8000',
+      '/api': 'http://backend:8000',
     },
   },
 });

@@ -51,6 +51,7 @@ services:
       - backend
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/vite.config.ts:/app/vite.config.ts
     env_file:
       - .env
     networks:

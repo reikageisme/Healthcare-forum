@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bookmark } from 'lucide-react';
 import { bookmarkService } from '../../services/bookmarkService';
 import { useAuth } from '../../hooks/useAuth';
-import LoginModal from '../Auth/LoginModal';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 
 interface BookmarkButtonProps {
@@ -23,16 +23,17 @@ export const BookmarkButton: React.FC<BookmarkButtonProps> = ({
   showLabel = false,
 }) => {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [isLoading, setIsLoading] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
 
     if (!isAuthenticated) {
-      setShowLoginModal(true);
+      navigate('/login', { state: { from: location } });
       return;
     }
 
@@ -82,8 +83,6 @@ export const BookmarkButton: React.FC<BookmarkButtonProps> = ({
           <span className="text-sm">{isBookmarked ? 'Đã lưu' : 'Lưu bài'}</span>
         )}
       </button>
-
-      {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
     </>
   );
 };
