@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      target: prod
+    volumes: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      target: prod
+    volumes: []
+    restart: always
+
+  adminer:
+    profiles:
+      - disable
+
+  db:
+    restart: always

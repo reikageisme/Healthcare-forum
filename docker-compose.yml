@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: healthcare_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-healthcare_forum}
+    ports:
+      - "5432:5432"
+    volumes:
+      - healthcare_db_data:/var/lib/postgresql/data
+    networks:
+      - healthcare-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    container_name: healthcare_backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/uploads:/app/uploads
+      - ./backend/alembic:/app/alembic
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - healthcare-net
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    container_name: healthcare_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+    env_file:
+      - .env
+    networks:
+      - healthcare-net
+
+  adminer:
+    image: adminer
+    container_name: healthcare_adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - healthcare-net
+
+networks:
+  healthcare-net:
+    driver: bridge
+
+volumes:
+  healthcare_db_data:
