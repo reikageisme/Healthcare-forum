@@ -2,7 +2,7 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install --prefer-offline --no-audit --no-fund --maxsockets 5 --fetch-retries 5 --fetch-retry-mintimeout 20000 --fetch-retry-maxtimeout 120000
 
 # Dev stage
 FROM base AS dev
