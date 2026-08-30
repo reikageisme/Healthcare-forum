@@ -49,11 +49,11 @@ export const LoginPage: React.FC = () => {
       } else {
         // Form Đăng ký
         const username = email.split('@')[0];
-        await api.post('/users/', { 
-          email: email.trim(), 
-          password, 
-          username, 
-          full_name: fullName.trim() || username 
+        await api.post('/auth/register', {
+          email: email.trim(),
+          password,
+          username,
+          full_name: fullName.trim() || username,
         });
         
         setIsLogin(true);

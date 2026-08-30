@@ -14,6 +14,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': 'http://backend:8000',
+      '/uploads': 'http://backend:8000',
     },
   },
 });

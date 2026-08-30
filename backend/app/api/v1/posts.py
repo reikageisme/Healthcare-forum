@@ -401,9 +401,12 @@ async def get_post_detail(
         if not (is_author or is_admin_or_mod):
             raise HTTPException(status_code=404, detail="Post not found")
     
-    # Increment view count
+    # Increment view count. `updated_at` has a server-side onupdate, so the commit
+    # expires it -- reload it explicitly, otherwise reading it below triggers a
+    # sync lazy-load and blows up with MissingGreenlet.
     post.view_count += 1
     await db.commit()
+    await db.refresh(post, ["updated_at"])
     
     # Reaction breakdown
     breakdown = await get_reaction_breakdown(post.id, db)

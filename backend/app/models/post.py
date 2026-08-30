@@ -3,7 +3,7 @@ import enum
 from sqlalchemy import Column, String, Text, Integer, Boolean, DateTime, ForeignKey, Enum, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from app.core.database import Base, enum_column
 from app.models.tag import post_tags
 
 class PostType(str, enum.Enum):
@@ -26,8 +26,8 @@ class Post(Base):
     content = Column(Text, nullable=False)
     excerpt = Column(String(500), nullable=True)
     thumbnail = Column(String(500), nullable=True)
-    post_type = Column(Enum(PostType), default=PostType.ARTICLE, nullable=False, index=True)
-    status = Column(Enum(PostStatus), default=PostStatus.PENDING, nullable=False, index=True)
+    post_type = Column(enum_column(PostType), default=PostType.ARTICLE, nullable=False, index=True)
+    status = Column(enum_column(PostStatus), default=PostStatus.PENDING, nullable=False, index=True)
     rejection_reason = Column(String(500), nullable=True)
     view_count = Column(Integer, default=0, nullable=False)
     helpful_count = Column(Integer, default=0, nullable=False)

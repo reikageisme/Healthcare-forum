@@ -3,9 +3,18 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
+from uuid import UUID
 from app.core.database import get_db
 from app.core.security import decode_token
 from app.models.user import User, UserRole
+
+def _as_uuid(value) -> Optional[UUID]:
+    """JWT subjects come back as strings; UUID columns need a real UUID."""
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError):
+        return None
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
@@ -19,7 +28,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     payload = decode_token(token)
     if payload is None:
         raise credentials_exception
-    user_id: str = payload.get("sub")
+    user_id = _as_uuid(payload.get("sub"))
     if user_id is None:
         raise credentials_exception
     
@@ -40,7 +49,7 @@ async def get_optional_current_user(
     payload = decode_token(token)
     if payload is None:
         return None
-    user_id: str = payload.get("sub")
+    user_id = _as_uuid(payload.get("sub"))
     if user_id is None:
         return None
     
