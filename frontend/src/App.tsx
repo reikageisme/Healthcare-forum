@@ -12,6 +12,7 @@ import EditPostPage from './pages/EditPostPage';
 import BookmarksPage from './pages/BookmarksPage';
 import TagPage from './pages/TagPage';
 import CategoryPage from './pages/CategoryPage';
+import { ScrollToTop } from './components/common/ScrollToTop';
 
 // Admin pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -25,6 +26,7 @@ import LoginPage from './pages/LoginPage';
 
 function App() {
   return (
+    <>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       
@@ -101,6 +103,8 @@ function App() {
         />
       </Route>
     </Routes>
+    <ScrollToTop />
+    </>
   );
 }
 

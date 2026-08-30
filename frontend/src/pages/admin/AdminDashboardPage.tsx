@@ -106,7 +106,7 @@ export const AdminDashboardPage: React.FC = () => {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Tổng quan Hệ thống
+            {new Date().getHours() < 12 ? 'Chào buổi sáng' : new Date().getHours() < 18 ? 'Chào buổi chiều' : 'Chào buổi tối'}, Quản trị viên
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Theo dõi chỉ số tăng trưởng, hàng chờ kiểm duyệt và báo cáo vi phạm 30 ngày qua

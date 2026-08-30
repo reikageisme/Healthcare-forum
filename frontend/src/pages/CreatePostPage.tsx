@@ -116,9 +116,15 @@ export const CreatePostPage: React.FC = () => {
       navigate(`/posts/${created.id || created.slug}`);
     } catch (err: any) {
       console.error('Failed to create post', err);
-      setErrorMsg(
-        err.response?.data?.detail || 'Đã có lỗi xảy ra khi đăng bài viết. Vui lòng thử lại!'
-      );
+      let errorMessage = 'Đã có lỗi xảy ra khi đăng bài viết. Vui lòng thử lại!';
+      if (err.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          errorMessage = err.response.data.detail[0]?.msg || errorMessage;
+        } else if (typeof err.response.data.detail === 'string') {
+          errorMessage = err.response.data.detail;
+        }
+      }
+      setErrorMsg(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
