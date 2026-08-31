@@ -30,7 +30,7 @@ Sửa hai giá trị bắt buộc trong `.env`:
 ```env
 # Trỏ đúng máy chủ Postgres của bạn. Database chưa cần tồn tại —
 # backend sẽ tự tạo ở bước khởi động.
-DATABASE_URL=postgresql://postgres:MẬT_KHẨU@192.168.1.102:5432/healthcare_forum
+DATABASE_URL=postgresql://postgres:MẬT_KHẨU@192.168.1.102:5432/health
 POSTGRES_HOST=192.168.1.102
 
 # Bắt buộc từ 32 ký tự trở lên khi NODE_ENV=production, nếu không backend từ chối khởi động.
@@ -67,7 +67,7 @@ Tài khoản trong `DATABASE_URL` cần quyền `CREATEDB` để backend tự t�
 Nếu không có quyền đó, tạo tay một lần:
 
 ```bash
-psql -h 192.168.1.102 -U postgres -c 'CREATE DATABASE "healthcare_forum"'
+psql -h 192.168.1.102 -U postgres -c 'CREATE DATABASE "health"'
 ```
 
 ### 3. Build và chạy
@@ -78,7 +78,7 @@ docker compose up --build
 
 Lần khởi động đầu tiên backend tự làm tuần tự (tất cả đều idempotent, chạy lại vô hại):
 
-1. **`createDatabase`** — tạo database `healthcare_forum` nếu máy chủ chưa có
+1. **`createDatabase`** — tạo database `health` nếu máy chủ chưa có
 2. **`migrate`** — tạo schema (chỉ khi database còn trống) rồi áp các patch
 3. **`sanitizeExisting`** — làm sạch HTML của bài/bình luận lưu từ trước
 4. **`createAdmin`** — tạo tài khoản quản trị từ `ADMIN_*` nếu chưa tồn tại
@@ -100,7 +100,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ### Muốn dùng Postgres trong container thay vì máy ngoài
 
 ```bash
-# Đổi DATABASE_URL thành ...@db:5432/healthcare_forum trong .env trước
+# Đổi DATABASE_URL thành ...@db:5432/health trong .env trước
 docker compose -f docker-compose.yml -f docker-compose.db.yml up --build
 ```
 
