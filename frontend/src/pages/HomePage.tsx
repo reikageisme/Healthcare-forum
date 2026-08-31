@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, Sparkles, Filter, CheckCircle2, Search, FileText } from 'lucide-react';
+import { Loader2, CheckCircle2, FileText } from 'lucide-react';
 import StoriesCarousel from '../components/Stories/StoriesCarousel';
 import CreatePostBox from '../components/Feed/CreatePostBox';
 import FeedCard from '../components/Feed/FeedCard';
@@ -171,7 +171,11 @@ export const HomePage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {posts.map((post) => (
-            <FeedCard key={post.id} post={post} />
+            <FeedCard
+              key={post.id}
+              post={post}
+              onDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+            />
           ))}
         </div>
       )}

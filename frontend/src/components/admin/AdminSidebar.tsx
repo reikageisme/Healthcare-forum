@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import {
-  LayoutDashboard,
   Clock,
+  Crown,
+  FileText,
   Flag,
-  Users,
   Folder,
   Globe,
-  LogOut,
   HeartPulse,
+  LayoutDashboard,
+  LogOut,
   ShieldCheck,
-  Crown,
+  Users,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -147,6 +148,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
                       </span>
                     )}
                   </>
+                )}
+              </NavLink>
+
+              <NavLink to="/admin/posts" onClick={onClose} className={navItemClasses}>
+                {({ isActive }) => (
+                  <div className="flex items-center gap-3">
+                    <FileText size={18} className={isActive ? 'text-white' : 'text-slate-400 group-hover:text-primary'} />
+                    <span>Quản lý bài viết</span>
+                  </div>
                 )}
               </NavLink>
 

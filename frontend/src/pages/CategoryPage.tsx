@@ -131,7 +131,11 @@ export const CategoryPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {posts.map((post) => (
-            <FeedCard key={post.id} post={post} />
+            <FeedCard
+              key={post.id}
+              post={post}
+              onDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+            />
           ))}
         </div>
       )}

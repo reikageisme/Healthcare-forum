@@ -22,7 +22,7 @@ import { CommentTree } from '../components/comments/CommentTree';
 import { ReportModal } from '../components/common/ReportModal';
 import { PostDetailSkeleton } from '../components/common/LoadingSkeleton';
 import { useAuth } from '../hooks/useAuth';
-import { formatRelativeTime, formatDate, getAvatarUrl, getPostTypeInfo } from '../lib/utils';
+import { formatDate, getAvatarUrl, getPostTypeInfo } from '../lib/utils';
 
 export const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();

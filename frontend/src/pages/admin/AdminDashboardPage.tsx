@@ -1,16 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Users,
-  FileText,
-  Clock,
-  Flag,
-  MessageSquare,
-  ShieldCheck,
-  RefreshCw,
-  ArrowRight,
-  CheckCircle,
-  XCircle,
-} from 'lucide-react';
+import { Users, FileText, Clock, Flag, RefreshCw, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { adminService } from '../../services/adminService';
 import { AdminStats, Post, Report } from '../../types';
@@ -18,13 +7,13 @@ import StatCard from '../../components/admin/StatCard';
 import UserGrowthChart from '../../components/admin/UserGrowthChart';
 import PostActivityChart from '../../components/admin/PostActivityChart';
 import RejectModal from '../../components/admin/RejectModal';
-import { formatDate, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
+import { formatDate, getPostTypeInfo } from '../../lib/utils';
 
 export const AdminDashboardPage: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [pendingPosts, setPendingPosts] = useState<Post[]>([]);
   const [openReports, setOpenReports] = useState<Report[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Reject modal state

@@ -17,6 +17,7 @@ import { ScrollToTop } from './components/common/ScrollToTop';
 // Admin pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminModerationPage from './pages/admin/AdminModerationPage';
+import AdminPostsPage from './pages/admin/AdminPostsPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
@@ -84,6 +85,7 @@ function App() {
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
         <Route path="moderation" element={<AdminModerationPage />} />
+        <Route path="posts" element={<AdminPostsPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
         <Route
           path="users"

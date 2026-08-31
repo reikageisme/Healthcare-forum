@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Moon, Sun, Bell, Menu, HeartPulse, UserCircle, LogOut, Plus, ShieldCheck } from 'lucide-react';
+import { Search, Bell, Menu, HeartPulse, UserCircle, LogOut, Plus, ShieldCheck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getAvatarUrl } from '../../lib/utils';

@@ -28,7 +28,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
   const author = comment.author;
   const isDoctor = author?.role?.toUpperCase() === 'DOCTOR';
-  const isAdmin = author?.role?.toUpperCase() === 'ADMIN' || author?.role?.toUpperCase() === 'MODERATOR';
   const isAuthor = user && author && user.id === author.id;
   const canDelete = user && (isAuthor || user.role?.toUpperCase() === 'ADMIN' || user.role?.toUpperCase() === 'MODERATOR');
 

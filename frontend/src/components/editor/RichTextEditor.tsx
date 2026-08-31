@@ -23,6 +23,7 @@ import {
   Unlink,
 } from 'lucide-react';
 import { uploadService } from '../../services/uploadService';
+import { describeUploadError, validateImageFile } from '../../lib/uploadError';
 import { cn } from '../../lib/utils';
 
 interface RichTextEditorProps {
@@ -87,13 +88,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (!files || files.length === 0 || !editor) return;
 
     const file = files[0];
+    const localError = validateImageFile(file);
+    if (localError) {
+      window.alert(localError);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setIsUploadingImage(false);
+      return;
+    }
+
     try {
       setIsUploadingImage(true);
       const res = await uploadService.uploadImage(file);
       editor.chain().focus().setImage({ src: res.url, alt: file.name }).run();
     } catch (error) {
       console.error('Failed to upload image', error);
-      alert('Không thể tải ảnh lên. Vui lòng chọn ảnh định dạng JPG, PNG, WebP hoặc GIF dưới 5MB.');
+      window.alert(describeUploadError(error));
     } finally {
       setIsUploadingImage(false);
       if (fileInputRef.current) {

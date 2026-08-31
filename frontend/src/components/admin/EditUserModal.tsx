@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserCheck, Shield, Crown, User as UserIcon, AlertCircle } from 'lucide-react';
+import { X, UserCheck, Shield, Crown, User as UserIcon } from 'lucide-react';
 import { User, UserRole } from '../../types';
 
 interface EditUserModalProps {

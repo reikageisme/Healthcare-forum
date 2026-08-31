@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Send, Sparkles, X, Plus, Hash } from 'lucide-react';
+import { ArrowLeft, Send, X, Hash } from 'lucide-react';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { ImageUploader } from '../components/common/ImageUploader';
 import { postService } from '../services/postService';

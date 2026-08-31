@@ -1,0 +1,36 @@
+# Optional local Postgres, for working without the shared 192.168.1.102 box.
+# Use it with:  docker compose -f docker-compose.yml -f docker-compose.db.yml up
+# and set DATABASE_URL to postgresql://postgres:postgres@db:5432/healthcare_forum
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: healthcare_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-healthcare_forum}
+    ports:
+      - "5432:5432"
+    volumes:
+      - healthcare_db_data:/var/lib/postgresql/data
+    networks:
+      - healthcare-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    depends_on:
+      db:
+        condition: service_healthy
+
+  adminer:
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      - db
+
+volumes:
+  healthcare_db_data:

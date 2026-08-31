@@ -1,16 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Flag,
-  CheckCircle,
-  Trash2,
-  Filter,
-  Eye,
-  RefreshCw,
-  AlertTriangle,
-  User as UserIcon,
-  MessageSquare,
-  FileText,
-} from 'lucide-react';
+import { Flag, CheckCircle, Eye, RefreshCw, AlertTriangle, User as UserIcon, MessageSquare, FileText } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import { Report } from '../../types';
 import ReportActionModal from '../../components/admin/ReportActionModal';
@@ -21,7 +10,7 @@ export const AdminReportsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'open' | 'resolved' | 'all'>('open');
   const [targetTypeFilter, setTargetTypeFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected report for modal

@@ -7,7 +7,6 @@ import { postService } from '../services/postService';
 import { categoryService } from '../services/categoryService';
 import { tagService } from '../services/tagService';
 import { Category, TagWithCount, PostType, Post } from '../types';
-import { useAuth } from '../hooks/useAuth';
 
 const POST_TYPES: { type: PostType; label: string; desc: string }[] = [
   { type: 'ARTICLE', label: 'Bài viết', desc: 'Kiến thức y khoa, cẩm nang sức khỏe' },
@@ -19,7 +18,6 @@ const POST_TYPES: { type: PostType; label: string; desc: string }[] = [
 export const EditPostPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
 
   // Loading & State
   const [isLoading, setIsLoading] = useState(true);

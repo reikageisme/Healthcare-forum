@@ -24,7 +24,7 @@ export const AdminModerationPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modals
