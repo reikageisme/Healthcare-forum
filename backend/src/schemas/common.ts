@@ -6,7 +6,7 @@ export const postTypeValues = ['article', 'question', 'review', 'share'] as cons
 export const postStatusValues = ['pending', 'approved', 'rejected'] as const;
 export const reactionTypeValues = ['helpful', 'like', 'informative'] as const;
 export const reportStatusValues = ['open', 'resolved', 'dismissed'] as const;
-export const reportTargetValues = ['post', 'comment', 'user'] as const;
+export const reportTargetValues = ['post', 'comment', 'user', 'story'] as const;
 export const userRoleValues = ['guest', 'user', 'doctor', 'moderator', 'admin'] as const;
 
 /**

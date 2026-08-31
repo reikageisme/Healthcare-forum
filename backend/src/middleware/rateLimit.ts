@@ -84,3 +84,10 @@ export const uploadRateLimit = rateLimit({
   keyPrefix: 'upload',
   message: 'Bạn đang tải lên quá nhanh. Vui lòng thử lại sau.',
 });
+
+export const storyRateLimit = rateLimit({
+  windowMs: 24 * 60 * 60_000,
+  max: 10,
+  keyPrefix: 'story',
+  message: 'Bạn đã đăng quá nhiều story hôm nay. Vui lòng thử lại vào ngày mai.',
+});

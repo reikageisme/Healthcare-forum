@@ -98,6 +98,11 @@ export const commentCreateSchema = z.object({
   is_anonymous: z.boolean().optional().default(false),
 });
 
+export const storyCreateSchema = z.object({
+  image_url: z.string().min(1).max(500),
+  caption: z.string().max(280).nullish(),
+});
+
 export const acceptAnswerSchema = z.object({
   comment_id: z.string().uuid().nullable(),
 });

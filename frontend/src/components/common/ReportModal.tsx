@@ -6,7 +6,7 @@ import { ReportTargetType } from '../../types';
 
 interface ReportModalProps {
   isOpen: boolean;
-  targetType: 'post' | 'comment' | 'user';
+  targetType: 'post' | 'comment' | 'user' | 'story';
   targetId: string;
   targetTitle?: string;
   onClose: () => void;

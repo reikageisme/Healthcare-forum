@@ -137,6 +137,22 @@ export interface CommentCreateInput {
   is_anonymous?: boolean;
 }
 
+export interface Story {
+  id: string;
+  image_url: string;
+  caption?: string | null;
+  created_at: string;
+  expires_at: string;
+  author: User;
+}
+
+/** Stories are shown one ring per author, the way every stories UI works. */
+export interface StoryGroup {
+  author: User;
+  items: Story[];
+  latest_at: string | null;
+}
+
 export interface DoctorVerification {
   id: string;
   user_id: string;

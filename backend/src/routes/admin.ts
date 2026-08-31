@@ -2,7 +2,15 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { and, asc, count, desc, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { categories, comments, doctorVerifications, posts, reports, users } from '../db/schema.js';
+import {
+  categories,
+  comments,
+  doctorVerifications,
+  posts,
+  reports,
+  stories,
+  users,
+} from '../db/schema.js';
 import { badRequest, notFound } from '../core/errors.js';
 import { asUuid } from '../core/security.js';
 import { parseBody } from '../lib/validate.js';
@@ -331,6 +339,19 @@ async function enrichReport(
     } else {
       target_title = '[Deleted Post]';
     }
+  } else if (report.target_type === 'story') {
+    const rows = await db
+      .select({ caption: stories.caption, username: users.username })
+      .from(stories)
+      .leftJoin(users, eq(users.id, stories.author_id))
+      .where(eq(stories.id, report.target_id))
+      .limit(1);
+    if (rows[0]) {
+      target_title = rows[0].caption?.slice(0, 60) || 'Story không có chú thích';
+      target_author_name = rows[0].username ?? null;
+    } else {
+      target_title = '[Story đã hết hạn hoặc bị xóa]';
+    }
   } else if (report.target_type === 'comment') {
     const rows = await db
       .select({ content: comments.content, username: users.username })
@@ -490,6 +511,10 @@ adminRoutes.delete('/reports/:report_id/content', async (c) => {
         updated_at: now,
       })
       .where(eq(posts.id, report.target_id));
+  } else if (report.target_type === 'story') {
+    // A story has no rejected state to move it into — removing it is the
+    // only action, and it would have expired within the day anyway.
+    await db.delete(stories).where(eq(stories.id, report.target_id));
   } else if (report.target_type === 'comment') {
     await db
       .update(comments)

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { comments, posts, reports, users } from '../db/schema.js';
+import { comments, posts, reports, stories, users } from '../db/schema.js';
 import { badRequest, notFound } from '../core/errors.js';
 import { parseBody } from '../lib/validate.js';
 import { sanitizePlainText } from '../lib/sanitize.js';
@@ -30,6 +30,14 @@ reportRoutes.post('/', requireAuth, reportRateLimit, async (c) => {
       .limit(1);
     if (!rows[0]) throw notFound('Target post not found');
     targetTitle = rows[0].title;
+  } else if (body.target_type === 'story') {
+    const rows = await db
+      .select({ caption: stories.caption })
+      .from(stories)
+      .where(eq(stories.id, body.target_id))
+      .limit(1);
+    if (!rows[0]) throw notFound('Target story not found');
+    targetTitle = rows[0].caption?.slice(0, 50) || 'Story không có chú thích';
   } else if (body.target_type === 'comment') {
     const rows = await db
       .select({ content: comments.content })
