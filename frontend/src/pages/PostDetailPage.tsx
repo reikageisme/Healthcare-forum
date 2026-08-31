@@ -23,6 +23,13 @@ import { ReportModal } from '../components/common/ReportModal';
 import { PostDetailSkeleton } from '../components/common/LoadingSkeleton';
 import { useAuth } from '../hooks/useAuth';
 import { formatDate, getAvatarUrl, getPostTypeInfo } from '../lib/utils';
+import {
+  EmergencyBanner,
+  MedicalDisclaimer,
+  hasEmergencySignal,
+} from '../components/common/MedicalSafety';
+import { AnonymousBadge, VerifiedDoctorBadge, isVerifiedDoctor } from '../components/common/Badges';
+import { articleStructuredData, useSeo } from '../lib/seo';
 
 export const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,7 +108,52 @@ export const PostDetailPage: React.FC = () => {
   const author = post.author;
   const isDoctor = author?.role?.toUpperCase() === 'DOCTOR';
   const isAuthor = user && author && user.id === author.id;
+  const isVerified = isVerifiedDoctor(author);
+  const showEmergency = hasEmergencySignal(post?.title, post?.excerpt, post?.content);
+
+  // Without this every route keeps index.html's title, and a health article
+  // that Google cannot describe is a health article nobody finds.
+  const canonicalPath = post ? `/posts/${post.slug || post.id}` : undefined;
+  useSeo({
+    title: post?.title,
+    description: post?.excerpt ?? undefined,
+    image: post?.thumbnail ?? undefined,
+    canonicalPath,
+    type: 'article',
+    structuredData:
+      post && canonicalPath
+        ? articleStructuredData({
+            title: post.title,
+            description: post.excerpt,
+            image: post.thumbnail,
+            authorName: post.is_anonymous
+              ? 'Người dùng ẩn danh'
+              : post.author?.full_name || post.author?.username,
+            publishedAt: post.created_at,
+            updatedAt: post.updated_at,
+            url: `${window.location.origin}${canonicalPath}`,
+            isQuestion: (post.post_type || post.type)?.toLowerCase() === 'question',
+          })
+        : null,
+  });
   const canManage = user && (isAuthor || user.role?.toUpperCase() === 'ADMIN' || user.role?.toUpperCase() === 'MODERATOR');
+
+  // Marking an answer only makes sense on a question, and only the asker
+  // (or staff) decides. The backend enforces the same rule.
+  const isQuestion = (post?.post_type || post?.type)?.toLowerCase() === 'question';
+  const canAcceptAnswer = !!post && isQuestion && !!canManage;
+
+  const handleAcceptAnswer = async (commentId: string | null) => {
+    if (!post) return;
+    try {
+      await postService.acceptAnswer(post.id, commentId);
+      setPost({ ...post, accepted_comment_id: commentId });
+    } catch (err) {
+      console.error('Failed to set accepted answer', err);
+      window.alert('Không lưu được lựa chọn câu trả lời. Vui lòng thử lại.');
+    }
+  };
+
   const typeInfo = getPostTypeInfo(post.post_type || post.type);
   const statusNorm = post.status?.toLowerCase();
 
@@ -211,12 +263,14 @@ export const PostDetailPage: React.FC = () => {
                 <span className="font-bold text-base text-text">
                   {author?.full_name || author?.username || 'Người dùng'}
                 </span>
-                {isDoctor && (
-                  <span className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-md">
-                    <ShieldCheck size={13} />
+                {isDoctor && !isVerified && (
+                  <span className="flex items-center gap-1 bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-md">
+                    <ShieldCheck size={13} aria-hidden="true" />
                     Bác sĩ
                   </span>
                 )}
+                <VerifiedDoctorBadge user={author} showWorkplace />
+                {post.is_anonymous && <AnonymousBadge isOwn={!!isAuthor} />}
               </div>
               <div className="text-xs text-text-secondary mt-0.5">
                 {author?.specialty ? `Chuyên khoa ${author.specialty}` : `@${author?.username || 'user'}`}
@@ -256,11 +310,15 @@ export const PostDetailPage: React.FC = () => {
           </div>
         )}
 
+        {showEmergency && <EmergencyBanner className="mb-6" />}
+
         {/* Post Content */}
         <div
           className="prose prose-blue max-w-none text-text leading-relaxed text-base prose-headings:text-text prose-p:text-text prose-strong:text-text prose-img:rounded-xl prose-img:border prose-img:border-border prose-img:shadow-sm"
           dangerouslySetInnerHTML={{ __html: post.content || '' }}
         />
+
+        <MedicalDisclaimer className="mt-8" />
 
         {/* Tags */}
         {post.tags && post.tags.length > 0 && (
@@ -327,6 +385,8 @@ export const PostDetailPage: React.FC = () => {
         <CommentTree
           postId={post.id}
           totalComments={post.comment_count || post.commentCount || 0}
+          canAcceptAnswer={canAcceptAnswer}
+          onAcceptAnswer={handleAcceptAnswer}
         />
       </div>
 

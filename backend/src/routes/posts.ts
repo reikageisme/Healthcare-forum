@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
 import { and, desc, eq, ilike, lt, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { categories, posts, tags, postTags, users } from '../db/schema.js';
-import { forbidden, notFound } from '../core/errors.js';
+import { categories, comments, posts, tags, postTags, users } from '../db/schema.js';
+import { badRequest, forbidden, notFound } from '../core/errors.js';
 import { asUuid } from '../core/security.js';
 import { parseBody } from '../lib/validate.js';
 import { sanitizePlainText, sanitizeRichText, stripHtmlAndTruncate } from '../lib/sanitize.js';
+import { deaccent, toSearchText } from '../lib/slugify.js';
+import { assessContent } from '../lib/spamGuard.js';
 import {
   decodeCursor,
   encodeCursor,
@@ -17,7 +19,7 @@ import {
   resolveTags,
   setPostTags,
 } from '../lib/postQueries.js';
-import { postCreateSchema, postUpdateSchema } from '../schemas/requests.js';
+import { acceptAnswerSchema, postCreateSchema, postUpdateSchema } from '../schemas/requests.js';
 import { toPostDetail, toPostSummary } from '../schemas/responses.js';
 import { currentUser, optionalAuth, requireAuth } from '../middleware/auth.js';
 import { categoryScope } from '../lib/categoryTree.js';
@@ -52,10 +54,12 @@ postRoutes.post('/', requireAuth, async (c) => {
 
   // Hybrid moderation: trusted roles publish straight away, everyone else
   // lands in the review queue.
-  const status =
-    me.role === 'doctor' || me.role === 'moderator' || me.role === 'admin'
-      ? ('approved' as const)
-      : ('pending' as const);
+  const trusted = me.role === 'doctor' || me.role === 'moderator' || me.role === 'admin';
+
+  // Supplement spam is the failure mode for a Vietnamese health forum, so a
+  // risky post is queued even when its author would normally bypass review.
+  const risk = assessContent({ title, content }, { createdAt: me.created_at, role: me.role });
+  const status = trusted && !risk.forceReview ? ('approved' as const) : ('pending' as const);
 
   const inserted = await db
     .insert(posts)
@@ -67,6 +71,9 @@ postRoutes.post('/', requireAuth, async (c) => {
       thumbnail: body.thumbnail ?? null,
       post_type: body.post_type,
       status,
+      risk_score: risk.score,
+      is_anonymous: body.is_anonymous ?? false,
+      search_text: toSearchText(title, excerpt, content),
       author_id: me.id,
       category_id: body.category_id ?? null,
     })
@@ -162,8 +169,14 @@ postRoutes.get('/', optionalAuth, async (c) => {
   if (authorId) conditions.push(eq(posts.author_id, authorId));
 
   if (q.search && q.search.trim()) {
-    const term = `%${q.search.trim()}%`;
-    conditions.push(or(ilike(posts.title, term), ilike(posts.content, term))!);
+    // search_text is stored lowercase and diacritic-free, so "tieu duong"
+    // matches "tiểu đường". Falls back to title/content for rows written
+    // before the column existed and not yet edited.
+    const needle = `%${deaccent(q.search.trim()).toLowerCase()}%`;
+    const raw = `%${q.search.trim()}%`;
+    conditions.push(
+      or(ilike(posts.search_text, needle), ilike(posts.title, raw), ilike(posts.content, raw))!,
+    );
   }
 
   // Keyset pagination: strictly older than the cursor, tie-broken by id.
@@ -213,6 +226,8 @@ postRoutes.get('/', optionalAuth, async (c) => {
         tags: tagsByPost.get(r.post.id) ?? [],
         userReaction: viewer.reactions.get(r.post.id) ?? null,
         isBookmarked: viewer.bookmarks.has(r.post.id),
+        viewerId: me?.id ?? null,
+        viewerIsStaff: isAdminOrMod,
       }),
     ),
     next_cursor: nextCursor,
@@ -259,6 +274,8 @@ postRoutes.get('/:id_or_slug', optionalAuth, async (c) => {
       tags: tagsByPost.get(post.id) ?? [],
       userReaction: viewer.reactions.get(post.id) ?? null,
       isBookmarked: viewer.bookmarks.has(post.id),
+      viewerId: me?.id ?? null,
+      viewerIsStaff: !!me && (me.role === 'admin' || me.role === 'moderator'),
       breakdown,
     }),
   );
@@ -311,6 +328,15 @@ postRoutes.put('/:id_or_slug', requireAuth, async (c) => {
     patch.category_id = body.category_id;
   }
 
+  // Any edit to the searchable fields rewrites the haystack.
+  if (patch.title !== undefined || patch.content !== undefined || patch.excerpt !== undefined) {
+    patch.search_text = toSearchText(
+      patch.title ?? found.post.title,
+      patch.excerpt ?? found.post.excerpt,
+      patch.content ?? found.post.content,
+    );
+  }
+
   const updatedRows = await db
     .update(posts)
     .set({ ...patch, updated_at: new Date() })
@@ -350,9 +376,59 @@ postRoutes.put('/:id_or_slug', requireAuth, async (c) => {
       tags: tagsByPost.get(post.id) ?? [],
       userReaction: null,
       isBookmarked: false,
+      viewerId: me.id,
+      viewerIsStaff: isStaff,
       breakdown,
     }),
   );
+});
+
+/**
+ * Marks one comment as the accepted answer. PostType.QUESTION already
+ * existed but behaved exactly like an article; this is what makes the forum
+ * a question-and-answer site. Only the post's author (or staff) decides.
+ * Sending comment_id: null clears the selection.
+ */
+postRoutes.put('/:id_or_slug/accepted-answer', requireAuth, async (c) => {
+  const me = currentUser(c);
+  const key = c.req.param('id_or_slug');
+  const id = asUuid(key);
+
+  const rows = await db
+    .select()
+    .from(posts)
+    .where(id ? eq(posts.id, id) : eq(posts.slug, key))
+    .limit(1);
+  const post = rows[0];
+  if (!post) throw notFound('Post not found');
+
+  const isStaff = me.role === 'admin' || me.role === 'moderator';
+  if (post.author_id !== me.id && !isStaff) {
+    throw forbidden('Chỉ tác giả bài viết mới chọn được câu trả lời');
+  }
+
+  const body = await parseBody(c, acceptAnswerSchema);
+
+  if (body.comment_id !== null) {
+    const comment = await db
+      .select({ id: comments.id, post_id: comments.post_id, is_deleted: comments.is_deleted })
+      .from(comments)
+      .where(eq(comments.id, body.comment_id))
+      .limit(1);
+    if (!comment[0] || comment[0].post_id !== post.id) {
+      throw notFound('Comment not found on this post');
+    }
+    if (comment[0].is_deleted) {
+      throw badRequest('Không thể chọn một bình luận đã bị xóa');
+    }
+  }
+
+  await db
+    .update(posts)
+    .set({ accepted_comment_id: body.comment_id, updated_at: new Date() })
+    .where(eq(posts.id, post.id));
+
+  return c.json({ success: true, accepted_comment_id: body.comment_id });
 });
 
 postRoutes.delete('/:id_or_slug', requireAuth, async (c) => {

@@ -44,6 +44,9 @@ export const settings = {
     ? ['http://localhost:3000', 'http://localhost:8000']
     : rawOrigins,
 
+  /** Public address of the forum, used by sitemap.xml and robots.txt. */
+  SITE_URL: process.env.SITE_URL ?? 'http://localhost:3000',
+
   UPLOAD_DIR: process.env.UPLOAD_DIR ?? 'uploads',
   PORT: Number(process.env.PORT ?? 8000),
 

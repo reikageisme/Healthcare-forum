@@ -9,12 +9,17 @@ interface CommentTreeProps {
   postId: string;
   totalComments?: number;
   onCommentCountChange?: (count: number) => void;
+  /** Set when the viewer may choose the accepted answer (asker or staff). */
+  onAcceptAnswer?: (commentId: string | null) => Promise<void>;
+  canAcceptAnswer?: boolean;
 }
 
 export const CommentTree: React.FC<CommentTreeProps> = ({
   postId,
   totalComments = 0,
   onCommentCountChange,
+  onAcceptAnswer,
+  canAcceptAnswer = false,
 }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,6 +36,14 @@ export const CommentTree: React.FC<CommentTreeProps> = ({
       setIsLoading(false);
     }
   }, [postId]);
+
+  // The accepted flag lives on the comments the API returns, so the tree is
+  // reloaded after the choice is saved rather than patched in place.
+  const handleAccept = async (commentId: string | null) => {
+    if (!onAcceptAnswer) return;
+    await onAcceptAnswer(commentId);
+    await fetchComments();
+  };
 
   useEffect(() => {
     fetchComments();
@@ -129,6 +142,8 @@ export const CommentTree: React.FC<CommentTreeProps> = ({
               comment={comment}
               onReply={handleReplySubmit}
               onDelete={handleDeleteComment}
+              onAcceptAnswer={handleAccept}
+              canAcceptAnswer={canAcceptAnswer}
               depth={0}
             />
           ))}

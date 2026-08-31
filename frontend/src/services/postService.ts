@@ -44,6 +44,10 @@ export const postService = {
     return response.data;
   },
 
+  acceptAnswer: async (postId: string, commentId: string | null): Promise<void> => {
+    await api.put(`/posts/${postId}/accepted-answer`, { comment_id: commentId });
+  },
+
   deletePost: async (idOrSlug: string): Promise<void> => {
     await api.delete(`/posts/${idOrSlug}`);
   },

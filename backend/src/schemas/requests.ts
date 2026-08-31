@@ -52,6 +52,7 @@ export const postCreateSchema = z.object({
   category_id: z.string().uuid().nullish(),
   tags: z.array(z.string()).optional().default([]),
   tag_names: z.array(z.string()).nullish(),
+  is_anonymous: z.boolean().optional().default(false),
 });
 
 export const postUpdateSchema = z.object({
@@ -94,6 +95,24 @@ export const categoryUpdateSchema = z.object({
 export const commentCreateSchema = z.object({
   content: z.string().min(1),
   parent_id: z.string().uuid().nullish(),
+  is_anonymous: z.boolean().optional().default(false),
+});
+
+export const acceptAnswerSchema = z.object({
+  comment_id: z.string().uuid().nullable(),
+});
+
+export const verificationSubmitSchema = z.object({
+  full_name: z.string().min(2).max(255),
+  license_number: z.string().min(3).max(100),
+  specialty: optionalString(100),
+  workplace: optionalString(255),
+  document_url: z.string().min(1).max(500),
+});
+
+export const verificationReviewSchema = z.object({
+  status: z.enum(['approved', 'rejected']),
+  review_notes: z.string().max(2000).nullish(),
 });
 
 export const commentUpdateSchema = z.object({ content: z.string().min(1) });

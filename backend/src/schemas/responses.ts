@@ -29,6 +29,9 @@ export const userResponseSchema = z
     bio: z.string().nullable(),
     id: z.string(),
     role: z.enum(userRoleValues),
+    workplace: z.string().nullable(),
+    /** Non-null only for a doctor whose practising licence was approved. */
+    verified_at: z.string().nullable(),
     is_active: z.boolean(),
     created_at: z.string(),
     post_count: z.number().int(),
@@ -36,6 +39,27 @@ export const userResponseSchema = z
   })
   .strict();
 export type UserResponse = z.infer<typeof userResponseSchema>;
+
+/**
+ * Stand-in author for anonymous content. No real id, so nothing about the
+ * poster travels to other readers — the point of the feature.
+ */
+export const ANONYMOUS_AUTHOR: UserResponse = Object.freeze({
+  email: '',
+  username: 'an-danh',
+  full_name: 'Người dùng ẩn danh',
+  avatar_url: null,
+  specialty: null,
+  bio: null,
+  id: 'anonymous',
+  role: 'user' as const,
+  workplace: null,
+  verified_at: null,
+  is_active: true,
+  created_at: new Date(0).toISOString().replace('Z', '+00:00'),
+  post_count: 0,
+  comment_count: 0,
+});
 
 export function toUserResponse(
   user: UserRow,
@@ -50,6 +74,8 @@ export function toUserResponse(
     bio: user.bio,
     id: user.id,
     role: user.role,
+    workplace: user.workplace,
+    verified_at: toIso(user.verified_at),
     is_active: user.is_active,
     created_at: toIsoRequired(user.created_at),
     post_count: counts?.post_count ?? 0,
@@ -122,6 +148,8 @@ export const postSummarySchema = z
     post_type: z.enum(postTypeValues),
     status: z.enum(postStatusValues),
     rejection_reason: z.string().nullable(),
+    is_anonymous: z.boolean(),
+    accepted_comment_id: z.string().nullable(),
     view_count: z.number().int(),
     helpful_count: z.number().int(),
     comment_count: z.number().int(),
@@ -161,6 +189,21 @@ export interface PostViewContext {
   tags?: TagRow[];
   userReaction?: string | null;
   isBookmarked?: boolean;
+  /** Who is reading. The author and staff still see the real name. */
+  viewerId?: string | null;
+  viewerIsStaff?: boolean;
+}
+
+/** Anonymous content shows a placeholder to everyone except its author and staff. */
+function authorFor(
+  isAnonymous: boolean,
+  author: UserRow,
+  viewerId?: string | null,
+  viewerIsStaff?: boolean,
+): UserResponse {
+  if (!isAnonymous) return toUserResponse(author);
+  if (viewerIsStaff || (viewerId && viewerId === author.id)) return toUserResponse(author);
+  return ANONYMOUS_AUTHOR;
 }
 
 /**
@@ -178,13 +221,15 @@ export function toPostSummary(post: PostRow, ctx: PostViewContext): PostSummaryR
     post_type: post.post_type,
     status: post.status,
     rejection_reason: post.rejection_reason,
+    is_anonymous: post.is_anonymous,
+    accepted_comment_id: post.accepted_comment_id,
     view_count: post.view_count,
     helpful_count: post.helpful_count,
     comment_count: post.comment_count,
     is_published: post.is_published,
     created_at: toIsoRequired(post.created_at),
     updated_at: toIsoRequired(post.updated_at),
-    author: toUserResponse(ctx.author),
+    author: authorFor(post.is_anonymous, ctx.author, ctx.viewerId, ctx.viewerIsStaff),
     category: ctx.category ? toCategoryResponse(ctx.category) : null,
     tags: (ctx.tags ?? []).map(toTagResponse),
     user_reaction: ctx.userReaction ?? null,
@@ -209,6 +254,8 @@ export interface CommentResponse {
   parent_id: string | null;
   content: string;
   vote_count: number;
+  is_anonymous: boolean;
+  is_accepted: boolean;
   is_deleted: boolean;
   created_at: string;
   updated_at: string;
@@ -224,6 +271,8 @@ export const commentResponseSchema: z.ZodType<CommentResponse> = z.lazy(() =>
       parent_id: z.string().nullable(),
       content: z.string(),
       vote_count: z.number().int(),
+      is_anonymous: z.boolean(),
+      is_accepted: z.boolean(),
       is_deleted: z.boolean(),
       created_at: z.string(),
       updated_at: z.string(),
@@ -237,6 +286,7 @@ export function toCommentResponse(
   row: CommentRow,
   author: UserRow | null,
   replies: CommentResponse[] = [],
+  opts: { acceptedCommentId?: string | null; viewerId?: string | null; viewerIsStaff?: boolean } = {},
 ): CommentResponse {
   return commentResponseSchema.parse({
     id: row.id,
@@ -244,10 +294,14 @@ export function toCommentResponse(
     parent_id: row.parent_id,
     content: row.content,
     vote_count: row.vote_count,
+    is_anonymous: row.is_anonymous,
+    is_accepted: opts.acceptedCommentId === row.id,
     is_deleted: row.is_deleted,
     created_at: toIsoRequired(row.created_at),
     updated_at: toIsoRequired(row.updated_at),
-    author: author ? toUserResponse(author) : null,
+    author: author
+      ? authorFor(row.is_anonymous, author, opts.viewerId, opts.viewerIsStaff)
+      : null,
     replies,
   });
 }

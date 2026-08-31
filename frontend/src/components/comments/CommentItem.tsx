@@ -1,15 +1,32 @@
 import React, { useState } from 'react';
-import { MessageSquare, Trash2, ChevronDown, ChevronRight, ThumbsUp, ShieldCheck, Flag } from 'lucide-react';
+import {
+  MessageSquare,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  ThumbsUp,
+  ShieldCheck,
+  Flag,
+  CheckCircle2,
+} from 'lucide-react';
 import { Comment } from '../../types';
 import { CommentForm } from './CommentForm';
 import { ReportModal } from '../common/ReportModal';
 import { useAuth } from '../../hooks/useAuth';
 import { formatRelativeTime, getAvatarUrl, cn } from '../../lib/utils';
+import {
+  AcceptedAnswerBadge,
+  AnonymousBadge,
+  VerifiedDoctorBadge,
+  isVerifiedDoctor,
+} from '../common/Badges';
 
 interface CommentItemProps {
   comment: Comment;
   onReply: (parentId: string, content: string) => Promise<void>;
   onDelete: (commentId: string) => Promise<void>;
+  onAcceptAnswer?: (commentId: string | null) => Promise<void>;
+  canAcceptAnswer?: boolean;
   depth?: number;
 }
 
@@ -17,6 +34,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   comment,
   onReply,
   onDelete,
+  onAcceptAnswer,
+  canAcceptAnswer = false,
   depth = 0,
 }) => {
   const { user } = useAuth();
@@ -27,7 +46,11 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const [hasVoted, setHasVoted] = useState(false);
 
   const author = comment.author;
-  const isDoctor = author?.role?.toUpperCase() === 'DOCTOR';
+  const isVerified = isVerifiedDoctor(author);
+  const isDoctor = author?.role?.toUpperCase() === 'DOCTOR' && !isVerified;
+  const isAccepted = !!comment.is_accepted;
+  // Only top-level comments answer the question; replies are discussion.
+  const canMarkAccepted = canAcceptAnswer && depth === 0 && !comment.is_deleted;
   const isAuthor = user && author && user.id === author.id;
   const canDelete = user && (isAuthor || user.role?.toUpperCase() === 'ADMIN' || user.role?.toUpperCase() === 'MODERATOR');
 
@@ -70,6 +93,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       <div
         className={cn(
           'p-3.5 rounded-xl border border-border bg-white transition-all hover:border-slate-300',
+          isAccepted && 'border-emerald-300 bg-emerald-50/40 hover:border-emerald-400',
           comment.is_deleted && 'bg-slate-50 border-dashed text-slate-400'
         )}
       >
@@ -102,11 +126,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               </span>
 
               {isDoctor && !comment.is_deleted && (
-                <span className="flex items-center gap-0.5 bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                  <ShieldCheck size={11} />
+                <span className="flex items-center gap-0.5 bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                  <ShieldCheck size={11} aria-hidden="true" />
                   BS.
                 </span>
               )}
+
+              {!comment.is_deleted && <VerifiedDoctorBadge user={author} />}
+              {comment.is_anonymous && !comment.is_deleted && <AnonymousBadge />}
+              {isAccepted && <AcceptedAnswerBadge />}
 
               {author?.specialty && !comment.is_deleted && (
                 <span className="text-text-secondary">({author.specialty})</span>
@@ -118,6 +146,24 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               </span>
             </div>
           </div>
+
+          {/* Accept as the answer — only the asker or staff see this */}
+          {canMarkAccepted && onAcceptAnswer && (
+            <button
+              type="button"
+              onClick={() => onAcceptAnswer(isAccepted ? null : comment.id)}
+              title={isAccepted ? 'Bỏ chọn câu trả lời này' : 'Chọn làm câu trả lời'}
+              className={cn(
+                'flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors',
+                isAccepted
+                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  : 'text-slate-400 hover:bg-emerald-50 hover:text-emerald-700',
+              )}
+            >
+              <CheckCircle2 size={14} aria-hidden="true" />
+              <span className="hidden sm:inline">{isAccepted ? 'Đã chọn' : 'Chọn'}</span>
+            </button>
+          )}
 
           {/* Delete action */}
           {canDelete && !comment.is_deleted && (

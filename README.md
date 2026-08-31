@@ -1,85 +1,153 @@
 # 🏥 Healthcare Forum
 
-Cổng thông tin Y tế cộng đồng - Dự án kết nối, chia sẻ kiến thức y tế.
+Cổng thông tin Y tế cộng đồng — Dự án kết nối, chia sẻ kiến thức y tế.
 
 ## 🚀 Tech Stack
 
 | Thành phần | Công nghệ |
 | ---------- | --------- |
-| Frontend | React, Vite, Node 20 |
-| Backend | FastAPI, Python 3.12 |
-| Database | PostgreSQL 16 |
-| Docker | Docker Compose, Multi-stage builds |
+| Frontend | React 18, Vite 5, TypeScript, Tailwind |
+| Backend | Hono, Drizzle ORM, Zod, Node 20 |
+| Database | PostgreSQL 16 (máy ngoài: `192.168.1.102`) |
+| Kiểm thử | Vitest + PGlite (Postgres thật, in-memory) |
+| Docker | Docker Compose, multi-stage build |
 
-## 📋 Prerequisites
+## 📋 Yêu cầu
 
-Yêu cầu cài đặt các phần mềm sau trước khi bắt đầu:
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Docker](https://docs.docker.com/get-docker/) và [Docker Compose](https://docs.docker.com/compose/install/)
+- Một máy chủ PostgreSQL 16 truy cập được từ máy chạy Docker
 
-## ⚡ Quick Start
+## ⚡ Chạy lần đầu
 
-1. Clone dự án và truy cập vào thư mục:
-```bash
-git clone <repository-url>
-cd healthcare-forum
-```
+### 1. Tạo file `.env`
 
-2. (Tùy chọn) Khởi tạo file `.env` nếu chưa có, hoặc điều chỉnh nếu cần:
 ```bash
 cp .env.example .env
 ```
 
-3. Khởi động các services bằng Docker Compose:
+Sửa hai giá trị bắt buộc trong `.env`:
+
+```env
+# Trỏ đúng máy chủ Postgres của bạn. Database chưa cần tồn tại —
+# backend sẽ tự tạo ở bước khởi động.
+DATABASE_URL=postgresql://postgres:MẬT_KHẨU@192.168.1.102:5432/healthcare_forum
+POSTGRES_HOST=192.168.1.102
+
+# Bắt buộc từ 32 ký tự trở lên khi NODE_ENV=production, nếu không backend từ chối khởi động.
+JWT_SECRET=chuỗi-ngẫu-nhiên-thật-dài-ít-nhất-32-ký-tự
+
+# Tài khoản quản trị đầu tiên, được tạo thẳng vào database.
+# Để trống thì bước tạo admin bị bỏ qua.
+ADMIN_EMAIL=admin@health.vn
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=mật-khẩu-ít-nhất-12-ký-tự
+```
+
+> Sinh `JWT_SECRET` nhanh: `openssl rand -base64 48`
+
+### 2. Cho phép Postgres nhận kết nối từ ngoài
+
+Nếu Postgres nằm trên máy khác (192.168.1.102), trên **máy đó** cần:
+
+```conf
+# postgresql.conf
+listen_addresses = '*'
+
+# pg_hba.conf — cho phép dải mạng LAN của bạn
+host    all    all    192.168.1.0/24    scram-sha-256
+```
+
+Rồi `sudo systemctl restart postgresql`. Kiểm tra từ máy chạy Docker:
+
+```bash
+psql "postgresql://postgres:MẬT_KHẨU@192.168.1.102:5432/postgres" -c '\l'
+```
+
+Tài khoản trong `DATABASE_URL` cần quyền `CREATEDB` để backend tự tạo database.
+Nếu không có quyền đó, tạo tay một lần:
+
+```bash
+psql -h 192.168.1.102 -U postgres -c 'CREATE DATABASE "healthcare_forum"'
+```
+
+### 3. Build và chạy
+
 ```bash
 docker compose up --build
 ```
 
-Dự án sẽ khả dụng tại:
-- Frontend: http://localhost:3000
-- Backend API Docs: http://localhost:8000/docs
-- Adminer (DB UI): http://localhost:8080
+Lần khởi động đầu tiên backend tự làm tuần tự (tất cả đều idempotent, chạy lại vô hại):
 
-## 🛠 Development Workflow
+1. **`createDatabase`** — tạo database `healthcare_forum` nếu máy chủ chưa có
+2. **`migrate`** — tạo schema (chỉ khi database còn trống) rồi áp các patch
+3. **`sanitizeExisting`** — làm sạch HTML của bài/bình luận lưu từ trước
+4. **`createAdmin`** — tạo tài khoản quản trị từ `ADMIN_*` nếu chưa tồn tại
 
-Trong môi trường phát triển (Development):
-- **Hot Reload**: Backend và Frontend được mount volume trực tiếp, mọi thay đổi trong source code sẽ được cập nhật tự động mà không cần build lại container.
-- **Database**: Dữ liệu được lưu persist qua docker volumes, an toàn kể cả khi restart container.
+Truy cập:
 
-Để chạy môi trường Production:
+| Dịch vụ | Địa chỉ |
+| ------- | ------- |
+| Diễn đàn | http://localhost:3000 |
+| API | http://localhost:8000/api/v1/health |
+| Adminer (xem DB) | http://localhost:8080 |
+
+### Chạy production
+
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
-## 📁 Project Structure
+### Muốn dùng Postgres trong container thay vì máy ngoài
 
-```
-├── backend/                # Backend API (FastAPI)
-│   ├── app/                # Source code Python
-│   └── Dockerfile          # Docker configuration for backend
-├── frontend/               # Frontend Client (React)
-│   ├── src/                # Source code Node.js/React
-│   ├── nginx.conf          # Nginx config for Production
-│   └── Dockerfile          # Docker configuration for frontend
-├── .env.example            # Environment variables template
-├── .env                    # Local environment variables
-├── docker-compose.yml      # Base & Dev docker compose config
-├── docker-compose.prod.yml # Production overrides
-└── README.md               # Project documentation
+```bash
+# Đổi DATABASE_URL thành ...@db:5432/healthcare_forum trong .env trước
+docker compose -f docker-compose.yml -f docker-compose.db.yml up --build
 ```
 
-## 📚 API Documentation
+## 🔧 Chạy không cần Docker
 
-Xem tài liệu API tương tác tại: [Swagger UI](http://localhost:8000/docs) hoặc [ReDoc](http://localhost:8000/redoc).
+```bash
+# Backend
+cd backend
+npm install
+npm run db:setup     # tạo database + schema + tài khoản admin
+npm run dev          # http://localhost:8000
 
-## 🤝 Contributing
+# Frontend (terminal khác)
+cd frontend
+npm install
+npm run dev          # http://localhost:3000
+```
 
-1. Fork dự án
-2. Tạo nhánh tính năng mới (`git checkout -b feature/amazing-feature`)
-3. Commit các thay đổi (`git commit -m 'Add some amazing feature'`)
-4. Push nhánh của bạn (`git push origin feature/amazing-feature`)
-5. Tạo Pull Request
+## 🧪 Kiểm thử
 
-## 📄 License
+```bash
+cd backend
+npm test             # 49 test trên Postgres thật (PGlite), không cần database ngoài
+npm run typecheck
 
-Dự án này được cấp phép theo giấy phép MIT.
+cd ../frontend
+npm run build        # đã bật lại tsc trước khi build
+```
+
+## 🗄️ Các lệnh database
+
+| Lệnh | Việc |
+| ---- | ---- |
+| `npm run db:create` | Tạo database nếu chưa có |
+| `npm run db:migrate` | Tạo schema / áp patch |
+| `npm run create-admin` | Tạo tài khoản quản trị |
+| `npm run db:setup` | Cả ba lệnh trên |
+| `npm run sanitize-existing` | Quét lại và làm sạch nội dung đã lưu |
+
+## 📁 Cấu trúc
+
+```
+backend/          Hono + Drizzle + Zod (xem backend/README.md)
+frontend/         React + Vite + Tailwind
+docker-compose.yml           Dev — Postgres ở máy ngoài
+docker-compose.db.yml        Tùy chọn — thêm Postgres chạy trong container
+docker-compose.prod.yml      Production
+```
+
+Chi tiết về API, quy tắc bảo mật và cây chuyên mục: [`backend/README.md`](backend/README.md).
