@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lightbulb, Heart, Info, Loader2 } from 'lucide-react';
+import { Lightbulb, Heart, Info } from 'lucide-react';
 import { reactionService } from '../../services/reactionService';
 import { useAuth } from '../../hooks/useAuth';
 import { ReactionCounts } from '../../types';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Hash, Loader2, CheckCircle2, ArrowLeft, FileText } from 'lucide-react';
+import { Hash, Loader2, CheckCircle2, FileText } from 'lucide-react';
 import FeedCard from '../components/Feed/FeedCard';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
@@ -133,7 +133,11 @@ export const TagPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {posts.map((post) => (
-            <FeedCard key={post.id} post={post} />
+            <FeedCard
+              key={post.id}
+              post={post}
+              onDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+            />
           ))}
         </div>
       )}

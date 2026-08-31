@@ -34,6 +34,8 @@ export interface Category {
   slug: string;
   icon?: string | null;
   description?: string | null;
+  /** null for a top-level category; set for a child. The tree is two deep. */
+  parent_id?: string | null;
   created_at?: string;
   post_count?: number;
 }

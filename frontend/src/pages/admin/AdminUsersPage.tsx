@@ -1,17 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Users,
-  Search,
-  UserCheck,
-  Shield,
-  Crown,
-  User as UserIcon,
-  Lock,
-  Unlock,
-  Edit2,
-  RefreshCw,
-  AlertCircle,
-} from 'lucide-react';
+import { Search, UserCheck, Shield, Crown, User as UserIcon, Lock, Unlock, Edit2, RefreshCw } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import { User, UserRole } from '../../types';
 import EditUserModal from '../../components/admin/EditUserModal';
@@ -25,7 +13,7 @@ export const AdminUsersPage: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modal

@@ -1,23 +1,9 @@
+# Postgres lives outside this stack, on 192.168.1.102. Point DATABASE_URL at
+# it in .env. To run a throwaway database alongside instead, add the optional
+# override:  docker compose -f docker-compose.yml -f docker-compose.db.yml up
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: healthcare_db
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-healthcare_forum}
-    ports:
-      - "5432:5432"
-    volumes:
-      - healthcare_db_data:/var/lib/postgresql/data
-    networks:
-      - healthcare-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
+  # Same service name and port as the FastAPI backend it replaced, so the
+  # frontend's vite proxy (/api and /uploads -> backend:8000) is unchanged.
   backend:
     build:
       context: ./backend
@@ -25,16 +11,14 @@ services:
     container_name: healthcare_backend
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
     env_file:
       - .env
     volumes:
-      - ./backend/app:/app/app
+      - ./backend/src:/app/src
+      - ./backend/drizzle:/app/drizzle
       - ./backend/uploads:/app/uploads
-      - ./backend/alembic:/app/alembic
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: npm run dev
+    restart: unless-stopped
     networks:
       - healthcare-net
 
@@ -60,14 +44,11 @@ services:
     container_name: healthcare_adminer
     ports:
       - "8080:8080"
-    depends_on:
-      - db
+    environment:
+      ADMINER_DEFAULT_SERVER: ${POSTGRES_HOST:-192.168.1.102}
     networks:
       - healthcare-net
 
 networks:
   healthcare-net:
     driver: bridge
-
-volumes:
-  healthcare_db_data:

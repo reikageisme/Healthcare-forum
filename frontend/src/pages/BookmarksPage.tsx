@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Bookmark, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Bookmark, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import FeedCard from '../components/Feed/FeedCard';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
@@ -136,6 +136,7 @@ export const BookmarksPage: React.FC = () => {
               key={post.id} 
               post={{ ...post, is_bookmarked: true }} 
               onBookmarkToggle={handleBookmarkToggle}
+              onDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
             />
           ))}
           

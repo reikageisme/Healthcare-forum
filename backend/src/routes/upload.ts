@@ -1,0 +1,89 @@
+import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { Hono } from 'hono';
+import sharp from 'sharp';
+import { settings } from '../core/config.js';
+import { badRequest } from '../core/errors.js';
+import { uploadResponseSchema } from '../schemas/responses.js';
+import { requireAuth } from '../middleware/auth.js';
+import { uploadRateLimit } from '../middleware/rateLimit.js';
+
+export const uploadRoutes = new Hono();
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+/** Detected format -> the extension and content type actually written. */
+const FORMATS: Record<string, { ext: string; mime: string }> = {
+  jpeg: { ext: '.jpg', mime: 'image/jpeg' },
+  png: { ext: '.png', mime: 'image/png' },
+  webp: { ext: '.webp', mime: 'image/webp' },
+  gif: { ext: '.gif', mime: 'image/gif' },
+};
+
+const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+uploadRoutes.post('/upload', requireAuth, uploadRateLimit, async (c) => {
+  const form = await c.req.parseBody();
+  const file = form.file;
+  if (!(file instanceof File)) {
+    throw badRequest('No file uploaded. Expected a multipart field named "file".');
+  }
+
+  const name = file.name || '';
+  const dot = name.lastIndexOf('.');
+  const ext = dot >= 0 ? name.slice(dot).toLowerCase() : '';
+  if (!ALLOWED_EXTENSIONS.has(ext)) {
+    throw badRequest(
+      `Unsupported file extension: ${ext}. Allowed: ${[...ALLOWED_EXTENSIONS].join(', ')}`,
+    );
+  }
+
+  const contentType = (file.type || '').toLowerCase();
+  if (!ALLOWED_MIME.has(contentType)) {
+    throw badRequest(
+      `Unsupported content type: ${contentType}. Allowed: ${[...ALLOWED_MIME].join(', ')}`,
+    );
+  }
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (bytes.byteLength > MAX_FILE_SIZE) {
+    throw badRequest(`File size exceeds 5MB limit. Got ${bytes.byteLength} bytes.`);
+  }
+  if (bytes.byteLength === 0) {
+    throw badRequest('Empty file upload is not allowed.');
+  }
+
+  // Decode the bytes rather than trusting the name or the declared type —
+  // this is what stops a script or an HTML document arriving with a .png on
+  // the end of it.
+  let detected: string | undefined;
+  try {
+    detected = (await sharp(bytes, { animated: true }).metadata()).format;
+  } catch {
+    throw badRequest('Invalid image file or corrupted image data.');
+  }
+
+  const format = detected ? FORMATS[detected] : undefined;
+  if (!format) {
+    throw badRequest('Invalid image file or corrupted image data.');
+  }
+
+  // The stored name comes from what the bytes actually are, not from what
+  // the client called the file.
+  const uploadDir = join(process.cwd(), settings.UPLOAD_DIR);
+  await mkdir(uploadDir, { recursive: true });
+  const filename = `${randomUUID().replace(/-/g, '')}${format.ext}`;
+  await writeFile(join(uploadDir, filename), bytes);
+
+  return c.json(
+    uploadResponseSchema.parse({
+      url: `/uploads/${filename}`,
+      filename,
+      content_type: format.mime,
+      size: bytes.byteLength,
+    }),
+    201,
+  );
+});

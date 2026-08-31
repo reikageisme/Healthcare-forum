@@ -1,5 +1,5 @@
 import React from 'react';
-import { PenLine, MessageCircle, Star, Sparkles } from 'lucide-react';
+import { PenLine, MessageCircle, Star } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getAvatarUrl } from '../../lib/utils';

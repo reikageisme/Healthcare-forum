@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, X, Loader2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { uploadService } from '../../services/uploadService';
 import { cn } from '../../lib/utils';
+import { describeUploadError, validateImageFile } from '../../lib/uploadError';
 
 interface ImageUploaderProps {
   value?: string | null;
@@ -18,16 +19,27 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (file: File) => {
+    setErrorMsg(null);
+
+    // Caught here so an oversized file gets a specific answer immediately
+    // rather than a round trip and a generic message.
+    const localError = validateImageFile(file);
+    if (localError) {
+      setErrorMsg(localError);
+      return;
+    }
+
     try {
       setIsUploading(true);
       const res = await uploadService.uploadImage(file);
       onChange(res.url);
     } catch (error) {
       console.error('Failed to upload image', error);
-      alert('Không thể tải ảnh lên. Vui lòng chọn ảnh định dạng JPG, PNG, WebP hoặc GIF dưới 5MB.');
+      setErrorMsg(describeUploadError(error));
     } finally {
       setIsUploading(false);
     }
@@ -51,6 +63,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setErrorMsg(null);
     onChange(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -124,6 +137,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="flex items-start gap-2 text-xs text-danger bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <AlertCircle size={14} className="mt-0.5 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
     </div>

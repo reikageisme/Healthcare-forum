@@ -1,27 +1,66 @@
 import React, { useState } from 'react';
-import { MessageCircle, Share2, MoreHorizontal, ShieldCheck, Clock, XCircle, Flag } from 'lucide-react';
+import {
+  MessageCircle,
+  Share2,
+  MoreHorizontal,
+  ShieldCheck,
+  Clock,
+  XCircle,
+  Flag,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Post } from '../../types';
 import { ReactionButtons } from '../posts/ReactionButtons';
 import { BookmarkButton } from '../posts/BookmarkButton';
 import { ReportModal } from '../common/ReportModal';
 import { formatRelativeTime, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
+import { useAuthStore } from '../../stores/authStore';
+import { postService } from '../../services/postService';
 
 interface FeedCardProps {
   post: Post;
   onBookmarkToggle?: (postId: string, isBookmarked: boolean) => void;
+  onDeleted?: (postId: string) => void;
 }
 
-export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle }) => {
+export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDeleted }) => {
   const navigate = useNavigate();
+  const currentUser = useAuthStore((state) => state.user);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const author = post.author;
   const isDoctor = author?.role?.toUpperCase() === 'DOCTOR';
   const typeInfo = getPostTypeInfo(post.post_type || post.type);
   const postUrl = `/posts/${post.id || post.slug}`;
   const statusNorm = post.status?.toLowerCase();
+
+  // Editing was only reachable from the post detail page, so a typo spotted
+  // in the feed meant opening the post first. The same permission rule the
+  // backend enforces is mirrored here.
+  const role = currentUser?.role?.toUpperCase();
+  const isAuthor = !!currentUser && !!author && currentUser.id === author.id;
+  const canManage = !!currentUser && (isAuthor || role === 'ADMIN' || role === 'MODERATOR');
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowOptionsMenu(false);
+    if (!window.confirm(`Xóa bài viết "${post.title}"? Thao tác này không thể hoàn tác.`)) return;
+
+    try {
+      setIsDeleting(true);
+      await postService.deletePost(post.id);
+      onDeleted?.(post.id);
+    } catch (error) {
+      console.error('Failed to delete post', error);
+      window.alert('Không xóa được bài viết. Vui lòng thử lại.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -31,6 +70,13 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle }) =>
       alert('Đã sao chép liên kết bài viết vào clipboard!');
     }
   };
+
+  // The excerpt is capped at 200 characters server-side and clamped to three
+  // lines here, so a long post simply stopped mid-sentence with nothing to
+  // click. The marker is either the server's ellipsis or a length that will
+  // not fit three lines.
+  const excerptText = post.excerpt ?? '';
+  const isExcerptTruncated = excerptText.endsWith('...') || excerptText.length > 150;
 
   const reactionCounts = post.reaction_breakdown || {
     helpful: post.helpful_count || post.helpfulCount || 0,
@@ -108,7 +154,32 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle }) =>
             </button>
 
             {showOptionsMenu && (
-              <div className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-border py-1.5 z-20 animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-border py-1.5 z-20 animate-in fade-in zoom-in-95">
+                {canManage && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        navigate(`/posts/${post.id}/edit`);
+                      }}
+                      className="w-full text-left px-3.5 py-1.5 text-xs text-text hover:bg-slate-50 transition-colors flex items-center gap-2 font-medium"
+                    >
+                      <Pencil size={14} />
+                      <span>Sửa bài viết</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="w-full text-left px-3.5 py-1.5 text-xs text-danger hover:bg-red-50 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
+                    >
+                      <Trash2 size={14} />
+                      <span>{isDeleting ? 'Đang xóa...' : 'Xóa bài viết'}</span>
+                    </button>
+                    <div className="my-1 border-t border-border" />
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -137,6 +208,14 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle }) =>
             </p>
           )}
         </Link>
+        {isExcerptTruncated && (
+          <Link
+            to={postUrl}
+            className="inline-block mt-1.5 text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
+          >
+            Xem thêm
+          </Link>
+        )}
       </div>
 
       {/* Thumbnail */}

@@ -1,13 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Folder,
-  FolderPlus,
-  Edit2,
-  Trash2,
-  RefreshCw,
-  Search,
-  FileText,
-} from 'lucide-react';
+import { FolderPlus, Edit2, Trash2, RefreshCw, Search, FileText } from 'lucide-react';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
 import CategoryModal from '../../components/admin/CategoryModal';
@@ -53,6 +45,7 @@ export const AdminCategoriesPage: React.FC = () => {
     slug?: string;
     icon?: string | null;
     description?: string | null;
+    parent_id?: string | null;
   }) => {
     try {
       setIsSubmitting(true);
@@ -106,6 +99,13 @@ export const AdminCategoriesPage: React.FC = () => {
     const q = searchKeyword.toLowerCase();
     return c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q);
   });
+
+  // How many children each root category has, for the badge in the table.
+  const childCountOf = new Map<string, number>();
+  for (const c of categories) {
+    if (!c.parent_id) continue;
+    childCountOf.set(c.parent_id, (childCountOf.get(c.parent_id) ?? 0) + 1);
+  }
 
   return (
     <div className="space-y-6">
@@ -189,7 +189,27 @@ export const AdminCategoriesPage: React.FC = () => {
                     </td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="font-bold text-slate-900">{cat.name}</span>
+                      <div className="flex items-center gap-1.5">
+                        {cat.parent_id && (
+                          <span className="text-slate-300 select-none pl-3" aria-hidden="true">
+                            └
+                          </span>
+                        )}
+                        <span
+                          className={
+                            cat.parent_id
+                              ? 'font-semibold text-slate-700'
+                              : 'font-bold text-slate-900'
+                          }
+                        >
+                          {cat.name}
+                        </span>
+                        {childCountOf.get(cat.id) ? (
+                          <span className="bg-slate-100 text-slate-500 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-slate-200">
+                            {childCountOf.get(cat.id)} mục con
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 font-mono">
@@ -240,6 +260,7 @@ export const AdminCategoriesPage: React.FC = () => {
         <CategoryModal
           isOpen={isModalOpen}
           category={editingCategory}
+          allCategories={categories}
           onClose={() => {
             setIsModalOpen(false);
             setEditingCategory(null);

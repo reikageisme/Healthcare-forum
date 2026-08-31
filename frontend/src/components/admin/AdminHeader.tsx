@@ -15,6 +15,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
   const getPageTitle = (pathname: string) => {
     if (pathname.includes('/admin/dashboard')) return 'Tổng quan hệ thống';
     if (pathname.includes('/admin/moderation')) return 'Hàng chờ kiểm duyệt bài viết';
+    if (pathname.includes('/admin/posts')) return 'Quản lý bài viết';
     if (pathname.includes('/admin/reports')) return 'Quản lý báo cáo vi phạm';
     if (pathname.includes('/admin/users')) return 'Quản lý người dùng';
     if (pathname.includes('/admin/categories')) return 'Quản lý chuyên mục';

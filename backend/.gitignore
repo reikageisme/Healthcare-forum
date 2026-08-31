@@ -1,0 +1,6 @@
+node_modules
+dist
+.trash
+uploads/*
+!uploads/.gitkeep
+*.log

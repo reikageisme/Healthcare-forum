@@ -5,12 +5,15 @@ import { Category } from '../../types';
 interface CategoryModalProps {
   isOpen: boolean;
   category: Category | null;
+  /** Every category, used to offer the possible parents. */
+  allCategories?: Category[];
   onClose: () => void;
   onSave: (data: {
     name: string;
     slug?: string;
     icon?: string | null;
     description?: string | null;
+    parent_id?: string | null;
   }) => Promise<void>;
   isSubmitting?: boolean;
 }
@@ -18,6 +21,7 @@ interface CategoryModalProps {
 export const CategoryModal: React.FC<CategoryModalProps> = ({
   isOpen,
   category,
+  allCategories = [],
   onClose,
   onSave,
   isSubmitting = false,
@@ -26,6 +30,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const [slug, setSlug] = useState('');
   const [icon, setIcon] = useState('');
   const [description, setDescription] = useState('');
+  const [parentId, setParentId] = useState('');
 
   useEffect(() => {
     if (category) {
@@ -33,17 +38,26 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       setSlug(category.slug || '');
       setIcon(category.icon || '');
       setDescription(category.description || '');
+      setParentId(category.parent_id || '');
     } else {
       setName('');
       setSlug('');
       setIcon('');
       setDescription('');
+      setParentId('');
     }
   }, [category, isOpen]);
 
   if (!isOpen) return null;
 
   const isEdit = !!category;
+
+  // The tree is two levels deep, so only root categories can be parents, and
+  // a category that already has children cannot become a child itself.
+  const hasChildren = !!category && allCategories.some((c) => c.parent_id === category.id);
+  const parentOptions = allCategories.filter(
+    (c) => !c.parent_id && c.id !== category?.id,
+  );
 
   const generateSlug = (str: string) => {
     return str
@@ -75,6 +89,9 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       slug: slug.trim() || generateSlug(name.trim()),
       icon: icon.trim() || undefined,
       description: description.trim() || undefined,
+      // null detaches from the parent; the API treats an omitted field as
+      // "leave alone", so this is always sent explicitly.
+      parent_id: parentId || null,
     });
   };
 
@@ -114,6 +131,29 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
               required
               className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
+          </div>
+
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Chuyên mục cha</label>
+            <select
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+              disabled={hasChildren}
+              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              <option value="">— Là chuyên mục gốc —</option>
+              {parentOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.icon ? `${c.icon} ` : ''}
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {hasChildren
+                ? 'Chuyên mục này đang có chuyên mục con nên không thể trở thành mục con.'
+                : 'Để trống nếu đây là chuyên mục gốc. Cây chỉ sâu hai cấp.'}
+            </p>
           </div>
 
           <div>

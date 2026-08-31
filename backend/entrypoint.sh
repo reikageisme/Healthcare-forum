@@ -1,6 +1,18 @@
 #!/bin/sh
-# Bring the schema up to date and make sure the demo admin exists before serving.
+# Create the schema only if this is a brand-new database, clean any content
+# stored before sanitising existed, then make sure an admin exists.
 set -e
-alembic upgrade head
-python -m app.create_admin
+
+run() {
+  if [ -f "dist/scripts/$1.js" ]; then
+    node "dist/scripts/$1.js"
+  else
+    npx tsx "src/scripts/$1.ts"
+  fi
+}
+
+run migrate
+run sanitizeExisting
+run createAdmin
+
 exec "$@"

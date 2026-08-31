@@ -1,20 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Home,
   MessageCircle,
   BookOpen,
   Star,
   Bookmark,
-  Stethoscope,
-  Scissors,
-  Baby,
-  Heart,
-  Smile,
-  Eye,
-  Sparkles,
-  HeartPulse,
-  Brain,
-  Bone,
   Building2,
   Building,
   Pill,
@@ -24,6 +14,27 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { categoryService } from '../../services/categoryService';
+import { Category } from '../../types';
+import {
+  FallbackCategoryIcon,
+  isEmojiIcon,
+  resolveCategoryIcon,
+} from '../../lib/categoryIcon';
+
+const CategoryGlyph: React.FC<{ icon?: string | null; size?: number }> = ({ icon, size = 16 }) => {
+  if (isEmojiIcon(icon)) {
+    return (
+      <span className="w-4 text-center flex-shrink-0 leading-none" aria-hidden="true">
+        {icon}
+      </span>
+    );
+  }
+  const Icon = resolveCategoryIcon(icon) ?? FallbackCategoryIcon;
+  return (
+    <Icon size={size} className="text-slate-400 group-hover:text-primary flex-shrink-0" />
+  );
+};
 
 const mainNav = [
   { name: 'Trang chủ', icon: Home, path: '/' },
@@ -31,19 +42,6 @@ const mainNav = [
   { name: 'Bài viết', icon: BookOpen, path: '/?type=article' },
   { name: 'Đánh giá', icon: Star, path: '/?type=review' },
   { name: 'Đã lưu', icon: Bookmark, path: '/bookmarks' },
-];
-
-const specialties = [
-  { name: 'Nội khoa', icon: Stethoscope, slug: 'noi-khoa' },
-  { name: 'Ngoại khoa', icon: Scissors, slug: 'ngoai-khoa' },
-  { name: 'Nhi khoa', icon: Baby, slug: 'nhi-khoa' },
-  { name: 'Sản phụ khoa', icon: Heart, slug: 'san-phu-khoa' },
-  { name: 'Răng hàm mặt', icon: Smile, slug: 'rang-ham-mat' },
-  { name: 'Mắt (Nhãn khoa)', icon: Eye, slug: 'mat' },
-  { name: 'Da liễu', icon: Sparkles, slug: 'da-lieu' },
-  { name: 'Tim mạch', icon: HeartPulse, slug: 'tim-mach' },
-  { name: 'Thần kinh', icon: Brain, slug: 'than-kinh' },
-  { name: 'Cơ xương khớp', icon: Bone, slug: 'co-xuong-khop' },
 ];
 
 const facilities = [
@@ -55,6 +53,26 @@ const facilities = [
 
 export const SidebarLeft: React.FC = () => {
   const location = useLocation();
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    categoryService
+      .getCategories()
+      .then(setCategories)
+      .catch((err) => console.error('Failed to load categories', err));
+  }, []);
+
+  // The API returns a flat list carrying parent_id, ordered with each child
+  // directly after its parent; the two-level tree is rebuilt here.
+  const rootCategories = categories.filter((c) => !c.parent_id);
+  const childrenOf = new Map<string, Category[]>();
+  for (const c of categories) {
+    if (!c.parent_id) continue;
+    const list = childrenOf.get(c.parent_id) ?? [];
+    list.push(c);
+    childrenOf.set(c.parent_id, list);
+  }
+
   const [openSpecialties, setOpenSpecialties] = useState(true);
   const [openFacilities, setOpenFacilities] = useState(true);
 
@@ -91,7 +109,7 @@ export const SidebarLeft: React.FC = () => {
         })}
       </div>
 
-      {/* Specialties Accordion */}
+      {/* Specialties Accordion — driven by the real category tree */}
       <div>
         <button
           type="button"
@@ -103,16 +121,51 @@ export const SidebarLeft: React.FC = () => {
         </button>
         {openSpecialties && (
           <div className="flex flex-col gap-0.5 pl-2 border-l border-border ml-4 mt-2">
-            {specialties.map((item) => (
-              <Link
-                key={item.name}
-                to={`/category/${item.slug}`}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-secondary hover:bg-slate-100 hover:text-primary group text-xs font-medium transition-colors"
-              >
-                <item.icon size={16} className="text-slate-400 group-hover:text-primary flex-shrink-0" />
-                <span className="truncate">{item.name}</span>
-              </Link>
-            ))}
+            {rootCategories.length === 0 ? (
+              <span className="px-3 py-2 text-xs text-text-secondary italic">
+                Chưa có chuyên mục nào.
+              </span>
+            ) : (
+              rootCategories.map((root) => {
+                const children = childrenOf.get(root.id) ?? [];
+                return (
+                  <div key={root.id}>
+                    <Link
+                      to={`/category/${root.slug}`}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-secondary hover:bg-slate-100 hover:text-primary group text-xs font-medium transition-colors"
+                    >
+                      <CategoryGlyph icon={root.icon} />
+                      <span className="truncate flex-1">{root.name}</span>
+                      {typeof root.post_count === 'number' && root.post_count > 0 && (
+                        <span className="text-[10px] text-slate-400 group-hover:text-primary">
+                          {root.post_count}
+                        </span>
+                      )}
+                    </Link>
+
+                    {children.length > 0 && (
+                      <div className="flex flex-col gap-0.5 pl-4 ml-3 border-l border-border">
+                        {children.map((child) => (
+                          <Link
+                            key={child.id}
+                            to={`/category/${child.slug}`}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-text-secondary hover:bg-slate-100 hover:text-primary group text-xs transition-colors"
+                          >
+                            <CategoryGlyph icon={child.icon} size={14} />
+                            <span className="truncate flex-1">{child.name}</span>
+                            {typeof child.post_count === 'number' && child.post_count > 0 && (
+                              <span className="text-[10px] text-slate-400 group-hover:text-primary">
+                                {child.post_count}
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </div>

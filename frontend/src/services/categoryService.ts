@@ -12,12 +12,12 @@ export const categoryService = {
     return response.data;
   },
 
-  createCategory: async (data: { name: string; slug?: string; icon?: string | null; description?: string | null }): Promise<Category> => {
+  createCategory: async (data: { name: string; slug?: string; icon?: string | null; description?: string | null; parent_id?: string | null }): Promise<Category> => {
     const response = await api.post<Category>('/categories', data);
     return response.data;
   },
 
-  updateCategory: async (id: string, data: { name?: string; slug?: string; icon?: string | null; description?: string | null }): Promise<Category> => {
+  updateCategory: async (id: string, data: { name?: string; slug?: string; icon?: string | null; description?: string | null; parent_id?: string | null }): Promise<Category> => {
     try {
       const response = await api.put<Category>(`/categories/${id}`, data);
       return response.data;
