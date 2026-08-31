@@ -17,6 +17,7 @@ import { BookmarkButton } from '../posts/BookmarkButton';
 import { ReportModal } from '../common/ReportModal';
 import { formatRelativeTime, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
+import { AnonymousBadge, VerifiedDoctorBadge, isVerifiedDoctor } from '../common/Badges';
 import { postService } from '../../services/postService';
 
 interface FeedCardProps {
@@ -33,7 +34,10 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
   const [isDeleting, setIsDeleting] = useState(false);
 
   const author = post.author;
-  const isDoctor = author?.role?.toUpperCase() === 'DOCTOR';
+  // A plain "BS." only means an admin set the role; the blue tick means a
+  // practising licence was actually reviewed.
+  const isVerified = isVerifiedDoctor(author);
+  const isDoctor = author?.role?.toUpperCase() === 'DOCTOR' && !isVerified;
   const typeInfo = getPostTypeInfo(post.post_type || post.type);
   const postUrl = `/posts/${post.id || post.slug}`;
   const statusNorm = post.status?.toLowerCase();
@@ -102,11 +106,13 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
                   {author?.full_name || author?.fullName || author?.username || 'Người dùng'}
                 </span>
                 {isDoctor && (
-                  <span className="flex items-center gap-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                    <ShieldCheck size={11} />
+                  <span className="flex items-center gap-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                    <ShieldCheck size={11} aria-hidden="true" />
                     BS.
                   </span>
                 )}
+                <VerifiedDoctorBadge user={author} />
+                {post.is_anonymous && <AnonymousBadge isOwn={isAuthor} />}
                 {author?.specialty && (
                   <span className="text-xs text-text-secondary hidden sm:inline">
                     • {author.specialty}

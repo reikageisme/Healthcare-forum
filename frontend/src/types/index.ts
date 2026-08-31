@@ -10,6 +10,9 @@ export interface User {
   avatar?: string; // Compatibility alias
   role: UserRole;
   specialty?: string;
+  workplace?: string | null;
+  /** Set only when a practising licence was reviewed and approved. */
+  verified_at?: string | null;
   bio?: string;
   is_active?: boolean;
   created_at?: string;
@@ -76,6 +79,8 @@ export interface Post {
   tags: Tag[];
   user_reaction?: string | null;
   is_bookmarked?: boolean;
+  is_anonymous?: boolean;
+  accepted_comment_id?: string | null;
   reaction_breakdown?: ReactionCounts;
 }
 
@@ -88,6 +93,7 @@ export interface PostCreateInput {
   category_id?: string | null;
   tags?: string[];
   tag_names?: string[];
+  is_anonymous?: boolean;
 }
 
 export interface PostUpdateInput {
@@ -115,6 +121,8 @@ export interface Comment {
   parent_id?: string | null;
   content: string;
   vote_count: number;
+  is_anonymous?: boolean;
+  is_accepted?: boolean;
   is_deleted: boolean;
   created_at: string;
   createdAt?: string; // Compatibility alias
@@ -126,6 +134,21 @@ export interface Comment {
 export interface CommentCreateInput {
   content: string;
   parent_id?: string | null;
+  is_anonymous?: boolean;
+}
+
+export interface DoctorVerification {
+  id: string;
+  user_id: string;
+  full_name: string;
+  license_number: string;
+  specialty?: string | null;
+  workplace?: string | null;
+  document_url: string;
+  status: 'pending' | 'approved' | 'rejected';
+  review_notes?: string | null;
+  created_at?: string;
+  applicant?: User | null;
 }
 
 export interface CommentUpdateInput {

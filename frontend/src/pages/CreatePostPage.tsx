@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Send, X, Hash } from 'lucide-react';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { ImageUploader } from '../components/common/ImageUploader';
+import { MedicalDisclaimer } from '../components/common/MedicalSafety';
 import { postService } from '../services/postService';
 import { categoryService } from '../services/categoryService';
 import { tagService } from '../services/tagService';
@@ -29,6 +30,7 @@ export const CreatePostPage: React.FC = () => {
   const [content, setContent] = useState('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
@@ -110,6 +112,7 @@ export const CreatePostPage: React.FC = () => {
         category_id: categoryId || undefined,
         tag_names: tags,
         thumbnail: thumbnail || undefined,
+        is_anonymous: isAnonymous,
       };
 
       const created = await postService.createPost(payload);
@@ -153,6 +156,8 @@ export const CreatePostPage: React.FC = () => {
           {errorMsg}
         </div>
       )}
+
+      <MedicalDisclaimer className="mb-6" compact />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Post Type Selector */}
@@ -233,6 +238,22 @@ export const CreatePostPage: React.FC = () => {
         {/* Thumbnail Image */}
         <div className="bg-surface rounded-2xl p-5 border border-border shadow-sm">
           <ImageUploader value={thumbnail} onChange={setThumbnail} />
+
+          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-slate-50/60 p-3.5 transition-colors hover:border-primary/40">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-primary focus:ring-2 focus:ring-primary/30"
+            />
+            <span className="text-sm">
+              <span className="font-semibold text-text">Đăng ẩn danh</span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-text-secondary">
+                Tên và ảnh đại diện của bạn sẽ không hiển thị với người đọc. Quản trị viên và
+                kiểm duyệt viên vẫn xem được để xử lý vi phạm.
+              </span>
+            </span>
+          </label>
         </div>
 
         {/* Content Rich Text Editor */}
