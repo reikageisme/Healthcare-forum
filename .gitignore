@@ -45,3 +45,6 @@ logs/
 # AI Agents
 .agents/
 
+
+# Stale git lock files this environment cannot delete
+.gitstale/
