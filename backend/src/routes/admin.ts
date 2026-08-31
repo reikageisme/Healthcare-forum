@@ -2,15 +2,16 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { and, asc, count, desc, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { categories, comments, posts, reports, users } from '../db/schema.js';
+import { categories, comments, doctorVerifications, posts, reports, users } from '../db/schema.js';
 import { badRequest, notFound } from '../core/errors.js';
 import { asUuid } from '../core/security.js';
 import { parseBody } from '../lib/validate.js';
 import { sanitizePlainText } from '../lib/sanitize.js';
 import { loadTagsForPosts } from '../lib/postQueries.js';
 import { categoryScope } from '../lib/categoryTree.js';
-import { toDateKey } from '../lib/datetime.js';
+import { toDateKey, toIsoRequired } from '../lib/datetime.js';
 import {
+  verificationReviewSchema,
   adminUserUpdateSchema,
   postModerationSchema,
   postRejectSchema,
@@ -144,6 +145,7 @@ async function loadPostSummaries(postIds: string[]): Promise<Map<string, PostSum
         author: row.author,
         category: row.category,
         tags: tagsByPost.get(row.post.id) ?? [],
+        viewerIsStaff: true,
       }),
     );
   }
@@ -184,7 +186,9 @@ async function listAdminPosts(c: Context) {
       .innerJoin(users, eq(users.id, posts.author_id))
       .leftJoin(categories, eq(categories.id, posts.category_id))
       .where(where)
-      .orderBy(desc(posts.created_at))
+      // Highest supplement-spam score first: the queue is a triage list, not
+      // an inbox. Ties fall back to newest.
+      .orderBy(desc(posts.risk_score), desc(posts.created_at))
       .offset((page - 1) * limit)
       .limit(limit),
   ]);
@@ -199,6 +203,7 @@ async function listAdminPosts(c: Context) {
         author: r.author,
         category: r.category,
         tags: tagsByPost.get(r.post.id) ?? [],
+        viewerIsStaff: true,
       }),
     ),
     total,
@@ -702,4 +707,107 @@ adminRoutes.patch('/users/:user_id', requireAdminOnly, async (c) => {
 
   const updated = await db.update(users).set(patch).where(eq(users.id, id)).returning();
   return c.json(toUserResponse(updated[0] ?? user));
+});
+
+
+// ---------------------------------------------------------------------------
+// 5. Doctor licence verification
+// ---------------------------------------------------------------------------
+
+adminRoutes.get('/verifications', async (c) => {
+  const q = c.req.query();
+  const page = PAGE(q.page);
+  const limit = LIMIT(q.limit);
+
+  const wanted = (q.status ?? 'pending').toLowerCase();
+  const where =
+    wanted === 'all' || !['pending', 'approved', 'rejected'].includes(wanted)
+      ? undefined
+      : eq(doctorVerifications.status, wanted as 'pending' | 'approved' | 'rejected');
+
+  const [totalRow, rows] = await Promise.all([
+    db.select({ n: count() }).from(doctorVerifications).where(where),
+    db
+      .select({ request: doctorVerifications, applicant: users })
+      .from(doctorVerifications)
+      .leftJoin(users, eq(users.id, doctorVerifications.user_id))
+      .where(where)
+      .orderBy(desc(doctorVerifications.created_at))
+      .offset((page - 1) * limit)
+      .limit(limit),
+  ]);
+
+  const total = Number(totalRow[0]?.n ?? 0);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  return c.json({
+    items: rows.map((r) => ({
+      id: r.request.id,
+      user_id: r.request.user_id,
+      full_name: r.request.full_name,
+      license_number: r.request.license_number,
+      specialty: r.request.specialty,
+      workplace: r.request.workplace,
+      document_url: r.request.document_url,
+      status: r.request.status,
+      review_notes: r.request.review_notes,
+      created_at: toIsoRequired(r.request.created_at),
+      applicant: r.applicant ? toUserResponse(r.applicant) : null,
+    })),
+    total,
+    page,
+    limit,
+    total_pages: totalPages,
+    pages: totalPages,
+  });
+});
+
+/**
+ * Approving is what actually makes someone a verified doctor: it sets the
+ * role, copies the declared specialty and workplace onto the profile, and
+ * stamps verified_at — the only thing the blue tick reads.
+ */
+adminRoutes.put('/verifications/:id', requireAdminOnly, async (c) => {
+  const me = currentUser(c);
+  const id = asUuid(c.req.param('id'));
+  if (!id) throw notFound('Verification request not found');
+
+  const body = await parseBody(c, verificationReviewSchema);
+  const rows = await db
+    .select()
+    .from(doctorVerifications)
+    .where(eq(doctorVerifications.id, id))
+    .limit(1);
+  const request = rows[0];
+  if (!request) throw notFound('Verification request not found');
+  if (request.status !== 'pending') {
+    throw badRequest('Yêu cầu này đã được xử lý.');
+  }
+
+  const now = new Date();
+  await db
+    .update(doctorVerifications)
+    .set({
+      status: body.status,
+      review_notes: body.review_notes ? sanitizePlainText(body.review_notes) : null,
+      reviewed_by: me.id,
+      reviewed_at: now,
+      updated_at: now,
+    })
+    .where(eq(doctorVerifications.id, id));
+
+  if (body.status === 'approved') {
+    await db
+      .update(users)
+      .set({
+        role: 'doctor',
+        verified_at: now,
+        specialty: request.specialty,
+        workplace: request.workplace,
+        updated_at: now,
+      })
+      .where(eq(users.id, request.user_id));
+  }
+
+  return c.json({ success: true, status: body.status });
 });

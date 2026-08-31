@@ -105,6 +105,20 @@ and `post_count` follows the same rule. Deleting a parent leaves its children
 in place as roots (the foreign key is `ON DELETE SET NULL`) rather than taking
 a whole branch of the forum with it.
 
+## Vietnamese forum features
+
+| Thứ | Nằm ở đâu | Ghi chú |
+| --- | --- | --- |
+| Tìm không dấu | `posts.search_text` | Bản chữ thường, bỏ dấu của tiêu đề + tóm tắt + nội dung, ghi lúc lưu. Không cần extension nào của Postgres, và chữ `đ` được xử lý riêng vì NFD không tách nó. |
+| Câu trả lời được chấp nhận | `posts.accepted_comment_id` | `PUT /posts/:id/accepted-answer`, chỉ tác giả hoặc staff. Bình luận được chọn luôn đứng đầu cây. |
+| Đăng ẩn danh | `posts.is_anonymous`, `comments.is_anonymous` | Người đọc thấy một tác giả giả lập không mang id thật; tác giả và staff vẫn thấy tên thật. |
+| Chặn spam TPCN | `src/lib/spamGuard.ts` | Luật cứng theo cụm từ, khớp trên văn bản đã bỏ dấu. Bài rủi ro vào hàng chờ **kể cả khi tác giả là bác sĩ**; `posts.risk_score` quyết định thứ tự hàng chờ. |
+| Xác thực bác sĩ | bảng `doctor_verifications` | Nộp giấy phép → admin duyệt → đặt `users.verified_at`, `role`, `specialty`, `workplace`. Chỉ admin duyệt được, moderator thì không. |
+| SEO | `src/routes/sitemap.ts` | `/sitemap.xml` và `/robots.txt` phục vụ từ gốc site, nginx proxy sang backend. |
+
+`assessContent()` là chỗ duy nhất cần sửa nếu sau này muốn chấm điểm bằng LLM
+thay vì luật cứng.
+
 ## Known behaviour kept as-is
 
 - `post_count` on `/tags/hot` counts rows in `post_tags`, not approved posts.

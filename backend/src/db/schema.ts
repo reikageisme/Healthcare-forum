@@ -35,6 +35,11 @@ export const postStatusEnum = pgEnum('poststatus', ['pending', 'approved', 'reje
 export const reactionTypeEnum = pgEnum('reactiontype', ['helpful', 'like', 'informative']);
 export const reportStatusEnum = pgEnum('reportstatus', ['open', 'resolved', 'dismissed']);
 export const reportTargetTypeEnum = pgEnum('reporttargettype', ['post', 'comment', 'user']);
+export const verificationStatusEnum = pgEnum('verificationstatus', [
+  'pending',
+  'approved',
+  'rejected',
+]);
 
 /** Unique indexes below mirror op.create_index(..., unique=True) in 0001. */
 export const users = pgTable(
@@ -49,6 +54,10 @@ export const users = pgTable(
     specialty: varchar('specialty', { length: 100 }),
     bio: varchar('bio', { length: 500 }),
     role: userRoleEnum('role').notNull().default('user'),
+    // Set only when a practising licence has been reviewed and approved.
+    // An admin changing the role does not earn the badge.
+    verified_at: timestamp('verified_at', { withTimezone: true }),
+    workplace: varchar('workplace', { length: 255 }),
     is_active: boolean('is_active').notNull().default(true),
     created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -106,6 +115,13 @@ export const posts = pgTable(
     post_type: postTypeEnum('post_type').notNull().default('article'),
     status: postStatusEnum('status').notNull().default('approved'),
     rejection_reason: varchar('rejection_reason', { length: 500 }),
+    // Lowercase, diacritic-free copy of title + excerpt + content.
+    search_text: text('search_text'),
+    // Only meaningful for post_type = 'question'.
+    accepted_comment_id: uuid('accepted_comment_id'),
+    is_anonymous: boolean('is_anonymous').notNull().default(false),
+    /** Supplement-spam heuristic score; the queue is sorted by it. */
+    risk_score: integer('risk_score').notNull().default(0),
     view_count: integer('view_count').notNull().default(0),
     helpful_count: integer('helpful_count').notNull().default(0),
     comment_count: integer('comment_count').notNull().default(0),
@@ -157,6 +173,7 @@ export const comments = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     content: text('content').notNull(),
     vote_count: integer('vote_count').notNull().default(0),
+    is_anonymous: boolean('is_anonymous').notNull().default(false),
     is_deleted: boolean('is_deleted').notNull().default(false),
     created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -235,6 +252,32 @@ export const reports = pgTable(
   }),
 );
 
+export const doctorVerifications = pgTable(
+  'doctor_verifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    full_name: varchar('full_name', { length: 255 }).notNull(),
+    license_number: varchar('license_number', { length: 100 }).notNull(),
+    specialty: varchar('specialty', { length: 100 }),
+    workplace: varchar('workplace', { length: 255 }),
+    /** Image of the practising licence, from POST /upload. */
+    document_url: varchar('document_url', { length: 500 }).notNull(),
+    status: verificationStatusEnum('status').notNull().default('pending'),
+    review_notes: text('review_notes'),
+    reviewed_by: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+    reviewed_at: timestamp('reviewed_at', { withTimezone: true }),
+    created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userIdx: index('ix_doctor_verifications_user_id').on(t.user_id),
+    statusIdx: index('ix_doctor_verifications_status').on(t.status),
+  }),
+);
+
 export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),
   comments: many(comments),
@@ -296,3 +339,4 @@ export type CommentRow = typeof comments.$inferSelect;
 export type CategoryRow = typeof categories.$inferSelect;
 export type TagRow = typeof tags.$inferSelect;
 export type ReportRow = typeof reports.$inferSelect;
+export type DoctorVerificationRow = typeof doctorVerifications.$inferSelect;

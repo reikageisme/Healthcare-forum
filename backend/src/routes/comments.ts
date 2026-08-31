@@ -9,7 +9,7 @@ import { findPostOr404 } from '../lib/findPost.js';
 import { sanitizeRichText } from '../lib/sanitize.js';
 import { commentCreateSchema, commentUpdateSchema } from '../schemas/requests.js';
 import { toCommentResponse, type CommentResponse } from '../schemas/responses.js';
-import { currentUser, requireAuth } from '../middleware/auth.js';
+import { currentUser, optionalAuth, requireAuth } from '../middleware/auth.js';
 
 export const commentRoutes = new Hono();
 
@@ -40,6 +40,7 @@ commentRoutes.post('/posts/:post_id/comments', requireAuth, async (c) => {
       post_id: post.id,
       parent_id: body.parent_id ?? null,
       author_id: me.id,
+      is_anonymous: body.is_anonymous ?? false,
       content: sanitizeRichText(body.content),
     })
     .returning();
@@ -51,12 +52,18 @@ commentRoutes.post('/posts/:post_id/comments', requireAuth, async (c) => {
     .set({ comment_count: sql`${posts.comment_count} + 1` })
     .where(eq(posts.id, post.id));
 
-  return c.json(toCommentResponse(comment, me), 201);
+  return c.json(toCommentResponse(comment, me, [], { viewerId: me.id }), 201);
 });
 
-commentRoutes.get('/posts/:post_id/comments', async (c) => {
+commentRoutes.get('/posts/:post_id/comments', optionalAuth, async (c) => {
+  const me = c.get('currentUser');
   const post = await findPostOr404(c.req.param('post_id'));
   const sortBy = c.req.query('sort_by') ?? 'newest';
+  const viewer = {
+    acceptedCommentId: post.accepted_comment_id,
+    viewerId: me?.id ?? null,
+    viewerIsStaff: !!me && (me.role === 'admin' || me.role === 'moderator'),
+  };
 
   // One query for the whole thread; the tree is assembled in memory.
   const rows = await db
@@ -74,6 +81,8 @@ commentRoutes.get('/posts/:post_id/comments', async (c) => {
         content: row.comment.is_deleted ? TOMBSTONE : row.comment.content,
       },
       row.author,
+      [],
+      viewer,
     );
     nodes.set(row.comment.id, node);
   }
@@ -94,6 +103,10 @@ commentRoutes.get('/posts/:post_id/comments', async (c) => {
     roots.sort((a, b) => b.vote_count - a.vote_count);
   }
   // "oldest" is already the query order.
+
+  // The accepted answer goes to the top whatever the sort, which is the
+  // whole point of marking one.
+  roots.sort((a, b) => Number(b.is_accepted) - Number(a.is_accepted));
 
   return c.json(roots);
 });
@@ -128,7 +141,9 @@ commentRoutes.put('/comments/:comment_id', requireAuth, async (c) => {
   const comment = updated[0];
   if (!comment) throw notFound('Comment not found');
 
-  return c.json(toCommentResponse(comment, row.author));
+  return c.json(
+    toCommentResponse(comment, row.author, [], { viewerId: me.id, viewerIsStaff: isStaff }),
+  );
 });
 
 commentRoutes.delete('/comments/:comment_id', requireAuth, async (c) => {
