@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Loader2, X, Hash } from 'lucide-react';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { ImageUploader } from '../components/common/ImageUploader';
 import { postService } from '../services/postService';
+import { withTag } from '../lib/tags';
 import { categoryService } from '../services/categoryService';
 import { tagService } from '../services/tagService';
 import { Category, TagWithCount, PostType, Post } from '../types';
@@ -69,11 +70,8 @@ export const EditPostPage: React.FC = () => {
   }, [id]);
 
   const handleAddTag = (rawTag: string) => {
-    const clean = rawTag.trim().replace(/^#+/, '');
-    if (clean && !tags.includes(clean) && tags.length < 8) {
-      setTags([...tags, clean]);
-      setTagInput('');
-    }
+    setTags((prev) => withTag(prev, rawTag));
+    setTagInput('');
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
@@ -105,12 +103,18 @@ export const EditPostPage: React.FC = () => {
       setIsSubmitting(true);
       setErrorMsg(null);
 
+      // A tag typed but not confirmed with Enter is still in the input
+      // when Save is clicked; it belongs in this request.
+      const finalTags = withTag(tags, tagInput);
+      setTags(finalTags);
+      setTagInput('');
+
       const payload = {
         title: title.trim(),
         content: content.trim(),
         post_type: postType,
         category_id: categoryId || undefined,
-        tag_names: tags,
+        tag_names: finalTags,
         thumbnail: thumbnail || null,
       };
 
