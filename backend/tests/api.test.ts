@@ -278,20 +278,67 @@ describe('category tree', () => {
     expect(ids.indexOf(child.body.id)).toBe(ids.indexOf(parent.body.id) + 1);
   });
 
-  it('caps the tree at two levels', async () => {
+  it('allows three levels and stops at the fourth', async () => {
     const admin = await seedUser('admin');
     const parent = await makeCategory(admin.token, { name: 'Cấp một' });
     const child = await makeCategory(admin.token, {
       name: 'Cấp hai',
       parent_id: parent.body.id,
     });
-
     const grandchild = await makeCategory(admin.token, {
       name: 'Cấp ba',
       parent_id: child.body.id,
     });
-    expect(grandchild.status).toBe(400);
-    expect(grandchild.body.detail).toContain('hai cấp');
+    expect(grandchild.status).toBe(201);
+    expect(grandchild.body.parent_id).toBe(child.body.id);
+
+    const fourth = await makeCategory(admin.token, {
+      name: 'Cấp bốn',
+      parent_id: grandchild.body.id,
+    });
+    expect(fourth.status).toBe(400);
+    expect(fourth.body.detail).toContain('3 cấp');
+  });
+
+  it('lists a three-level tree depth-first', async () => {
+    const admin = await seedUser('admin');
+    const root = await makeCategory(admin.token, { name: 'Gốc sâu' });
+    const mid = await makeCategory(admin.token, { name: 'Giữa', parent_id: root.body.id });
+    const leaf = await makeCategory(admin.token, { name: 'Lá', parent_id: mid.body.id });
+
+    const listed = await (await request('/categories', { headers: nextIp() })).json();
+    const ids = listed.map((x: { id: string }) => x.id);
+    expect(ids.indexOf(mid.body.id)).toBe(ids.indexOf(root.body.id) + 1);
+    expect(ids.indexOf(leaf.body.id)).toBe(ids.indexOf(mid.body.id) + 1);
+  });
+
+  it('rolls grandchild posts up to the root category', async () => {
+    const admin = await seedUser('admin');
+    const doctor = await seedUser('doctor');
+    const root = await makeCategory(admin.token, { name: 'Khoa lớn' });
+    const mid = await makeCategory(admin.token, { name: 'Khoa nhỏ', parent_id: root.body.id });
+    const leaf = await makeCategory(admin.token, { name: 'Chuyên sâu', parent_id: mid.body.id });
+
+    await createPost(doctor.token, 'Bài ở cấp ba', { category_id: leaf.body.id });
+
+    const feed = await (
+      await request(`/posts?category=${root.body.slug}&limit=50`, { headers: nextIp() })
+    ).json();
+    expect(feed.items.map((p: { title: string }) => p.title)).toContain('Bài ở cấp ba');
+
+    const listed = await (await request('/categories', { headers: nextIp() })).json();
+    const rootRow = listed.find((x: { id: string }) => x.id === root.body.id);
+    expect(rootRow.post_count).toBe(1);
+  });
+
+  it('orders one level by sort_order before name', async () => {
+    const admin = await seedUser('admin');
+    const a = await makeCategory(admin.token, { name: 'AAA xếp sau', sort_order: 20 });
+    const b = await makeCategory(admin.token, { name: 'ZZZ xếp trước', sort_order: 10 });
+
+    const listed = await (await request('/categories', { headers: nextIp() })).json();
+    const ids = listed.map((x: { id: string }) => x.id);
+    expect(ids.indexOf(b.body.id)).toBeLessThan(ids.indexOf(a.body.id));
   });
 
   it('refuses to make a category its own parent', async () => {
@@ -307,20 +354,46 @@ describe('category tree', () => {
     expect(res.status).toBe(400);
   });
 
-  it('refuses to demote a category that already has children', async () => {
+  it('moves a one-level-deep branch under a root, but not under a child', async () => {
     const admin = await seedUser('admin');
     const a = await makeCategory(admin.token, { name: 'Nhánh A' });
     const b = await makeCategory(admin.token, { name: 'Nhánh B' });
+    const bChild = await makeCategory(admin.token, { name: 'Con của B', parent_id: b.body.id });
     await makeCategory(admin.token, { name: 'Con của A', parent_id: a.body.id });
 
-    const res = await request(`/categories/${a.body.id}`, {
+    // A (cha + con) dưới một mục con nữa là thành bốn cấp.
+    const tooDeep = await request(`/categories/${a.body.id}`, {
+      method: 'PUT',
+      token: admin.token,
+      headers: nextIp(),
+      body: json({ parent_id: bChild.body.id }),
+    });
+    expect(tooDeep.status).toBe(400);
+    expect((await tooDeep.json()).detail).toContain('chuyên mục con');
+
+    // Nhưng dưới một chuyên mục gốc thì vừa đúng ba cấp.
+    const ok = await request(`/categories/${a.body.id}`, {
       method: 'PUT',
       token: admin.token,
       headers: nextIp(),
       body: json({ parent_id: b.body.id }),
     });
+    expect(ok.status).toBe(200);
+    expect((await ok.json()).parent_id).toBe(b.body.id);
+  });
+
+  it('refuses to reparent a category under its own descendant', async () => {
+    const admin = await seedUser('admin');
+    const root = await makeCategory(admin.token, { name: 'Vòng gốc' });
+    const child = await makeCategory(admin.token, { name: 'Vòng con', parent_id: root.body.id });
+
+    const res = await request(`/categories/${root.body.id}`, {
+      method: 'PUT',
+      token: admin.token,
+      headers: nextIp(),
+      body: json({ parent_id: child.body.id }),
+    });
     expect(res.status).toBe(400);
-    expect((await res.json()).detail).toContain('chuyên mục con');
   });
 
   it('detaches a child when parent_id is sent as null', async () => {

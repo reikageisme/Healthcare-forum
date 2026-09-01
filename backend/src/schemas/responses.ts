@@ -91,6 +91,7 @@ export const categoryResponseSchema = z
     icon: z.string().nullable(),
     description: z.string().nullable(),
     parent_id: z.string().nullable(),
+    sort_order: z.number().int(),
     created_at: z.string(),
     post_count: z.number().int(),
   })
@@ -105,6 +106,7 @@ export function toCategoryResponse(row: CategoryRow, postCount = 0): CategoryRes
     icon: row.icon,
     description: row.description,
     parent_id: row.parent_id,
+    sort_order: row.sort_order ?? 0,
     created_at: toIsoRequired(row.created_at),
     post_count: postCount,
   });

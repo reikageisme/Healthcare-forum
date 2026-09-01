@@ -19,32 +19,40 @@ export const categoryRoutes = new Hono();
  * caller. One shape serves the admin table, the sidebar and the post form,
  * and nothing has to stay in sync with a second nested endpoint.
  *
- * Roots come first, then children grouped under them, both alphabetical.
+ * Order is depth-first — each category immediately followed by its own
+ * branch — so a caller that just renders the array in order already gets the
+ * tree reading top to bottom. Inside one level it is sort_order first, then
+ * name, so an unordered category still lands alphabetically.
  */
 categoryRoutes.get('/', async (c) => {
   const rows = await db
     .select({ category: categories, post_count: categoryPostCount })
     .from(categories)
-    .orderBy(asc(categories.name));
+    .orderBy(asc(categories.sort_order), asc(categories.name));
 
   const all = rows.map((r) => toCategoryResponse(r.category, Number(r.post_count)));
-  const roots = all.filter((x) => !x.parent_id);
+  const byId = new Map(all.map((x) => [x.id, x]));
   const childrenOf = new Map<string, typeof all>();
   for (const item of all) {
-    if (!item.parent_id) continue;
+    // A child whose parent vanished is treated as a root rather than dropped.
+    if (!item.parent_id || !byId.has(item.parent_id)) continue;
     const list = childrenOf.get(item.parent_id) ?? [];
     list.push(item);
     childrenOf.set(item.parent_id, list);
   }
 
-  const ordered = [];
-  for (const root of roots) {
-    ordered.push(root);
-    ordered.push(...(childrenOf.get(root.id) ?? []));
+  const ordered: typeof all = [];
+  const emitted = new Set<string>();
+  const walk = (item: (typeof all)[number]) => {
+    if (emitted.has(item.id)) return; // cheap guard against a legacy cycle
+    emitted.add(item.id);
+    ordered.push(item);
+    for (const child of childrenOf.get(item.id) ?? []) walk(child);
+  };
+  for (const item of all) {
+    if (!item.parent_id || !byId.has(item.parent_id)) walk(item);
   }
-  // A child whose parent was deleted is shown as a root rather than dropped.
-  const seen = new Set(ordered.map((x) => x.id));
-  for (const item of all) if (!seen.has(item.id)) ordered.push(item);
+  for (const item of all) if (!emitted.has(item.id)) ordered.push(item);
 
   return c.json(ordered);
 });
@@ -73,6 +81,7 @@ categoryRoutes.post('/', requireAuth, requireRole('admin', 'moderator'), async (
       icon: body.icon ?? null,
       description: body.description ? sanitizePlainText(body.description) : null,
       parent_id: body.parent_id ?? null,
+      sort_order: body.sort_order ?? 0,
     })
     .returning();
   const category = inserted[0];
@@ -133,6 +142,9 @@ categoryRoutes.put('/:id_or_slug', requireAuth, requireRole('admin', 'moderator'
   }
 
   if (body.icon !== undefined && body.icon !== null) patch.icon = body.icon;
+  if (body.sort_order !== undefined && body.sort_order !== null) {
+    patch.sort_order = body.sort_order;
+  }
   if (body.description !== undefined && body.description !== null) {
     patch.description = sanitizePlainText(body.description);
   }

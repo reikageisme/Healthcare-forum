@@ -81,9 +81,13 @@ export const categories = pgTable(
     slug: varchar('slug', { length: 100 }).notNull(),
     icon: varchar('icon', { length: 100 }),
     description: varchar('description', { length: 255 }),
-    // Self-reference for the parent/child tree. Depth is capped at two
-    // levels by the API: a category that has a parent cannot become one.
+    // Self-reference for the parent/child tree. Depth is capped at three
+    // levels by the API (cha -> con -> cháu).
     parent_id: uuid('parent_id'),
+    // Manual ordering inside one level. Ties fall back to the name, so a
+    // category nobody has ordered yet still lands alphabetically instead of
+    // wherever the database felt like putting it.
+    sort_order: integer('sort_order').notNull().default(0),
     created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
