@@ -134,7 +134,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }
 
   return (
-    <div className={cn('border border-border rounded-xl overflow-hidden bg-white shadow-sm focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary transition-all', className)}>
+    // Không dùng overflow-hidden ở đây: một ancestor overflow-hidden biến
+    // thành khung cuộn của thanh công cụ sticky bên dưới, và khung đó không
+    // bao giờ cuộn nên thanh công cụ đứng yên theo trang. Bo góc chuyển
+    // xuống từng phần thay vì cắt ở ngoài.
+    <div className={cn('border border-border rounded-xl bg-white shadow-sm focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary transition-all', className)}>
       {/* Hidden File Input for Image Upload */}
       <input
         ref={fileInputRef}
@@ -144,8 +148,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         className="hidden"
       />
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 border-b border-border text-slate-700 select-none">
+      {/* Toolbar — dính dưới header khi cuộn, để chèn ảnh ở giữa bài không
+          phải kéo ngược lên đầu trang. top-16 = chiều cao header cố định. */}
+      <div className="sticky top-16 z-20 flex flex-wrap items-center gap-1 p-2 bg-slate-50/95 backdrop-blur-sm border-b border-border rounded-t-xl text-slate-700 select-none">
         {/* Headings */}
         <button
           type="button"
