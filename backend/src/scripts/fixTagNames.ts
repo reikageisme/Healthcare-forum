@@ -1,43 +1,38 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { categories, tags } from '../db/schema.js';
-import { humanizeTagName } from '../lib/postQueries.js';
+import { tags } from '../db/schema.js';
+import { stripTagHyphens } from '../lib/postQueries.js';
 
 /**
- * Dọn tên thẻ đang là slug: "#phong-kham" -> "#Phòng khám".
+ * Bỏ gạch nối trong tên thẻ: "#benh-vien" -> "#benhvien".
  *
- *   npm run fix:tag-names -- --dry-run   # chỉ xem sẽ đổi gì
- *   npm run fix:tag-names                # đổi thật
+ *   npm run fix:tag-names -- --dry-run     # chỉ xem sẽ đổi gì
+ *   npm run fix:tag-names                  # đổi thật
+ *   npm run fix:tag-names -- --from-slug   # viết lại tên theo slug
  *
- * Slug giữ nguyên tuyệt đối, nên mọi đường dẫn /tags/phong-kham và mọi bài
- * viết đang gắn thẻ đều không đổi — chỉ phần chữ hiển thị đổi.
+ * Mặc định chỉ đụng tới thẻ có tên đúng dạng slug thuần chữ thường
+ * ("benh-vien"): "COVID-19" hay thẻ đã có tên tử tế đều giữ nguyên.
  *
- * Dấu tiếng Việt lấy lại được khi có một chuyên mục cùng slug (chuyên mục
- * "Phòng khám" có slug phong-kham), vì từ "phong-kham" không thể tự suy ra
- * dấu. Thẻ nào không khớp chuyên mục nào thì chỉ bỏ gạch nối và viết hoa
- * chữ đầu — anh sửa tay lại cho có dấu nếu muốn.
+ * --from-slug viết lại tên của MỌI thẻ theo slug của nó ("tim-mach" ->
+ * "timmach"), kể cả thẻ đang có tên đẹp có dấu. Dùng khi tên thẻ đã bị một
+ * lần dọn trước đó làm sai và cần đưa hết về một kiểu. Chạy --dry-run trước.
+ *
+ * Slug không bao giờ đổi, nên đường dẫn /tags/benh-vien và mọi bài viết
+ * đang gắn thẻ đều nguyên vẹn — chỉ phần chữ hiển thị đổi.
  */
 
 async function main() {
-  const dryRun = process.argv.slice(2).includes('--dry-run');
+  const args = process.argv.slice(2);
+  const dryRun = args.includes('--dry-run');
+  const fromSlug = args.includes('--from-slug');
 
-  const [allTags, allCategories] = await Promise.all([
-    db.select().from(tags),
-    db.select({ name: categories.name, slug: categories.slug }).from(categories),
-  ]);
-  const categoryNameBySlug = new Map(allCategories.map((c) => [c.slug, c.name]));
+  const allTags = await db.select().from(tags);
 
-  const renames: Array<{ id: string; from: string; to: string; source: string }> = [];
+  const renames: Array<{ id: string; from: string; to: string }> = [];
   for (const tag of allTags) {
-    const fromCategory = categoryNameBySlug.get(tag.slug);
-    const next = fromCategory ?? humanizeTagName(tag.name);
-    if (next === tag.name) continue;
-    renames.push({
-      id: tag.id,
-      from: tag.name,
-      to: next,
-      source: fromCategory ? 'chuyên mục' : 'bỏ gạch nối',
-    });
+    const next = fromSlug ? tag.slug.replace(/-/g, '') : stripTagHyphens(tag.name);
+    if (!next || next === tag.name) continue;
+    renames.push({ id: tag.id, from: tag.name, to: next });
   }
 
   if (renames.length === 0) {
@@ -45,9 +40,7 @@ async function main() {
     return;
   }
 
-  for (const r of renames) {
-    console.log(`  #${r.from}  ->  #${r.to}   (${r.source})`);
-  }
+  for (const r of renames) console.log(`  #${r.from}  ->  #${r.to}`);
 
   if (dryRun) {
     console.log(`\n--dry-run: chưa đổi gì. Bỏ cờ này để đổi ${renames.length} thẻ.`);
@@ -57,7 +50,7 @@ async function main() {
   let done = 0;
   for (const r of renames) {
     // Tên thẻ là unique: nếu tên mới đã có thẻ khác dùng thì bỏ qua, gộp hai
-    // thẻ lại là việc khác hẳn và không nên làm lặng lẽ trong một script đổi tên.
+    // thẻ lại là việc khác hẳn, không nên làm lặng lẽ trong script đổi tên.
     const clash = await db.select({ id: tags.id }).from(tags).where(eq(tags.name, r.to)).limit(1);
     if (clash[0] && clash[0].id !== r.id) {
       console.warn(`  Bỏ qua "#${r.from}": đã có thẻ tên "#${r.to}".`);

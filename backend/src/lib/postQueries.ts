@@ -62,18 +62,16 @@ export async function generateUniqueSlug(
 }
 
 /**
- * Một thẻ gõ vào dưới dạng slug ("phong-kham") được trả lại thành chữ
- * thường có dấu cách. Người dùng hay dán slug từ URL vào ô thẻ, và
- * "#phong-kham" hiện trên trang thì vừa xấu vừa khó gõ lại.
+ * Thẻ gõ vào dạng slug ("phong-kham") được bỏ gạch nối thành một từ liền
+ * ("phongkham") — kiểu hashtag, gõ một mạch không cần dấu cách.
  *
  * Chỉ đụng tới chuỗi thuần chữ thường ASCII nối bằng gạch: "COVID-19",
  * "SARS-CoV-2" hay thẻ có dấu tiếng Việt đều giữ nguyên.
  */
-export function humanizeTagName(raw: string): string {
+export function stripTagHyphens(raw: string): string {
   const name = raw.trim();
   if (!/^[a-z]+(-[a-z]+)+$/.test(name)) return name;
-  const spaced = name.replace(/-/g, ' ');
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  return name.replace(/-/g, '');
 }
 
 /** Finds tags by slug or case-insensitive name, creating the missing ones. */
@@ -82,7 +80,7 @@ export async function resolveTags(rawNames: string[]): Promise<TagRow[]> {
   const seen = new Set<string>();
 
   for (const raw of rawNames) {
-    const name = humanizeTagName(raw);
+    const name = stripTagHyphens(raw);
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
 
