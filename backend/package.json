@@ -15,6 +15,7 @@
     "db:migrate": "tsx src/scripts/migrate.ts",
     "create-admin": "tsx src/scripts/createAdmin.ts",
     "sanitize-existing": "tsx src/scripts/sanitizeExisting.ts",
+    "seed:categories": "tsx src/scripts/seedCategories.ts",
     "db:create": "tsx src/scripts/createDatabase.ts",
     "db:setup": "npm run db:create && npm run db:migrate && npm run create-admin"
   },
