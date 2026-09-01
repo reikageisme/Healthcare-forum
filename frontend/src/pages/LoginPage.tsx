@@ -28,9 +28,14 @@ export const LoginPage: React.FC = () => {
         // 1. Lấy token
         const res = await api.post('/auth/login', { email: email.trim(), password });
         const token = res.data.access_token;
-        
+        const refreshToken = res.data.refresh_token ?? null;
+
         // 2. Set tạm token vào store để axios interceptor gửi kèm Header
-        login({ id: '', email: '', username: '', full_name: '', role: 'USER' } as any, token);
+        login(
+          { id: '', email: '', username: '', full_name: '', role: 'USER' } as any,
+          token,
+          refreshToken,
+        );
         
         // 3. Lấy thông tin user thật
         const profileRes = await api.get('/auth/me');

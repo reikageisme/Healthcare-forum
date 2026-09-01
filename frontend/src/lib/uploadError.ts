@@ -32,6 +32,10 @@ export function describeUploadError(error: unknown): string {
   const status = err?.response?.status;
   const detail = err?.response?.data?.detail;
 
+  // 401 nói trước cả detail: thông báo của backend là "Could not validate
+  // credentials", tiếng Anh và không cho người dùng biết phải làm gì.
+  if (status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại rồi thử lại.';
+
   if (typeof detail === 'string' && detail.trim()) return detail;
   if (Array.isArray(detail) && detail.length > 0) {
     const first = detail[0] as { msg?: string };
@@ -39,7 +43,6 @@ export function describeUploadError(error: unknown): string {
   }
 
   if (status === 413) return 'Ảnh quá lớn so với giới hạn của máy chủ. Vui lòng chọn ảnh dưới 5MB.';
-  if (status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại rồi thử lại.';
   if (status === 429) return 'Bạn đang tải lên quá nhanh. Vui lòng đợi một lát rồi thử lại.';
   if (status && status >= 500) return 'Máy chủ gặp sự cố khi xử lý ảnh. Vui lòng thử lại sau.';
   if (err?.code === 'ERR_NETWORK') return 'Không kết nối được máy chủ. Kiểm tra lại mạng rồi thử lại.';

@@ -61,13 +61,28 @@ export async function generateUniqueSlug(
   return `${base}-${randomUUID().replace(/-/g, '').slice(0, 12)}`;
 }
 
+/**
+ * Một thẻ gõ vào dưới dạng slug ("phong-kham") được trả lại thành chữ
+ * thường có dấu cách. Người dùng hay dán slug từ URL vào ô thẻ, và
+ * "#phong-kham" hiện trên trang thì vừa xấu vừa khó gõ lại.
+ *
+ * Chỉ đụng tới chuỗi thuần chữ thường ASCII nối bằng gạch: "COVID-19",
+ * "SARS-CoV-2" hay thẻ có dấu tiếng Việt đều giữ nguyên.
+ */
+export function humanizeTagName(raw: string): string {
+  const name = raw.trim();
+  if (!/^[a-z]+(-[a-z]+)+$/.test(name)) return name;
+  const spaced = name.replace(/-/g, ' ');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
 /** Finds tags by slug or case-insensitive name, creating the missing ones. */
 export async function resolveTags(rawNames: string[]): Promise<TagRow[]> {
   const resolved: TagRow[] = [];
   const seen = new Set<string>();
 
   for (const raw of rawNames) {
-    const name = raw.trim();
+    const name = humanizeTagName(raw);
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
 
@@ -80,7 +95,9 @@ export async function resolveTags(rawNames: string[]): Promise<TagRow[]> {
 
     const existing = found[0];
     if (existing) {
-      resolved.push(existing);
+      // "Phòng khám" và "phong-kham" cùng trỏ về một thẻ: lọc trùng theo id
+      // của thẻ tìm được, không chỉ theo chữ người dùng gõ.
+      if (!resolved.some((t) => t.id === existing.id)) resolved.push(existing);
       continue;
     }
     const inserted = await db
