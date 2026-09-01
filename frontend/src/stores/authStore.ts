@@ -7,9 +7,19 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
-      login: (user, token) => set({ user, token, isAuthenticated: true }),
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      // Đăng nhập gọi login hai lần (một lần lấy hồ sơ thật), nên bỏ trống
+      // refreshToken ở lần sau phải là "giữ nguyên", không phải "xoá".
+      login: (user, token, refreshToken) =>
+        set((state) => ({
+          user,
+          token,
+          refreshToken: refreshToken === undefined ? state.refreshToken : refreshToken,
+          isAuthenticated: true,
+        })),
+      setTokens: (token, refreshToken) => set({ token, refreshToken }),
+      logout: () => set({ user: null, token: null, refreshToken: null, isAuthenticated: false }),
       setUser: (user) => set({ user }),
     }),
     {

@@ -194,8 +194,11 @@ export interface UploadResponse {
 export interface AuthState {
   user: User | null;
   token: string | null;
+  /** Đổi lấy access token mới khi token 30 phút hết hạn. */
+  refreshToken: string | null;
   isAuthenticated: boolean;
-  login: (user: User, token: string) => void;
+  login: (user: User, token: string, refreshToken?: string | null) => void;
+  setTokens: (token: string, refreshToken: string | null) => void;
   logout: () => void;
   setUser: (user: User) => void;
 }
