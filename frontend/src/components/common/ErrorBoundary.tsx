@@ -34,6 +34,15 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
           Đã có lỗi khi hiển thị nội dung này. Bạn thử tải lại trang, nếu vẫn lỗi vui lòng báo
           quản trị viên.
         </p>
+        <details className="text-left mb-6">
+          <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-600">
+            Chi tiết lỗi (gửi cho quản trị viên)
+          </summary>
+          <pre className="mt-2 p-3 bg-slate-50 border border-border rounded-lg text-[11px] text-slate-600 whitespace-pre-wrap break-words max-h-48 overflow-auto">
+            {this.state.error.message || String(this.state.error)}
+          </pre>
+        </details>
+
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={() => window.location.reload()}

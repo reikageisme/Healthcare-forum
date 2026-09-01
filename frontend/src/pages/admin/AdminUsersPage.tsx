@@ -5,6 +5,7 @@ import { User, UserRole } from '../../types';
 import EditUserModal from '../../components/admin/EditUserModal';
 import { formatDate, getAvatarUrl } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
+import { describeApiError } from '../../lib/apiError';
 
 export const AdminUsersPage: React.FC = () => {
   const { user: currentUser } = useAuth();
@@ -62,7 +63,7 @@ export const AdminUsersPage: React.FC = () => {
       fetchUsers();
     } catch (err: any) {
       console.error('Update user failed', err);
-      const msg = err.response?.data?.detail || 'Không thể cập nhật thành viên.';
+      const msg = describeApiError(err, 'Không thể cập nhật thành viên.');
       alert(msg);
     } finally {
       setIsActionLoading(false);
@@ -85,7 +86,7 @@ export const AdminUsersPage: React.FC = () => {
         fetchUsers();
       } catch (err: any) {
         console.error('Toggle status failed', err);
-        const msg = err.response?.data?.detail || 'Không thể thay đổi trạng thái tài khoản.';
+        const msg = describeApiError(err, 'Không thể thay đổi trạng thái tài khoản.');
         alert(msg);
       } finally {
         setIsActionLoading(false);

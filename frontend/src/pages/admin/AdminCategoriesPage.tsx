@@ -13,6 +13,7 @@ import { categoryService, CategoryInput } from '../../services/categoryService';
 import { Category } from '../../types';
 import CategoryModal from '../../components/admin/CategoryModal';
 import { childrenMap, flattenTree } from '../../lib/categoryTree';
+import { describeApiError } from '../../lib/apiError';
 
 export const AdminCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -65,7 +66,7 @@ export const AdminCategoriesPage: React.FC = () => {
       fetchCategories();
     } catch (err: any) {
       console.error('Save category failed', err);
-      const msg = err.response?.data?.detail || 'Không thể lưu chuyên mục.';
+      const msg = describeApiError(err, 'Không thể lưu chuyên mục.');
       alert(msg);
     } finally {
       setIsSubmitting(false);
@@ -111,7 +112,7 @@ export const AdminCategoriesPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Reorder category failed', err);
-      alert(err.response?.data?.detail || 'Không thể lưu thứ tự chuyên mục.');
+      alert(describeApiError(err, 'Không thể lưu thứ tự chuyên mục.'));
     } finally {
       fetchCategories();
     }
@@ -135,7 +136,7 @@ export const AdminCategoriesPage: React.FC = () => {
         fetchCategories();
       } catch (err: any) {
         console.error('Delete category failed', err);
-        const msg = err.response?.data?.detail || 'Không thể xóa chuyên mục.';
+        const msg = describeApiError(err, 'Không thể xóa chuyên mục.');
         alert(msg);
       } finally {
         setIsLoading(false);

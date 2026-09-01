@@ -3,6 +3,7 @@ import { X, Flag, AlertCircle, CheckCircle } from 'lucide-react';
 import { reportService } from '../../services/reportService';
 import { useAuth } from '../../hooks/useAuth';
 import { ReportTargetType } from '../../types';
+import { describeApiError } from '../../lib/apiError';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -64,8 +65,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       }, 1800);
     } catch (err: any) {
       console.error('Failed to submit report', err);
-      const detail = err.response?.data?.detail || 'Không thể gửi báo cáo. Vui lòng thử lại sau.';
-      setErrorMsg(detail);
+      setErrorMsg(describeApiError(err, 'Không thể gửi báo cáo. Vui lòng thử lại sau.'));
     } finally {
       setIsSubmitting(false);
     }

@@ -11,6 +11,7 @@ import { tagService } from '../services/tagService';
 import { Category, TagWithCount, PostType } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { flattenTree, indentLabel } from '../lib/categoryTree';
+import { describeApiError } from '../lib/apiError';
 
 const POST_TYPES: { type: PostType; label: string; desc: string }[] = [
   { type: 'ARTICLE', label: 'Bài viết', desc: 'Kiến thức y khoa, cẩm nang sức khỏe' },
@@ -124,15 +125,7 @@ export const CreatePostPage: React.FC = () => {
       navigate(`/posts/${created.id || created.slug}`);
     } catch (err: any) {
       console.error('Failed to create post', err);
-      let errorMessage = 'Đã có lỗi xảy ra khi đăng bài viết. Vui lòng thử lại!';
-      if (err.response?.data?.detail) {
-        if (Array.isArray(err.response.data.detail)) {
-          errorMessage = err.response.data.detail[0]?.msg || errorMessage;
-        } else if (typeof err.response.data.detail === 'string') {
-          errorMessage = err.response.data.detail;
-        }
-      }
-      setErrorMsg(errorMessage);
+      setErrorMsg(describeApiError(err, 'Đã có lỗi xảy ra khi đăng bài viết. Vui lòng thử lại!'));
     } finally {
       setIsSubmitting(false);
     }

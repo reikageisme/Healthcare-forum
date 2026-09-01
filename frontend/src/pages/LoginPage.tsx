@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import api from '../lib/api';
 import { Loader2, HeartPulse, User, Lock, Mail, ArrowRight } from 'lucide-react';
+import { describeApiError } from '../lib/apiError';
 
 export const LoginPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -79,7 +80,7 @@ export const LoginPage: React.FC = () => {
         navigate('/');
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Có lỗi xảy ra. Vui lòng kiểm tra lại thông tin.');
+      setError(describeApiError(err, 'Có lỗi xảy ra. Vui lòng kiểm tra lại thông tin.'));
       // Xoá token dở dang, dù hỏng ở bước đăng nhập hay đăng ký.
       useAuthStore.getState().logout();
     } finally {

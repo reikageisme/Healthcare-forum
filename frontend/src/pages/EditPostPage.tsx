@@ -9,6 +9,7 @@ import { categoryService } from '../services/categoryService';
 import { tagService } from '../services/tagService';
 import { Category, TagWithCount, PostType, Post } from '../types';
 import { flattenTree, indentLabel } from '../lib/categoryTree';
+import { describeApiError } from '../lib/apiError';
 
 const POST_TYPES: { type: PostType; label: string; desc: string }[] = [
   { type: 'ARTICLE', label: 'Bài viết', desc: 'Kiến thức y khoa, cẩm nang sức khỏe' },
@@ -124,7 +125,7 @@ export const EditPostPage: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to update post', err);
       setErrorMsg(
-        err.response?.data?.detail || 'Đã có lỗi xảy ra khi cập nhật bài viết. Vui lòng thử lại!'
+        describeApiError(err, 'Đã có lỗi xảy ra khi cập nhật bài viết. Vui lòng thử lại!')
       );
     } finally {
       setIsSubmitting(false);
