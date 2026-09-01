@@ -16,6 +16,7 @@ import { adminRoutes } from './routes/admin.js';
 import { uploadRoutes } from './routes/upload.js';
 import { verificationRoutes } from './routes/verification.js';
 import { sitemapRoutes } from './routes/sitemap.js';
+import { storyRoutes } from './routes/stories.js';
 
 export function createApp() {
   const app = new Hono();
@@ -51,6 +52,7 @@ export function createApp() {
   v1.route('/reports', reportRoutes);
   v1.route('/admin', adminRoutes);
   v1.route('/verifications', verificationRoutes);
+  v1.route('/stories', storyRoutes);
 
   // These routers carried no prefix in FastAPI; their paths are absolute
   // (/posts/{id}/comments, /users/me/bookmarks) and mount at the v1 root.

@@ -82,6 +82,35 @@ export const PostDetailPage: React.FC = () => {
     }
   };
 
+  // Hooks run before any early return: calling useSeo below the isLoading
+  // and not-found branches changed the hook count between renders, and
+  // React tore the whole tree down — the blank page after publishing.
+  // Without this every route keeps index.html's title, and a health article
+  // that Google cannot describe is a health article nobody finds.
+  const canonicalPath = post ? `/posts/${post.slug || post.id}` : undefined;
+  useSeo({
+    title: post?.title,
+    description: post?.excerpt ?? undefined,
+    image: post?.thumbnail ?? undefined,
+    canonicalPath,
+    type: 'article',
+    structuredData:
+      post && canonicalPath
+        ? articleStructuredData({
+            title: post.title,
+            description: post.excerpt,
+            image: post.thumbnail,
+            authorName: post.is_anonymous
+              ? 'Người dùng ẩn danh'
+              : post.author?.full_name || post.author?.username,
+            publishedAt: post.created_at,
+            updatedAt: post.updated_at,
+            url: `${window.location.origin}${canonicalPath}`,
+            isQuestion: (post.post_type || post.type)?.toLowerCase() === 'question',
+          })
+        : null,
+  });
+
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto py-2">
@@ -111,31 +140,6 @@ export const PostDetailPage: React.FC = () => {
   const isVerified = isVerifiedDoctor(author);
   const showEmergency = hasEmergencySignal(post?.title, post?.excerpt, post?.content);
 
-  // Without this every route keeps index.html's title, and a health article
-  // that Google cannot describe is a health article nobody finds.
-  const canonicalPath = post ? `/posts/${post.slug || post.id}` : undefined;
-  useSeo({
-    title: post?.title,
-    description: post?.excerpt ?? undefined,
-    image: post?.thumbnail ?? undefined,
-    canonicalPath,
-    type: 'article',
-    structuredData:
-      post && canonicalPath
-        ? articleStructuredData({
-            title: post.title,
-            description: post.excerpt,
-            image: post.thumbnail,
-            authorName: post.is_anonymous
-              ? 'Người dùng ẩn danh'
-              : post.author?.full_name || post.author?.username,
-            publishedAt: post.created_at,
-            updatedAt: post.updated_at,
-            url: `${window.location.origin}${canonicalPath}`,
-            isQuestion: (post.post_type || post.type)?.toLowerCase() === 'question',
-          })
-        : null,
-  });
   const canManage = user && (isAuthor || user.role?.toUpperCase() === 'ADMIN' || user.role?.toUpperCase() === 'MODERATOR');
 
   // Marking an answer only makes sense on a question, and only the asker

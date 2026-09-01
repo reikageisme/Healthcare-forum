@@ -34,7 +34,12 @@ export const postTypeEnum = pgEnum('posttype', ['article', 'question', 'review',
 export const postStatusEnum = pgEnum('poststatus', ['pending', 'approved', 'rejected']);
 export const reactionTypeEnum = pgEnum('reactiontype', ['helpful', 'like', 'informative']);
 export const reportStatusEnum = pgEnum('reportstatus', ['open', 'resolved', 'dismissed']);
-export const reportTargetTypeEnum = pgEnum('reporttargettype', ['post', 'comment', 'user']);
+export const reportTargetTypeEnum = pgEnum('reporttargettype', [
+  'post',
+  'comment',
+  'user',
+  'story',
+]);
 export const verificationStatusEnum = pgEnum('verificationstatus', [
   'pending',
   'approved',
@@ -278,6 +283,34 @@ export const doctorVerifications = pgTable(
   }),
 );
 
+export const stories = pgTable(
+  'stories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    author_id: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Always a path under /uploads, produced by POST /upload. */
+    image_url: varchar('image_url', { length: 500 }).notNull(),
+    caption: varchar('caption', { length: 280 }),
+    created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * Reads filter on this rather than a job deleting rows, so a story stops
+     * being served the moment it expires whether or not any cleanup ran.
+     * ponytail: rows accumulate; add a nightly DELETE when the table gets big.
+     */
+    expires_at: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (t) => ({
+    authorIdx: index('ix_stories_author_id').on(t.author_id),
+    expiresIdx: index('ix_stories_expires_at').on(t.expires_at),
+  }),
+);
+
+export const storiesRelations = relations(stories, ({ one }) => ({
+  author: one(users, { fields: [stories.author_id], references: [users.id] }),
+}));
+
 export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),
   comments: many(comments),
@@ -340,3 +373,4 @@ export type CategoryRow = typeof categories.$inferSelect;
 export type TagRow = typeof tags.$inferSelect;
 export type ReportRow = typeof reports.$inferSelect;
 export type DoctorVerificationRow = typeof doctorVerifications.$inferSelect;
+export type StoryRow = typeof stories.$inferSelect;
