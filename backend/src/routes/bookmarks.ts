@@ -6,6 +6,7 @@ import { findPostOr404 } from '../lib/findPost.js';
 import {
   decodeCursor,
   encodeCursor,
+  loadReactionBreakdowns,
   loadTagsForPosts,
   loadViewerState,
 } from '../lib/postQueries.js';
@@ -75,8 +76,9 @@ bookmarkRoutes.get('/users/me/bookmarks', requireAuth, async (c) => {
   const page = rows.slice(0, limit);
   const ids = page.map((r) => r.post.id);
 
-  const [tagsByPost, viewer] = await Promise.all([
+  const [tagsByPost, breakdowns, viewer] = await Promise.all([
     loadTagsForPosts(ids),
+    loadReactionBreakdowns(ids),
     loadViewerState(ids, me.id),
   ]);
 
@@ -90,6 +92,7 @@ bookmarkRoutes.get('/users/me/bookmarks', requireAuth, async (c) => {
         category: r.category,
         tags: tagsByPost.get(r.post.id) ?? [],
         userReaction: viewer.reactions.get(r.post.id) ?? null,
+        breakdown: breakdowns.get(r.post.id),
         isBookmarked: true,
       }),
     ),

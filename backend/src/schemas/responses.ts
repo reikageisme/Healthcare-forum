@@ -140,6 +140,16 @@ export function toTagWithCount(row: TagRow, postCount = 0): TagWithCount {
   return tagWithCountSchema.parse({ ...toTagResponse(row), post_count: postCount });
 }
 
+export const reactionCountsSchema = z
+  .object({
+    helpful: z.number().int(),
+    like: z.number().int(),
+    informative: z.number().int(),
+    total: z.number().int(),
+  })
+  .strict();
+export type ReactionCounts = z.infer<typeof reactionCountsSchema>;
+
 export const postSummarySchema = z
   .object({
     id: z.string(),
@@ -162,25 +172,15 @@ export const postSummarySchema = z
     category: categoryResponseSchema.nullable(),
     tags: z.array(tagResponseSchema),
     user_reaction: z.string().nullable(),
+    reaction_breakdown: reactionCountsSchema,
     is_bookmarked: z.boolean(),
   })
   .strict();
 export type PostSummaryResponse = z.infer<typeof postSummarySchema>;
 
-export const reactionCountsSchema = z
-  .object({
-    helpful: z.number().int(),
-    like: z.number().int(),
-    informative: z.number().int(),
-    total: z.number().int(),
-  })
-  .strict();
-export type ReactionCounts = z.infer<typeof reactionCountsSchema>;
-
 export const postDetailSchema = postSummarySchema
   .extend({
     content: z.string(),
-    reaction_breakdown: reactionCountsSchema,
   })
   .strict();
 export type PostDetailResponse = z.infer<typeof postDetailSchema>;
@@ -190,6 +190,8 @@ export interface PostViewContext {
   category?: CategoryRow | null;
   tags?: TagRow[];
   userReaction?: string | null;
+  /** Số lượt thả cảm xúc; ai đọc cũng thấy, kể cả khách chưa đăng nhập. */
+  breakdown?: ReactionCounts;
   isBookmarked?: boolean;
   /** Who is reading. The author and staff still see the real name. */
   viewerId?: string | null;
@@ -235,6 +237,7 @@ export function toPostSummary(post: PostRow, ctx: PostViewContext): PostSummaryR
     category: ctx.category ? toCategoryResponse(ctx.category) : null,
     tags: (ctx.tags ?? []).map(toTagResponse),
     user_reaction: ctx.userReaction ?? null,
+    reaction_breakdown: ctx.breakdown ?? { helpful: 0, like: 0, informative: 0, total: 0 },
     is_bookmarked: ctx.isBookmarked ?? false,
   });
 }
@@ -246,7 +249,6 @@ export function toPostDetail(
   return postDetailSchema.parse({
     ...toPostSummary(post, ctx),
     content: post.content,
-    reaction_breakdown: ctx.breakdown,
   });
 }
 

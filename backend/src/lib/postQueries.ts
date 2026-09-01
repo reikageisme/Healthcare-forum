@@ -140,6 +140,39 @@ export async function getReactionBreakdown(postId: string): Promise<ReactionCoun
 }
 
 /**
+ * Reaction tallies for a whole page of posts in one query.
+ *
+ * posts.helpful_count chỉ soi được mỗi "hữu ích", nên nếu feed chỉ dựa vào
+ * nó thì lượt "thích" và "thông tin" của người khác không ai thấy cho tới
+ * khi mở bài ra. Đây là thứ làm con số ngoài feed đúng bằng trong bài.
+ */
+export async function loadReactionBreakdowns(
+  postIds: string[],
+): Promise<Map<string, ReactionCounts>> {
+  const byPost = new Map<string, ReactionCounts>();
+  if (postIds.length === 0) return byPost;
+
+  const rows = await db
+    .select({
+      post_id: reactions.post_id,
+      reaction_type: reactions.reaction_type,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(reactions)
+    .where(inArray(reactions.post_id, postIds))
+    .groupBy(reactions.post_id, reactions.reaction_type);
+
+  for (const row of rows) {
+    const current = byPost.get(row.post_id) ?? { helpful: 0, like: 0, informative: 0, total: 0 };
+    const n = Number(row.n);
+    current[row.reaction_type] = n;
+    current.total += n;
+    byPost.set(row.post_id, current);
+  }
+  return byPost;
+}
+
+/**
  * One query per collection rather than one per post — the batched IN (...)
  * lookups that kept the Python list endpoints free of N+1.
  */

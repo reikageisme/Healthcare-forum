@@ -14,6 +14,7 @@ import {
   generateUniqueSlug,
   getReactionBreakdown,
   loadPostByIdOrSlug,
+  loadReactionBreakdowns,
   loadTagsForPosts,
   loadViewerState,
   resolveTags,
@@ -210,8 +211,9 @@ postRoutes.get('/', optionalAuth, async (c) => {
   const page = rows.slice(0, limit);
   const ids = page.map((r) => r.post.id);
 
-  const [tagsByPost, viewer] = await Promise.all([
+  const [tagsByPost, breakdowns, viewer] = await Promise.all([
     loadTagsForPosts(ids),
+    loadReactionBreakdowns(ids),
     loadViewerState(ids, me?.id ?? null),
   ]);
 
@@ -225,6 +227,7 @@ postRoutes.get('/', optionalAuth, async (c) => {
         category: r.category,
         tags: tagsByPost.get(r.post.id) ?? [],
         userReaction: viewer.reactions.get(r.post.id) ?? null,
+        breakdown: breakdowns.get(r.post.id),
         isBookmarked: viewer.bookmarks.has(r.post.id),
         viewerId: me?.id ?? null,
         viewerIsStaff: isAdminOrMod,

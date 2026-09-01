@@ -519,6 +519,34 @@ describe('reactions', () => {
     expect(detail.helpful_count).toBe(0);
   });
 
+  it('shows every reaction tally to a reader who is not logged in', async () => {
+    const doctor = await seedUser('doctor');
+    const reader = await seedUser('user');
+    const other = await seedUser('user');
+    const post = await createPost(doctor.token, 'Bài ai cũng đếm được cảm xúc');
+
+    for (const [user, type] of [
+      [reader, 'like'],
+      [other, 'informative'],
+    ] as const) {
+      await request(`/posts/${post.id}/reactions`, {
+        method: 'POST',
+        token: user.token,
+        headers: nextIp(),
+        body: json({ reaction_type: type }),
+      });
+    }
+
+    // Khách chưa đăng nhập: ngoài feed và trong bài phải ra cùng một con số.
+    const feed = await (await request('/posts?limit=50', { headers: nextIp() })).json();
+    const item = feed.items.find((p: { id: string }) => p.id === post.id);
+    expect(item.reaction_breakdown).toEqual({ helpful: 0, like: 1, informative: 1, total: 2 });
+    expect(item.user_reaction).toBeNull();
+
+    const detail = await (await request(`/posts/${post.id}`, { headers: nextIp() })).json();
+    expect(detail.reaction_breakdown).toEqual(item.reaction_breakdown);
+  });
+
   it('accepts uppercase reaction types the way the Pydantic validator did', async () => {
     const doctor = await seedUser('doctor');
     const reader = await seedUser('user');
