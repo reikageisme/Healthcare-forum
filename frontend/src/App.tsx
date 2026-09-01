@@ -13,6 +13,7 @@ import BookmarksPage from './pages/BookmarksPage';
 import TagPage from './pages/TagPage';
 import CategoryPage from './pages/CategoryPage';
 import { ScrollToTop } from './components/common/ScrollToTop';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Admin pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -28,6 +29,7 @@ import LoginPage from './pages/LoginPage';
 function App() {
   return (
     <>
+    <ErrorBoundary>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       
@@ -105,6 +107,7 @@ function App() {
         />
       </Route>
     </Routes>
+    </ErrorBoundary>
     <ScrollToTop />
     </>
   );
