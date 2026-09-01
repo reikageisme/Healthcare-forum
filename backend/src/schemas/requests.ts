@@ -80,6 +80,7 @@ export const categoryCreateSchema = z.object({
   icon: optionalString(100),
   description: optionalString(255),
   parent_id: z.string().uuid().nullish(),
+  sort_order: z.number().int().min(0).max(9999).nullish(),
 });
 
 export const categoryUpdateSchema = z.object({
@@ -90,6 +91,7 @@ export const categoryUpdateSchema = z.object({
   // Explicit null detaches the category from its parent, so this field
   // distinguishes "not sent" from "sent as null".
   parent_id: z.string().uuid().nullish(),
+  sort_order: z.number().int().min(0).max(9999).nullish(),
 });
 
 export const commentCreateSchema = z.object({

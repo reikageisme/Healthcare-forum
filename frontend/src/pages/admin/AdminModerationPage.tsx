@@ -16,6 +16,7 @@ import { categoryService } from '../../services/categoryService';
 import { Post, Category } from '../../types';
 import RejectModal from '../../components/admin/RejectModal';
 import { formatDate, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
+import { flattenTree, indentLabel } from '../../lib/categoryTree';
 
 export const AdminModerationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
@@ -243,9 +244,9 @@ export const AdminModerationPage: React.FC = () => {
             className="px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-700 font-medium"
           >
             <option value="">Tất cả chuyên mục</option>
-            {categories.map((c) => (
+            {flattenTree(categories).map(({ item: c, depth }) => (
               <option key={c.id} value={c.id}>
-                {c.icon ? `${c.icon} ` : ''}{c.name}
+                {indentLabel(c.name, depth, c.icon)}
               </option>
             ))}
           </select>

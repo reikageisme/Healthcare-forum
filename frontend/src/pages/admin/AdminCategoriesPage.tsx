@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { FolderPlus, Edit2, Trash2, RefreshCw, Search, FileText } from 'lucide-react';
-import { categoryService } from '../../services/categoryService';
+import {
+  FolderPlus,
+  Edit2,
+  Trash2,
+  RefreshCw,
+  Search,
+  FileText,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
+import { categoryService, CategoryInput } from '../../services/categoryService';
 import { Category } from '../../types';
 import CategoryModal from '../../components/admin/CategoryModal';
+import { childrenMap, flattenTree } from '../../lib/categoryTree';
 
 export const AdminCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,13 +50,7 @@ export const AdminCategoriesPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveCategory = async (data: {
-    name: string;
-    slug?: string;
-    icon?: string | null;
-    description?: string | null;
-    parent_id?: string | null;
-  }) => {
+  const handleSaveCategory = async (data: CategoryInput & { name: string }) => {
     try {
       setIsSubmitting(true);
       if (editingCategory) {
@@ -65,6 +69,51 @@ export const AdminCategoriesPage: React.FC = () => {
       alert(msg);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  /**
+   * Moving a category swaps it with the sibling above or below and then
+   * renumbers that one level in tens. Renumbering the whole level rather than
+   * swapping two numbers is what keeps the order stable when several
+   * categories still sit on the default 0.
+   */
+  const handleMove = async (cat: Category, direction: 'up' | 'down') => {
+    const parentKey = cat.parent_id ?? null;
+    const siblings = flattenTree(categories)
+      .map(({ item }) => item)
+      .filter((c) => (c.parent_id ?? null) === parentKey);
+
+    const index = siblings.findIndex((c) => c.id === cat.id);
+    const target = index + (direction === 'up' ? -1 : 1);
+    if (index < 0 || target < 0 || target >= siblings.length) return;
+
+    const reordered = [...siblings];
+    reordered[index] = siblings[target];
+    reordered[target] = cat;
+
+    const changed = reordered
+      .map((c, i) => ({ c, order: (i + 1) * 10 }))
+      .filter(({ c, order }) => (c.sort_order ?? 0) !== order);
+    if (changed.length === 0) return;
+
+    // Optimistic: the table reorders immediately, the reload settles it.
+    setCategories((prev) =>
+      prev.map((c) => {
+        const hit = changed.find((x) => x.c.id === c.id);
+        return hit ? { ...c, sort_order: hit.order } : c;
+      }),
+    );
+
+    try {
+      for (const { c, order } of changed) {
+        await categoryService.updateCategory(c.id, { sort_order: order });
+      }
+    } catch (err: any) {
+      console.error('Reorder category failed', err);
+      alert(err.response?.data?.detail || 'Không thể lưu thứ tự chuyên mục.');
+    } finally {
+      fetchCategories();
     }
   };
 
@@ -100,12 +149,15 @@ export const AdminCategoriesPage: React.FC = () => {
     return c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q);
   });
 
-  // How many children each root category has, for the badge in the table.
+  // Direct children per category, for the badge in the table.
   const childCountOf = new Map<string, number>();
-  for (const c of categories) {
-    if (!c.parent_id) continue;
-    childCountOf.set(c.parent_id, (childCountOf.get(c.parent_id) ?? 0) + 1);
+  for (const [parentId, kids] of childrenMap(categories)) {
+    childCountOf.set(parentId, kids.length);
   }
+
+  // Rows in tree order, each carrying its depth so the name can be indented.
+  const rows = flattenTree(filteredCategories);
+  const isSearching = searchKeyword.trim().length > 0;
 
   return (
     <div className="space-y-6">
@@ -182,24 +234,29 @@ export const AdminCategoriesPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredCategories.map((cat) => (
+                {rows.map(({ item: cat, depth }) => (
                   <tr key={cat.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="py-3.5 px-4 text-center text-base">
                       {cat.icon || '📁'}
                     </td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        {cat.parent_id && (
-                          <span className="text-slate-300 select-none pl-3" aria-hidden="true">
+                      <div
+                        className="flex items-center gap-1.5"
+                        style={{ paddingLeft: (depth - 1) * 18 }}
+                      >
+                        {depth > 1 && (
+                          <span className="text-slate-300 select-none" aria-hidden="true">
                             └
                           </span>
                         )}
                         <span
                           className={
-                            cat.parent_id
-                              ? 'font-semibold text-slate-700'
-                              : 'font-bold text-slate-900'
+                            depth === 1
+                              ? 'font-bold text-slate-900'
+                              : depth === 2
+                                ? 'font-semibold text-slate-700'
+                                : 'text-slate-600'
                           }
                         >
                           {cat.name}
@@ -228,6 +285,35 @@ export const AdminCategoriesPage: React.FC = () => {
                     </td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap text-right space-x-2">
+                      <span className="inline-flex align-middle rounded-lg overflow-hidden border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => handleMove(cat, 'up')}
+                          disabled={isSearching}
+                          className="px-1.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-40 disabled:hover:bg-slate-100"
+                          title={
+                            isSearching
+                              ? 'Xoá từ khoá tìm kiếm để sắp xếp'
+                              : 'Đưa lên trên (trong cùng cấp)'
+                          }
+                        >
+                          <ChevronUp size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMove(cat, 'down')}
+                          disabled={isSearching}
+                          className="px-1.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border-l border-slate-200 disabled:opacity-40 disabled:hover:bg-slate-100"
+                          title={
+                            isSearching
+                              ? 'Xoá từ khoá tìm kiếm để sắp xếp'
+                              : 'Đưa xuống dưới (trong cùng cấp)'
+                          }
+                        >
+                          <ChevronDown size={12} />
+                        </button>
+                      </span>
+
                       <button
                         type="button"
                         onClick={() => handleOpenEditModal(cat)}

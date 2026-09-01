@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { X, Folder, FolderPlus } from 'lucide-react';
 import { Category } from '../../types';
+import {
+  MAX_CATEGORY_DEPTH,
+  branchHeight,
+  childrenMap,
+  depthOf,
+  descendantIds,
+  flattenTree,
+  indentLabel,
+} from '../../lib/categoryTree';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -14,6 +23,7 @@ interface CategoryModalProps {
     icon?: string | null;
     description?: string | null;
     parent_id?: string | null;
+    sort_order?: number;
   }) => Promise<void>;
   isSubmitting?: boolean;
 }
@@ -31,6 +41,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const [icon, setIcon] = useState('');
   const [description, setDescription] = useState('');
   const [parentId, setParentId] = useState('');
+  const [sortOrder, setSortOrder] = useState('0');
 
   useEffect(() => {
     if (category) {
@@ -39,12 +50,14 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       setIcon(category.icon || '');
       setDescription(category.description || '');
       setParentId(category.parent_id || '');
+      setSortOrder(String(category.sort_order ?? 0));
     } else {
       setName('');
       setSlug('');
       setIcon('');
       setDescription('');
       setParentId('');
+      setSortOrder('0');
     }
   }, [category, isOpen]);
 
@@ -52,11 +65,18 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
 
   const isEdit = !!category;
 
-  // The tree is two levels deep, so only root categories can be parents, and
-  // a category that already has children cannot become a child itself.
-  const hasChildren = !!category && allCategories.some((c) => c.parent_id === category.id);
-  const parentOptions = allCategories.filter(
-    (c) => !c.parent_id && c.id !== category?.id,
+  // Which categories may be the parent depends on both ends: how deep the
+  // candidate already sits, and how tall the branch being moved is. A
+  // category with grandchildren has nowhere left to go but the root.
+  const children = childrenMap(allCategories);
+  const ownHeight = category ? branchHeight(category.id, children) : 1;
+  const blocked = category
+    ? new Set([category.id, ...descendantIds(category.id, children)])
+    : new Set<string>();
+  const parentOptions = flattenTree(allCategories).filter(
+    ({ item }) =>
+      !blocked.has(item.id) &&
+      depthOf(item.id, allCategories) + ownHeight <= MAX_CATEGORY_DEPTH,
   );
 
   const generateSlug = (str: string) => {
@@ -92,6 +112,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       // null detaches from the parent; the API treats an omitted field as
       // "leave alone", so this is always sent explicitly.
       parent_id: parentId || null,
+      sort_order: Number(sortOrder) || 0,
     });
   };
 
@@ -138,21 +159,19 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
             <select
               value={parentId}
               onChange={(e) => setParentId(e.target.value)}
-              disabled={hasChildren}
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-slate-100 disabled:text-slate-400"
+              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             >
               <option value="">— Là chuyên mục gốc —</option>
-              {parentOptions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.icon ? `${c.icon} ` : ''}
-                  {c.name}
+              {parentOptions.map(({ item, depth }) => (
+                <option key={item.id} value={item.id}>
+                  {indentLabel(item.name, depth, item.icon)}
                 </option>
               ))}
             </select>
             <p className="text-[11px] text-slate-400 mt-1">
-              {hasChildren
-                ? 'Chuyên mục này đang có chuyên mục con nên không thể trở thành mục con.'
-                : 'Để trống nếu đây là chuyên mục gốc. Cây chỉ sâu hai cấp.'}
+              {ownHeight > 1
+                ? `Chuyên mục này đang có mục con nên chỉ đặt được vào chỗ còn đủ ${MAX_CATEGORY_DEPTH} cấp.`
+                : `Để trống nếu đây là chuyên mục gốc. Cây sâu tối đa ${MAX_CATEGORY_DEPTH} cấp.`}
             </p>
           </div>
 
@@ -167,6 +186,21 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
               placeholder="VD: tim-mach, nhi-khoa..."
               className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono text-slate-600"
             />
+          </div>
+
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Thứ tự hiển thị</label>
+            <input
+              type="number"
+              min={0}
+              max={9999}
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Số nhỏ hiện trước. Cùng số thì xếp theo tên, nên để 0 là đủ cho hầu hết chuyên mục.
+            </p>
           </div>
 
           <div>
