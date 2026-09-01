@@ -19,8 +19,19 @@ export interface TokenPayload {
   exp: number;
 }
 
+/**
+ * bcryptjs là bản thuần JavaScript nên chậm hơn bcrypt native nhiều lần, và
+ * chi phí tăng gấp đôi mỗi bậc: cost 12 trên VPS nhỏ mất vài giây cho một
+ * lần đăng ký. Cost 10 (mặc định của chính bcrypt, và mức tối thiểu OWASP
+ * khuyến nghị) nhanh hơn bốn lần.
+ *
+ * Đổi con số này không làm hỏng tài khoản cũ: bcrypt nhét cost vào trong
+ * chuỗi hash, nên hash $2b$12$... vẫn kiểm tra đúng như thường.
+ */
+const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS ?? 10);
+
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
 /**

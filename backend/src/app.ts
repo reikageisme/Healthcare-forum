@@ -18,8 +18,24 @@ import { verificationRoutes } from './routes/verification.js';
 import { sitemapRoutes } from './routes/sitemap.js';
 import { storyRoutes } from './routes/stories.js';
 
+/**
+ * Chỉ ghi log những request chậm bất thường. Khi người dùng báo "trang này
+ * lâu quá" thì đây là thứ trả lời được câu hỏi đó bằng con số, thay vì phải
+ * đoán xem chỗ nào chậm.
+ */
+const SLOW_REQUEST_MS = Number(process.env.SLOW_REQUEST_MS ?? 1000);
+
 export function createApp() {
   const app = new Hono();
+
+  app.use('*', async (c, next) => {
+    const started = Date.now();
+    await next();
+    const ms = Date.now() - started;
+    if (ms >= SLOW_REQUEST_MS) {
+      console.warn(`[slow] ${c.req.method} ${c.req.path} ${c.res.status} ${ms}ms`);
+    }
+  });
 
   app.use('*', secureHeaders({
     xFrameOptions: 'DENY',

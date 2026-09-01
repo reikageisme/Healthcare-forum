@@ -52,22 +52,36 @@ export const LoginPage: React.FC = () => {
           navigate(location.state?.from?.pathname || '/');
         }
       } else {
-        // Form Đăng ký
+        // Form Đăng ký. /auth/register trả sẵn cặp token, nên đăng nhập luôn
+        // thay vì bắt người dùng gõ lại mật khẩu và chờ băm bcrypt lần nữa.
         const username = email.split('@')[0];
-        await api.post('/auth/register', {
+        const res = await api.post('/auth/register', {
           email: email.trim(),
           password,
           username,
           full_name: fullName.trim() || username,
         });
-        
-        setIsLogin(true);
-        setError('Đăng ký thành công! Vui lòng đăng nhập.');
+
+        const token = res.data.access_token;
+        if (!token) {
+          setIsLogin(true);
+          setError('Đăng ký thành công! Vui lòng đăng nhập.');
+          return;
+        }
+
+        login(
+          { id: '', email: '', username, full_name: '', role: 'USER' } as any,
+          token,
+          res.data.refresh_token ?? null,
+        );
+        const profileRes = await api.get('/auth/me');
+        login(profileRes.data, token);
+        navigate('/');
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Có lỗi xảy ra. Vui lòng kiểm tra lại thông tin.');
-      // Xoá token lỗi nếu có
-      if (isLogin) useAuthStore.getState().logout();
+      // Xoá token dở dang, dù hỏng ở bước đăng nhập hay đăng ký.
+      useAuthStore.getState().logout();
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +170,10 @@ export const LoginPage: React.FC = () => {
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary-dark transition-all disabled:opacity-70 mt-2 shadow-sm shadow-primary/30"
             >
               {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  {isLogin ? 'Đang đăng nhập...' : 'Đang tạo tài khoản...'}
+                </>
               ) : (
                 <>
                   {isLogin ? 'Đăng nhập' : 'Đăng ký'}
