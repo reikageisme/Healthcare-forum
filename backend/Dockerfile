@@ -31,10 +31,14 @@ COPY --from=build /app/dist ./dist
 COPY drizzle ./drizzle
 COPY drizzle.config.ts ./
 COPY entrypoint.sh ./
-RUN chmod +x entrypoint.sh \
+# su-exec lets the entrypoint fix the bind-mounted uploads directory as root
+# and then hand the server to the unprivileged user. Switching with USER here
+# instead would freeze the ownership at build time, which the host's own
+# directory overrides the moment it is mounted.
+RUN apk add --no-cache su-exec \
+    && chmod +x entrypoint.sh \
     && addgroup -S app && adduser -S app -G app \
     && mkdir -p /app/uploads && chown -R app:app /app
-USER app
 EXPOSE 8000
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["node", "dist/server.js"]

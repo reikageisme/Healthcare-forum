@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { Hono } from 'hono';
 import sharp from 'sharp';
 import { settings } from '../core/config.js';
-import { badRequest } from '../core/errors.js';
+import { HttpError, badRequest } from '../core/errors.js';
 import { uploadResponseSchema } from '../schemas/responses.js';
 import { requireAuth } from '../middleware/auth.js';
 import { uploadRateLimit } from '../middleware/rateLimit.js';
@@ -73,9 +73,28 @@ uploadRoutes.post('/upload', requireAuth, uploadRateLimit, async (c) => {
   // The stored name comes from what the bytes actually are, not from what
   // the client called the file.
   const uploadDir = join(process.cwd(), settings.UPLOAD_DIR);
-  await mkdir(uploadDir, { recursive: true });
   const filename = `${randomUUID().replace(/-/g, '')}${format.ext}`;
-  await writeFile(join(uploadDir, filename), bytes);
+  try {
+    await mkdir(uploadDir, { recursive: true });
+    await writeFile(join(uploadDir, filename), bytes);
+  } catch (err) {
+    // A write that fails here is a deployment problem, not a bad request:
+    // in production /app/uploads is bind-mounted from the host, so the
+    // directory arrives owned by the host user and the container's
+    // unprivileged process cannot write into it (EACCES). Left unhandled it
+    // reached the browser as a bare "Internal server error" with nothing in
+    // it to act on, so name the cause in the log.
+    const code = (err as NodeJS.ErrnoException).code ?? 'UNKNOWN';
+    console.error(`[upload] cannot write to ${uploadDir} (${code})`, err);
+    throw new HttpError(
+      500,
+      code === 'EACCES' || code === 'EPERM'
+        ? 'Máy chủ không có quyền ghi thư mục ảnh. Vui lòng báo quản trị viên.'
+        : code === 'ENOSPC'
+          ? 'Máy chủ đã hết dung lượng lưu trữ ảnh. Vui lòng báo quản trị viên.'
+          : 'Không thể lưu ảnh trên máy chủ. Vui lòng thử lại sau.',
+    );
+  }
 
   return c.json(
     uploadResponseSchema.parse({
