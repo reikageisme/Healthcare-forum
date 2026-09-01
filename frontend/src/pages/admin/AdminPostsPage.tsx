@@ -18,6 +18,7 @@ import { categoryService } from '../../services/categoryService';
 import { postService } from '../../services/postService';
 import { Category, Post } from '../../types';
 import { formatDate } from '../../lib/utils';
+import { flattenTree, indentLabel } from '../../lib/categoryTree';
 
 const PAGE_SIZE = 20;
 
@@ -208,9 +209,9 @@ export const AdminPostsPage: React.FC = () => {
             className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-700 font-medium max-w-[220px]"
           >
             <option value="">Tất cả chuyên mục</option>
-            {categories.map((cat) => (
+            {flattenTree(categories).map(({ item: cat, depth }) => (
               <option key={cat.id} value={cat.id}>
-                {cat.parent_id ? `  └ ${cat.name}` : cat.name}
+                {indentLabel(cat.name, depth)}
               </option>
             ))}
           </select>

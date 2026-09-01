@@ -8,6 +8,7 @@ import { withTag } from '../lib/tags';
 import { categoryService } from '../services/categoryService';
 import { tagService } from '../services/tagService';
 import { Category, TagWithCount, PostType, Post } from '../types';
+import { flattenTree, indentLabel } from '../lib/categoryTree';
 
 const POST_TYPES: { type: PostType; label: string; desc: string }[] = [
   { type: 'ARTICLE', label: 'Bài viết', desc: 'Kiến thức y khoa, cẩm nang sức khỏe' },
@@ -241,10 +242,9 @@ export const EditPostPage: React.FC = () => {
               <option value="" disabled>
                 -- Chọn chuyên mục --
               </option>
-              {categories.map((cat) => (
+              {flattenTree(categories).map(({ item: cat, depth }) => (
                 <option key={cat.id} value={cat.id}>
-                  {cat.icon ? `${cat.icon} ` : ''}
-                  {cat.name}
+                  {indentLabel(cat.name, depth, cat.icon)}
                 </option>
               ))}
             </select>

@@ -37,8 +37,10 @@ export interface Category {
   slug: string;
   icon?: string | null;
   description?: string | null;
-  /** null for a top-level category; set for a child. The tree is two deep. */
+  /** null for a top-level category; set for a child. Cây sâu tối đa 3 cấp. */
   parent_id?: string | null;
+  /** Thứ tự thủ công trong cùng một cấp; cùng số thì xếp theo tên. */
+  sort_order?: number;
   created_at?: string;
   post_count?: number;
 }
