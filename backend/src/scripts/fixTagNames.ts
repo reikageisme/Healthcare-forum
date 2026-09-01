@@ -1,4 +1,4 @@
-import { and, eq, notInArray, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { postTags, tags } from '../db/schema.js';
 import { stripTagHyphens } from '../lib/postQueries.js';
@@ -80,15 +80,23 @@ async function main() {
     }
   }
 
+  // Thẻ sắp bị gộp đi và thẻ sắp nhận bài từ nó đều không phải "thẻ rỗng cần
+  // xoá": một cái đã biến mất trong bước gộp, một cái sắp có bài. Loại cả hai
+  // ra để danh sách in ra khớp đúng với việc sẽ làm.
+  const mergedAwayIds = new Set<string>();
+  const mergeTargetIds = new Set<string>();
+  for (const r of renames) {
+    const clash = byName.get(r.to);
+    if (merge && clash && clash.id !== r.id) {
+      mergedAwayIds.add(r.id);
+      mergeTargetIds.add(clash.id);
+    }
+  }
+
   let emptyTags: typeof allTags = [];
   if (pruneEmpty) {
-    const survivors = new Set<string>();
-    for (const r of renames) {
-      const clash = byName.get(r.to);
-      if (merge && clash && clash.id !== r.id) survivors.add(clash.id);
-    }
     for (const tag of allTags) {
-      if (survivors.has(tag.id)) continue; // sắp nhận bài từ thẻ bị gộp
+      if (mergedAwayIds.has(tag.id) || mergeTargetIds.has(tag.id)) continue;
       if ((await postCount(tag.id)) === 0) emptyTags.push(tag);
     }
     for (const tag of emptyTags) console.log(`  #${tag.name}   (XOÁ: không có bài viết nào)`);
@@ -127,15 +135,8 @@ async function main() {
 
   let pruned = 0;
   if (pruneEmpty) {
-    const mergedIds = new Set<string>();
-    for (const r of renames) {
-      const clash = byName.get(r.to);
-      if (merge && clash && clash.id !== r.id) mergedIds.add(r.id);
-    }
-    const stillThere = emptyTags.filter((t) => !mergedIds.has(t.id));
-    for (const tag of stillThere) {
-      // Kiểm lại ngay trước khi xoá: một thẻ vừa nhận bài từ thẻ bị gộp thì
-      // không còn rỗng nữa.
+    for (const tag of emptyTags) {
+      // Kiểm lại ngay trước khi xoá, phòng khi bước gộp vừa đẩy bài sang.
       if ((await postCount(tag.id)) > 0) continue;
       await db.delete(tags).where(eq(tags.id, tag.id));
       pruned += 1;
