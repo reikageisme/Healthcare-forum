@@ -5,10 +5,6 @@ import {
   BookOpen,
   Star,
   Bookmark,
-  Building2,
-  Building,
-  Pill,
-  FlaskConical,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -43,13 +39,6 @@ const mainNav = [
   { name: 'Bài viết', icon: BookOpen, path: '/?type=article' },
   { name: 'Đánh giá', icon: Star, path: '/?type=review' },
   { name: 'Đã lưu', icon: Bookmark, path: '/bookmarks' },
-];
-
-const facilities = [
-  { name: 'Bệnh viện', icon: Building2, slug: 'benh-vien' },
-  { name: 'Phòng khám', icon: Building, slug: 'phong-kham' },
-  { name: 'Nhà thuốc', icon: Pill, slug: 'nha-thuoc' },
-  { name: 'Phòng xét nghiệm', icon: FlaskConical, slug: 'xet-nghiem' },
 ];
 
 /** Có chuyên mục nào trong nhánh đang được mở không. */
@@ -156,7 +145,6 @@ export const SidebarLeft: React.FC = () => {
   const activeSlug = /^\/(?:category|chuyen-khoa)\/([^/]+)/.exec(location.pathname)?.[1] ?? null;
 
   const [openSpecialties, setOpenSpecialties] = useState(true);
-  const [openFacilities, setOpenFacilities] = useState(true);
 
   return (
     <div className="flex flex-col gap-6 text-sm font-medium">
@@ -222,31 +210,6 @@ export const SidebarLeft: React.FC = () => {
         )}
       </div>
 
-      {/* Facilities Accordion */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setOpenFacilities(!openFacilities)}
-          className="flex items-center justify-between w-full px-3 py-2 text-text-secondary hover:text-text uppercase text-xs tracking-wider font-bold mb-1"
-        >
-          <span>Cơ sở y tế</span>
-          {openFacilities ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-        {openFacilities && (
-          <div className="flex flex-col gap-0.5 pl-2 border-l border-border ml-4 mt-2">
-            {facilities.map((item) => (
-              <Link
-                key={item.name}
-                to={`/tags/${item.slug}`}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-secondary hover:bg-slate-100 hover:text-primary group text-xs font-medium transition-colors"
-              >
-                <item.icon size={16} className="text-slate-400 group-hover:text-primary flex-shrink-0" />
-                <span className="truncate">{item.name}</span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 };

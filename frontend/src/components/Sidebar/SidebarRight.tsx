@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TagWithCount } from '../../types';
 import { tagService } from '../../services/tagService';
+import { statsService, CommunityStats } from '../../services/statsService';
+
+/** 12543 -> "12.5K". Ô thống kê chỉ có chỗ cho vài ký tự. */
+const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
 
 const fallbackTags: TagWithCount[] = [
   { id: '1', name: 'Sốt xuất huyết', slug: 'sot-xuat-huyet', post_count: 48 },
@@ -32,6 +36,14 @@ const featuredDoctors = [
 
 export const SidebarRight: React.FC = () => {
   const [tags, setTags] = useState<TagWithCount[]>(fallbackTags);
+  const [stats, setStats] = useState<CommunityStats | null>(null);
+
+  useEffect(() => {
+    statsService
+      .getCommunityStats()
+      .then(setStats)
+      .catch((err) => console.error('Failed to load community stats', err));
+  }, []);
 
   useEffect(() => {
     const fetchHotTags = async () => {
@@ -112,15 +124,21 @@ export const SidebarRight: React.FC = () => {
         </h3>
         <div className="grid grid-cols-2 gap-3">
           <div className="text-center p-3 bg-slate-50 rounded-xl">
-            <div className="text-xl font-extrabold text-primary">12.5k</div>
+            <div className="text-xl font-extrabold text-primary">
+              {stats ? compact.format(stats.total_members) : '—'}
+            </div>
             <div className="text-xs text-text-secondary mt-0.5">Thành viên</div>
           </div>
           <div className="text-center p-3 bg-slate-50 rounded-xl">
-            <div className="text-xl font-extrabold text-primary-dark">8.2k</div>
+            <div className="text-xl font-extrabold text-primary-dark">
+              {stats ? compact.format(stats.total_posts) : '—'}
+            </div>
             <div className="text-xs text-text-secondary mt-0.5">Bài viết</div>
           </div>
           <div className="text-center p-3 bg-slate-50 rounded-xl col-span-2">
-            <div className="text-xl font-extrabold text-success">45.1k</div>
+            <div className="text-xl font-extrabold text-success">
+              {stats ? compact.format(stats.total_solved_questions) : '—'}
+            </div>
             <div className="text-xs text-text-secondary mt-0.5">Câu hỏi đã được giải đáp</div>
           </div>
         </div>

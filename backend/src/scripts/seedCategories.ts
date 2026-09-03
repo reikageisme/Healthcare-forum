@@ -109,6 +109,11 @@ const TREE: SeedNode[] = [
     icon: '🥗',
     children: ['Bệnh thường gặp', 'Dinh dưỡng - Lối sống', 'Dùng thuốc an toàn'],
   },
+  {
+    name: 'Cơ sở y tế',
+    icon: '🏨',
+    children: ['Bệnh viện', 'Phòng khám', 'Nhà thuốc', 'Phòng xét nghiệm'],
+  },
 ];
 
 function argValue(flag: string): string | null {

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { CategoryRow, CommentRow, PostRow, ReportRow, TagRow, UserRow } from '../db/schema.js';
 import { toIso, toIsoRequired } from '../lib/datetime.js';
+import { postImages } from '../lib/postImages.js';
 import {
   postStatusValues,
   postTypeValues,
@@ -157,6 +158,8 @@ export const postSummarySchema = z
     slug: z.string(),
     excerpt: z.string().nullable(),
     thumbnail: z.string().nullable(),
+    // Ảnh rút từ nội dung bài, để feed dựng lưới ảnh nhiều tấm.
+    images: z.array(z.string()).default([]),
     post_type: z.enum(postTypeValues),
     status: z.enum(postStatusValues),
     rejection_reason: z.string().nullable(),
@@ -222,6 +225,7 @@ export function toPostSummary(post: PostRow, ctx: PostViewContext): PostSummaryR
     slug: post.slug,
     excerpt: post.excerpt,
     thumbnail: post.thumbnail,
+    images: postImages(post.content, post.thumbnail),
     post_type: post.post_type,
     status: post.status,
     rejection_reason: post.rejection_reason,

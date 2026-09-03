@@ -14,6 +14,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Post } from '../../types';
 import { ReactionButtons } from '../posts/ReactionButtons';
 import { BookmarkButton } from '../posts/BookmarkButton';
+import { PostGallery } from '../posts/PostGallery';
 import { ReportModal } from '../common/ReportModal';
 import { formatRelativeTime, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
@@ -81,6 +82,10 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
   // not fit three lines.
   const excerptText = post.excerpt ?? '';
   const isExcerptTruncated = excerptText.endsWith('...') || excerptText.length > 150;
+
+  // Bài cũ chỉ có thumbnail; bài mới trả về cả danh sách ảnh trong nội dung.
+  const galleryImages =
+    post.images && post.images.length > 0 ? post.images : post.thumbnail ? [post.thumbnail] : [];
 
   const reactionCounts = post.reaction_breakdown || {
     helpful: post.helpful_count || post.helpfulCount || 0,
@@ -224,19 +229,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
         )}
       </div>
 
-      {/* Thumbnail */}
-      {post.thumbnail && (
-        <div
-          onClick={() => navigate(postUrl)}
-          className="mb-4 rounded-xl overflow-hidden bg-slate-100 border border-border max-h-80 flex items-center justify-center cursor-pointer group"
-        >
-          <img
-            src={post.thumbnail}
-            alt={post.title}
-            className="w-full object-cover max-h-80 group-hover:scale-102 transition-transform duration-300"
-          />
-        </div>
-      )}
+      {/* Ảnh bài viết — lưới nhiều ảnh kiểu Facebook */}
+      <PostGallery images={galleryImages} alt={post.title} onOpen={() => navigate(postUrl)} />
 
       {/* Tags */}
       {post.tags && post.tags.length > 0 && (

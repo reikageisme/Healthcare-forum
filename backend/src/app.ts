@@ -17,6 +17,7 @@ import { uploadRoutes } from './routes/upload.js';
 import { verificationRoutes } from './routes/verification.js';
 import { sitemapRoutes } from './routes/sitemap.js';
 import { storyRoutes } from './routes/stories.js';
+import { statsRoutes } from './routes/stats.js';
 
 /**
  * Chỉ ghi log những request chậm bất thường. Khi người dùng báo "trang này
@@ -69,6 +70,7 @@ export function createApp() {
   v1.route('/admin', adminRoutes);
   v1.route('/verifications', verificationRoutes);
   v1.route('/stories', storyRoutes);
+  v1.route('/', statsRoutes);
 
   // These routers carried no prefix in FastAPI; their paths are absolute
   // (/posts/{id}/comments, /users/me/bookmarks) and mount at the v1 root.

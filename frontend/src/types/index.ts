@@ -63,6 +63,8 @@ export interface Post {
   excerpt?: string;
   content?: string;
   thumbnail?: string | null;
+  /** Ảnh rút từ nội dung bài, dựng lưới ảnh ở feed. */
+  images?: string[];
   post_type: PostType;
   type?: PostType; // Compatibility alias
   status?: PostStatus;
