@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ExternalLink, Globe } from 'lucide-react';
 import { networkService, NetworkInfo } from '../../services/forumService';
+import SiteAvatar from '../common/SiteAvatar';
 
 /**
  * Thẻ "Mạng lưới" ở sidebar: các trang anh em cùng hệ thống.
@@ -43,9 +44,10 @@ export const NetworkCard: React.FC = () => {
             <li key={site.url}>
               <div
                 aria-current="page"
-                className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border-2 border-primary bg-primary/5"
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 border-primary bg-primary/5"
               >
-                <span className="text-sm font-bold text-primary truncate">{site.name}</span>
+                <SiteAvatar name={site.name} url={site.url} iconUrl={site.icon_url} size={26} />
+                <span className="flex-1 text-sm font-bold text-primary truncate">{site.name}</span>
                 <span className="text-[10px] font-bold uppercase tracking-wide text-primary whitespace-nowrap">
                   Đang xem
                 </span>
@@ -58,9 +60,10 @@ export const NetworkCard: React.FC = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 title={site.description || site.name}
-                className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-transparent hover:border-primary/30 hover:bg-primary/5 transition-colors group"
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-50 border border-transparent hover:border-primary/30 hover:bg-primary/5 transition-colors group"
               >
-                <span className="text-sm font-semibold text-text-secondary group-hover:text-primary truncate transition-colors">
+                <SiteAvatar name={site.name} url={site.url} iconUrl={site.icon_url} size={26} />
+                <span className="flex-1 min-w-0 text-sm font-semibold text-text-secondary group-hover:text-primary truncate transition-colors">
                   {site.name}
                 </span>
                 <ExternalLink

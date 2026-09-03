@@ -17,6 +17,16 @@ export interface SiteLink {
   name: string;
   url: string;
   description?: string;
+  /**
+   * Ảnh đại diện của trang, do quản trị viên tải lên.
+   *
+   * Cố ý KHÔNG tự đi tải trang đích để rút og:image như Facebook làm: URL ở
+   * đây do quản trị viên nhập, nên một backend chịu fetch bất kỳ địa chỉ nào
+   * là một SSRF — gõ http://192.168.1.102:5432 vào là nó dò mạng nội bộ hộ.
+   * Để trống thì phía client tự thử /favicon.ico của chính tên miền đó, tức là
+   * trình duyệt người xem tải chứ không phải server, nên không có rủi ro ấy.
+   */
+  icon_url?: string;
 }
 
 export interface NetworkConfig {
@@ -40,6 +50,7 @@ function cleanLinks(raw: unknown, limit: number): SiteLink[] {
       name: String(x.name).trim().slice(0, 120),
       url: String(x.url).trim().slice(0, 500),
       description: x.description ? String(x.description).trim().slice(0, 300) : undefined,
+      icon_url: x.icon_url ? String(x.icon_url).trim().slice(0, 500) : undefined,
     }))
     .filter((link) => link.name && link.url)
     .slice(0, limit);

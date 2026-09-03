@@ -26,6 +26,8 @@ export interface NetworkSite {
   name: string;
   url: string;
   description?: string;
+  /** Ảnh đại diện admin tải lên; trống thì client tự thử /favicon.ico. */
+  icon_url?: string;
   is_current: boolean;
 }
 
@@ -52,7 +54,7 @@ export const networkService = {
 export interface NetworkConfigInput {
   name: string;
   tagline: string;
-  sites: { name: string; url: string; description?: string }[];
+  sites: { name: string; url: string; description?: string; icon_url?: string }[];
   footer_links: { name: string; url: string }[];
   contact_email: string;
 }

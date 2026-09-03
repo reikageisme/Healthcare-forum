@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, GripVertical, Loader2, Plus, Trash2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, CheckCircle2, GripVertical, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
 import { adminNetworkService, NetworkConfigInput } from '../../services/forumService';
+import { uploadService } from '../../services/uploadService';
+import SiteAvatar from '../../components/common/SiteAvatar';
 
 /**
  * Mạng lưới & chân trang.
@@ -21,6 +23,84 @@ const EMPTY: NetworkConfigInput = {
 
 const inputClass =
   'w-full h-10 px-3 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all';
+
+const MAX_ICON_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Ô chọn ảnh đại diện cho một trang.
+ *
+ * Bỏ trống là lựa chọn hợp lệ, không phải thiếu sót: SiteAvatar sẽ tự thử
+ * /favicon.ico của tên miền đó, và phần lớn trang có sẵn. Chỉ tải lên khi
+ * favicon xấu hoặc không có.
+ */
+const IconPicker: React.FC<{
+  name: string;
+  url: string;
+  iconUrl?: string;
+  onChange: (iconUrl: string | undefined) => void;
+  onError: (message: string) => void;
+}> = ({ name, url, iconUrl, onChange, onError }) => {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return onError('Chỉ nhận file ảnh.');
+    if (file.size > MAX_ICON_BYTES) return onError('Ảnh vượt quá 2 MB.');
+
+    try {
+      setBusy(true);
+      const res = await uploadService.uploadImage(file);
+      onChange(res.url);
+    } catch (err) {
+      console.error('Icon upload failed', err);
+      onError('Tải ảnh lên thất bại.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 shrink-0">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        onChange={pick}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={busy}
+        title={iconUrl ? 'Đổi ảnh đại diện' : 'Tải ảnh đại diện (bỏ trống sẽ dùng favicon của trang)'}
+        aria-label={`Ảnh đại diện cho ${name || url || 'trang này'}`}
+        className="w-10 h-10 rounded-lg border border-border bg-white hover:border-primary/40 flex items-center justify-center transition-colors disabled:opacity-60"
+      >
+        {busy ? (
+          <Loader2 size={15} className="animate-spin text-slate-400" aria-hidden="true" />
+        ) : iconUrl || url ? (
+          <SiteAvatar name={name} url={url} iconUrl={iconUrl} size={24} />
+        ) : (
+          <Upload size={15} className="text-slate-400" aria-hidden="true" />
+        )}
+      </button>
+      {iconUrl && (
+        <button
+          type="button"
+          onClick={() => onChange(undefined)}
+          title="Gỡ ảnh, quay lại dùng favicon của trang"
+          aria-label="Gỡ ảnh đại diện"
+          className="w-6 h-10 text-slate-400 hover:text-danger flex items-center justify-center transition-colors"
+        >
+          <X size={14} aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const AdminNetworkPage: React.FC = () => {
   const [config, setConfig] = useState<NetworkConfigInput>(EMPTY);
@@ -133,7 +213,7 @@ export const AdminNetworkPage: React.FC = () => {
         <div className="px-6 py-4 border-b border-border flex items-center justify-between gap-3">
           <div>
             <h2 className="text-[15px] font-bold text-slate-900">Các trang trong mạng lưới</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Tối đa 20 trang, hiện theo đúng thứ tự này.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Tối đa 20 trang, hiện theo đúng thứ tự này. Bỏ trống ảnh đại diện thì dùng favicon của chính trang đó.</p>
           </div>
           <button
             type="button"
@@ -154,6 +234,17 @@ export const AdminNetworkPage: React.FC = () => {
               {config.sites.map((site, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <GripVertical size={16} className="text-slate-300 mt-2.5 shrink-0" aria-hidden="true" />
+                  <IconPicker
+                    name={site.name}
+                    url={site.url}
+                    iconUrl={site.icon_url}
+                    onError={setError}
+                    onChange={(icon_url) => {
+                      const sites = [...config.sites];
+                      sites[i] = { ...sites[i], icon_url };
+                      patch({ sites });
+                    }}
+                  />
                   <div className="grid sm:grid-cols-[1fr_1.4fr] gap-2 flex-1 min-w-0">
                     <input
                       type="text"

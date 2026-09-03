@@ -5,6 +5,7 @@ import { networkService, NetworkInfo } from '../../services/forumService';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
 import { rootsOf } from '../../lib/categoryTree';
+import SiteAvatar from './SiteAvatar';
 
 /**
  * Chân trang.
@@ -141,8 +142,9 @@ export const Footer: React.FC = () => {
                         href={site.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-text-secondary hover:text-primary transition-colors"
+                        className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors"
                       >
+                        <SiteAvatar name={site.name} url={site.url} iconUrl={site.icon_url} size={18} />
                         {site.name}
                         <span className="sr-only"> (mở tab mới)</span>
                       </a>
