@@ -3,6 +3,7 @@ import {
   index,
   uniqueIndex,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -378,3 +379,17 @@ export type TagRow = typeof tags.$inferSelect;
 export type ReportRow = typeof reports.$inferSelect;
 export type DoctorVerificationRow = typeof doctorVerifications.$inferSelect;
 export type StoryRow = typeof stories.$inferSelect;
+
+/**
+ * Cấu hình toàn site do quản trị viên sửa trong /admin — mạng lưới các trang
+ * anh em, liên kết chân trang, email liên hệ. Giá trị là JSON tự do vì mỗi
+ * khoá có hình dạng riêng và chúng đổi vài lần một năm, không đáng để mỗi mẩu
+ * một bảng với một bộ CRUD riêng.
+ */
+export const siteSettings = pgTable('site_settings', {
+  key: varchar('key', { length: 64 }).primaryKey(),
+  value: jsonb('value').notNull(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type SiteSettingRow = typeof siteSettings.$inferSelect;

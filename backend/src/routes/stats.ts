@@ -5,6 +5,7 @@ import { categories, posts, users } from '../db/schema.js';
 import { categoryPostCount } from '../lib/categoryTree.js';
 import { toCategoryResponse, toUserResponse } from '../schemas/responses.js';
 import { settings } from '../core/config.js';
+import { readNetworkConfig } from '../lib/siteSettings.js';
 
 export const statsRoutes = new Hono();
 
@@ -149,17 +150,20 @@ statsRoutes.get('/forum', async (c) => {
  * hình dùng chung cho mọi trang trong mạng lưới mà không trang nào phải tự
  * loại mình ra khỏi danh sách.
  */
-statsRoutes.get('/network', (c) => {
+statsRoutes.get('/network', async (c) => {
+  const config = await readNetworkConfig();
   const here = settings.SITE_URL.replace(/\/+$/, '');
-  c.header('Cache-Control', 'public, max-age=3600');
+
+  // Không cache ở đây: quản trị viên vừa lưu trong /admin thì phải thấy ngay,
+  // và đây là một truy vấn theo khoá chính, không phải thứ cần tiết kiệm.
   return c.json({
-    name: settings.NETWORK_NAME,
-    tagline: settings.NETWORK_TAGLINE,
-    sites: settings.NETWORK_SITES.map((site) => ({
+    name: config.name,
+    tagline: config.tagline,
+    sites: config.sites.map((site) => ({
       ...site,
       is_current: site.url.replace(/\/+$/, '') === here,
     })),
-    footer_links: settings.FOOTER_LINKS,
-    contact_email: settings.CONTACT_EMAIL,
+    footer_links: config.footer_links,
+    contact_email: config.contact_email,
   });
 });

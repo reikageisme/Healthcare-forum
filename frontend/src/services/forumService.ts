@@ -48,3 +48,23 @@ export const networkService = {
     return response.data;
   },
 };
+
+export interface NetworkConfigInput {
+  name: string;
+  tagline: string;
+  sites: { name: string; url: string; description?: string }[];
+  footer_links: { name: string; url: string }[];
+  contact_email: string;
+}
+
+export const adminNetworkService = {
+  get: async (): Promise<NetworkConfigInput> => {
+    const response = await api.get<NetworkConfigInput>('/admin/network');
+    return response.data;
+  },
+
+  save: async (data: NetworkConfigInput): Promise<NetworkConfigInput> => {
+    const response = await api.put<NetworkConfigInput>('/admin/network', data);
+    return response.data;
+  },
+};

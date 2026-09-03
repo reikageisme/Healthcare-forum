@@ -12,6 +12,7 @@ import {
   users,
 } from '../db/schema.js';
 import { badRequest, notFound } from '../core/errors.js';
+import { readNetworkConfig, writeNetworkConfig } from '../lib/siteSettings.js';
 import { asUuid } from '../core/security.js';
 import { parseBody } from '../lib/validate.js';
 import { sanitizePlainText } from '../lib/sanitize.js';
@@ -835,4 +836,21 @@ adminRoutes.put('/verifications/:id', requireAdminOnly, async (c) => {
   }
 
   return c.json({ success: true, status: body.status });
+});
+
+/**
+ * Mạng lưới & chân trang.
+ *
+ * Chỉ admin sửa được, không phải moderator: đây là những liên kết ra ngoài
+ * hiện trên mọi trang, nên nó gần với quyền sở hữu site hơn là kiểm duyệt nội
+ * dung. Đọc thì công khai qua GET /api/v1/network.
+ */
+adminRoutes.get('/network', requireAdminOnly, async (c) => {
+  return c.json(await readNetworkConfig());
+});
+
+adminRoutes.put('/network', requireAdminOnly, async (c) => {
+  const body = await c.req.json().catch(() => null);
+  if (!body || typeof body !== 'object') throw badRequest('Body phải là một đối tượng JSON.');
+  return c.json(await writeNetworkConfig(body));
 });

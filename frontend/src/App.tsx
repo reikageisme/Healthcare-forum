@@ -26,6 +26,7 @@ import AdminPostsPage from './pages/admin/AdminPostsPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
+import AdminNetworkPage from './pages/admin/AdminNetworkPage';
 
 // Auth
 import LoginPage from './pages/LoginPage';
@@ -114,6 +115,14 @@ function App() {
           element={
             <AdminOnlyGuard>
               <AdminCategoriesPage />
+            </AdminOnlyGuard>
+          }
+        />
+        <Route
+          path="network"
+          element={
+            <AdminOnlyGuard>
+              <AdminNetworkPage />
             </AdminOnlyGuard>
           }
         />

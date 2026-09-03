@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Users,
   X,
+  Link2,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { adminService } from '../../services/adminService';
@@ -204,6 +205,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
                     <div className="flex items-center gap-3">
                       <Folder size={18} className={isActive ? 'text-white' : 'text-slate-400 group-hover:text-primary'} />
                       <span>Quản lý chuyên mục</span>
+                    </div>
+                  )}
+                </NavLink>
+
+                <NavLink to="/admin/network" onClick={onClose} className={navItemClasses}>
+                  {({ isActive }) => (
+                    <div className="flex items-center gap-3">
+                      <Link2 size={18} className={isActive ? 'text-white' : 'text-slate-400 group-hover:text-primary'} />
+                      <span>Mạng lưới &amp; Chân trang</span>
                     </div>
                   )}
                 </NavLink>
