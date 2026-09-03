@@ -123,7 +123,7 @@ npm run dev          # http://localhost:3000
 
 ```bash
 cd backend
-npm test             # 88 test trên Postgres thật (PGlite), không cần database ngoài
+npm test             # Vitest trên PGlite, không cần database ngoài
 npm run typecheck
 
 cd ../frontend
@@ -133,6 +133,9 @@ npm run build        # đã bật lại tsc trước khi build
 Hiện frontend chưa có test script/ESLint hoàn chỉnh; `npm run lint` và
 `npm test -- --run` chưa phải gate khả dụng. Backend là nơi đang có bộ test tự
 động đầy đủ; frontend cần bổ sung lint, Vitest và lockfile trước khi đưa vào CI.
+
+Kết quả kiểm thử backend và hành vi token của G2 được ghi tại
+[G2 implementation evidence](docs/evidence/2026-09-03-g2-auth.md).
 
 ## 🗄️ Các lệnh database
 

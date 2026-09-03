@@ -2,7 +2,7 @@ import type { Context, MiddlewareHandler } from 'hono';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users, type UserRow } from '../db/schema.js';
-import { asUuid, decodeToken } from '../core/security.js';
+import { decodeToken } from '../core/security.js';
 import { forbidden, unauthorized } from '../core/errors.js';
 
 export type Role = 'guest' | 'user' | 'doctor' | 'moderator' | 'admin';
@@ -26,21 +26,15 @@ function bearer(c: Context): string | null {
  * That behaviour is carried over from get_current_user() deliberately.
  */
 async function loadUser(token: string): Promise<UserRow | null> {
-  const payload = await decodeToken(token);
+  const payload = await decodeToken(token, 'access');
   if (!payload) return null;
-  // A refresh token must not be usable as an access token.
-  if (payload.type === 'refresh') return null;
-  const id = asUuid(payload.sub);
-  if (!id) return null;
-  const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  const rows = await db.select().from(users).where(eq(users.id, payload.sub)).limit(1);
   return rows[0] ?? null;
 }
 
 /**
- * Rejects with 401 for a bad token and 403 for a deactivated account.
- * The split matters: lib/api.ts:24 logs the user out on any 401 outside
- * /auth/*, so returning 401 where FastAPI returned 403 would bounce people
- * to the login screen instead of showing them an error.
+ * Rejects with 401 for a bad token and 403 for a deactivated account, so
+ * clients can distinguish unusable credentials from an account restriction.
  */
 export const requireAuth: MiddlewareHandler = async (c, next) => {
   const token = bearer(c);
@@ -52,7 +46,7 @@ export const requireAuth: MiddlewareHandler = async (c, next) => {
   await next();
 };
 
-/** Never throws; leaves currentUser null when there is no usable token. */
+/** Missing, invalid or inactive credentials leave currentUser null. */
 export const optionalAuth: MiddlewareHandler = async (c, next) => {
   c.set('currentUser', null);
   const token = bearer(c);

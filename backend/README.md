@@ -41,7 +41,7 @@ existed), and `createAdmin`.
 
 | Path | What lives there |
 | --- | --- |
-| `src/db/schema.ts` | Drizzle tables, matching the two Alembic migrations exactly |
+| `src/db/schema.ts` | Current Drizzle tables and canonical lowercase PostgreSQL enums |
 | `src/schemas/responses.ts` | Zod response builders — the only place a row becomes JSON |
 | `src/schemas/requests.ts` | Input validation, replacing the Pydantic models |
 | `src/core/` | config, JWT + bcrypt, the shared error handler |
@@ -49,7 +49,15 @@ existed), and `createAdmin`.
 | `src/routes/` | one file per former APIRouter |
 | `src/lib/` | sanitising, slugify, cursor + batched post queries |
 | `drizzle/0000_init.sql` | DDL for a fresh database |
-| `drizzle/0001_*.sql`–`0005_*.sql` | Idempotent patches, applied on every boot |
+| `drizzle/0001_*.sql`–`0004_*.sql` | Idempotent patches, applied on every boot |
+| `drizzle/0006_site_settings.sql` | Idempotent network/footer settings table, applied on every boot |
+
+The deployed database has canonical lowercase enums. G1 therefore requires
+no enum-correction migration; the previously proposed `0005` has been removed.
+Bootstrap no longer converts legacy uppercase labels. A noncanonical database
+requires a separate schema audit and migration before application startup.
+See the [G1 closure record](../docs/evidence/2026-09-03-g1-closure.md) for the
+decision, regression coverage and verification limits.
 
 ## Rules this port follows
 
@@ -69,9 +77,9 @@ Drizzle field names therefore match the column names exactly.
 `err.response.data.detail`, and `CreatePostPage.tsx` branches on `detail`
 being an array of `{loc, msg, type}`. One `app.onError` produces both.
 
-**401 and 403 keep their meanings.** `lib/api.ts` logs the user out on any
-401 outside `/auth/*`, so a deactivated account and an insufficient role
-both return 403, exactly as the Python dependencies did.
+**401 and 403 keep their meanings.** Missing or invalid credentials return
+401 with a Bearer challenge. A deactivated account or an insufficient role
+returns 403, so clients can distinguish credential expiry from denied access.
 
 **Behaviour was ported as-is, except for security.** Where the two differ,
 it is deliberate and listed below.
@@ -83,8 +91,8 @@ it is deliberate and listed below.
 | Post and comment HTML is sanitised on write | Both are rendered with `dangerouslySetInnerHTML`, including in the moderation preview — a member's post could run script inside a moderator's session, and the auth token lives in `localStorage` |
 | One-off pass over existing rows | Content stored before this change is still in the database |
 | Refresh tokens carry `type: "refresh"` and are required at `/auth/refresh` | Both tokens had identical payloads, so a leaked 30-minute access token could be traded for a 7-day refresh token, indefinitely |
-| A refresh token is rejected as a bearer credential | Same reason, other direction |
-| `/auth/refresh` validates the subject is a UUID | `auth.py:54` compared a string to a uuid column and raised on Postgres; it had no test |
+| Bearer authentication requires `type: "access"`; both token kinds require expiry and a UUID subject | Rejects ambiguous legacy credentials and malformed claims before querying users |
+| Each new token includes an issue time and a unique `jti` | Refreshes within the same second still return distinct token pairs |
 | SQL logging is off unless `SQL_ECHO=true` | `echo=True` was hardcoded and logged every statement with its parameters |
 | Rate limits on login, register, report and upload | There were none; report flooding is the cheapest way to bury the moderation queue |
 | CORS reads real origins; `*` falls back to localhost | `allow_origins=["*"]` with `allow_credentials=True` is rejected by browsers and unsafe |
@@ -94,6 +102,25 @@ it is deliberate and listed below.
 | `/uploads` is served with `nosniff` and a `default-src 'none'; sandbox` CSP | Stops a stored file being interpreted as a document |
 | `GET /users/me/bookmarks` returns each post's real `status` | The Python response omitted it, so Pydantic defaulted every saved post to `pending` and `FeedCard` drew a review badge on all of them |
 | Admin user list uses two grouped queries | It ran two queries per user |
+
+## Authentication and token rollout (G2)
+
+When this change is deployed, sessions with old untyped JWTs must sign in
+again. There is no compatibility window for tokens missing `type` or `exp`.
+Previously issued, unexpired typed tokens with valid UUID subjects continue
+to work even without the new `iat` and `jti` claims. Database roles and active
+state are checked on every authenticated request and refresh; invalid or
+inactive credentials on optional-auth routes are treated as anonymous.
+
+Refresh issues a distinct access/refresh pair while preserving configured
+lifetimes. Renewal remains stateless: earlier typed refresh tokens can still
+be used until expiry while the account remains active. Unique IDs do not add
+single-use enforcement or server-side revocation.
+
+Run `npm test -- tests/auth.test.ts` for the G2 auth gate. The
+[G2 implementation evidence](../docs/evidence/2026-09-03-g2-auth.md) records
+AUTH-01–09 coverage, the full backend results and the session cutover behavior.
+The existing POLICY-01 production-rollout decision remains deferred.
 
 ## Category tree
 
