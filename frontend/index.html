@@ -11,9 +11,9 @@
     />
     <meta name="theme-color" content="#2D6DD1" />
 
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=2" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
 
     <!-- Ảnh và tiêu đề khi dán link vào Facebook, Zalo, Messenger. -->
     <meta property="og:type" content="website" />
@@ -86,8 +86,38 @@
         color: #94a3b8;
         font-variant-numeric: tabular-nums;
       }
-      /* React dựng xong là #root có con — ẩn màn chờ, không cần JS gỡ. */
-      #root:not(:empty) + #app-splash { display: none; }
+      #app-splash img,
+      #app-splash .msg,
+      #app-splash .build {
+        animation: splash-in .5s ease-out both;
+      }
+      #app-splash .msg { animation-delay: .1s; }
+      #app-splash .build { animation-delay: .18s; }
+      @keyframes splash-in {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: none; }
+      }
+
+      /*
+        Điều kiện thoát có HAI vế, và phải đủ cả hai:
+          #root:not(:empty)  — React đã dựng xong giao diện
+          #app-splash.ready  — đã qua thời gian tối thiểu (script dưới cùng)
+        Chỉ vế đầu thì trên máy nhanh màn chờ chớp một cái đã biến mất, người
+        dùng không kịp thấy gì; chỉ vế sau thì hết giờ mà React chưa xong lại
+        lòi ra trang trắng. Mờ dần bằng visibility để lớp phủ không còn chặn
+        chuột sau khi ẩn.
+      */
+      #app-splash {
+        transition: opacity .45s ease, visibility .45s;
+      }
+      #root:not(:empty) + #app-splash.ready {
+        opacity: 0;
+        visibility: hidden;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #app-splash img, #app-splash .msg, #app-splash .build { animation: none; }
+        #app-splash { transition: none; }
+      }
     </style>
   </head>
   <body>
@@ -99,6 +129,13 @@
       <p class="build">Bản dựng %BUILD_ID%</p>
     </div>
 
+    <script>
+      // Thời gian tối thiểu màn chờ được nhìn thấy. Kết hợp với điều kiện
+      // #root:not(:empty) ở CSS: cái nào tới sau thì cái đó quyết định.
+      setTimeout(function () {
+        document.getElementById('app-splash')?.classList.add('ready');
+      }, 1400);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
