@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Home,
+  MessagesSquare,
   MessageCircle,
   BookOpen,
   Star,
@@ -35,6 +36,7 @@ const CategoryGlyph: React.FC<{ icon?: string | null; size?: number }> = ({ icon
 
 const mainNav = [
   { name: 'Trang chủ', icon: Home, path: '/' },
+  { name: 'Diễn đàn', icon: MessagesSquare, path: '/forum' },
   { name: 'Hỏi đáp', icon: MessageCircle, path: '/?type=question' },
   { name: 'Bài viết', icon: BookOpen, path: '/?type=article' },
   { name: 'Đánh giá', icon: Star, path: '/?type=review' },
@@ -156,6 +158,8 @@ export const SidebarLeft: React.FC = () => {
               ? location.pathname === '/' && !location.search
               : item.path.includes('?')
               ? location.pathname + location.search === item.path
+              : item.path === '/forum'
+              ? location.pathname.startsWith('/forum')
               : location.pathname === item.path || (item.path === '/bookmarks' && location.pathname === '/da-luu');
 
           return (

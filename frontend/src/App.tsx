@@ -12,6 +12,8 @@ import EditPostPage from './pages/EditPostPage';
 import BookmarksPage from './pages/BookmarksPage';
 import TagPage from './pages/TagPage';
 import CategoryPage from './pages/CategoryPage';
+import ForumPage from './pages/ForumPage';
+import ForumCategoryPage from './pages/ForumCategoryPage';
 import { ScrollToTop } from './components/common/ScrollToTop';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
@@ -49,6 +51,10 @@ function App() {
         {/* Bookmarks */}
         <Route path="bookmarks" element={<BookmarksPage />} />
         <Route path="da-luu" element={<BookmarksPage />} />
+
+        {/* Diễn đàn */}
+        <Route path="forum" element={<ForumPage />} />
+        <Route path="forum/:slug" element={<ForumCategoryPage />} />
 
         {/* Tags & Categories */}
         <Route path="tags/:slug" element={<TagPage />} />

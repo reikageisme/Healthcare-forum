@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
-import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { posts, users } from '../db/schema.js';
-import { toUserResponse } from '../schemas/responses.js';
+import { categories, posts, users } from '../db/schema.js';
+import { categoryPostCount } from '../lib/categoryTree.js';
+import { toCategoryResponse, toUserResponse } from '../schemas/responses.js';
 
 export const statsRoutes = new Hono();
 
@@ -58,5 +59,84 @@ statsRoutes.get('/doctors/featured', async (c) => {
   c.header('Cache-Control', 'public, max-age=300');
   return c.json(
     rows.map((r) => ({ ...toUserResponse(r.user), post_count: Number(r.post_count) })),
+  );
+});
+
+/**
+ * Số trả lời của một box, tính cả các box con và cháu.
+ *
+ * Viết thẳng "categories"."id" chứ không nội suy cột, cùng lý do như
+ * categoryPostCount: trong phần SELECT drizzle in ra "id" trần và truy vấn con
+ * sẽ hiểu nhầm là cột của posts, khiến mọi số đếm về 0.
+ */
+const categoryReplyCount = sql<number>`(
+  select count(*)::int from "comments" c
+    join "posts" p on p.id = c.post_id
+   where c.is_deleted = false
+     and p.is_published = true
+     and p.status = 'approved'
+     and (p.category_id = "categories"."id" or p.category_id in (
+       select ch.id from "categories" ch
+        where ch.parent_id = "categories"."id"
+           or ch.parent_id in (
+             select g.id from "categories" g where g.parent_id = "categories"."id"
+           )
+     ))
+)`;
+
+/** Thớt mới nhất của box, để cột "Bài mới nhất" ngoài trang danh sách. */
+const categoryLastPost = sql<{
+  id: string;
+  title: string;
+  created_at: string;
+  author_name: string | null;
+} | null>`(
+  select json_build_object(
+           'id', p.id,
+           'title', p.title,
+           'created_at', p.created_at,
+           'author_name', case when p.is_anonymous then null
+                               else coalesce(u.full_name, u.username) end
+         )
+    from "posts" p join "users" u on u.id = p.author_id
+   where p.is_published = true
+     and p.status = 'approved'
+     and (p.category_id = "categories"."id" or p.category_id in (
+       select ch.id from "categories" ch
+        where ch.parent_id = "categories"."id"
+           or ch.parent_id in (
+             select g.id from "categories" g where g.parent_id = "categories"."id"
+           )
+     ))
+   order by p.created_at desc
+   limit 1
+)`;
+
+/**
+ * Trang chủ diễn đàn: vẫn là cây chuyên mục cũ, chỉ kèm thêm ba con số mỗi
+ * box cần để hiển thị như một forum — số thớt, số trả lời, thớt mới nhất.
+ *
+ * Trả về danh sách phẳng có parent_id đúng như GET /categories; phía client
+ * đã có sẵn hàm dựng cây nên không cần một endpoint lồng thứ hai để lệch nhau.
+ */
+statsRoutes.get('/forum', async (c) => {
+  const rows = await db
+    .select({
+      category: categories,
+      post_count: categoryPostCount,
+      reply_count: categoryReplyCount,
+      last_post: categoryLastPost,
+    })
+    .from(categories)
+    .orderBy(asc(categories.sort_order), asc(categories.name));
+
+  c.header('Cache-Control', 'public, max-age=60');
+  return c.json(
+    rows.map((r) => ({
+      ...toCategoryResponse(r.category, Number(r.post_count)),
+      thread_count: Number(r.post_count),
+      reply_count: Number(r.reply_count),
+      last_post: r.last_post ?? null,
+    })),
   );
 });
