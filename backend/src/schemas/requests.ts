@@ -32,6 +32,7 @@ export const userUpdateSchema = z.object({
   avatar_url: optionalString(500),
   specialty: optionalString(100),
   bio: optionalString(500),
+  workplace: optionalString(255),
 });
 
 export const userRoleUpdateSchema = z.object({ role: userRoleInput });

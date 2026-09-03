@@ -121,6 +121,20 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                       )}
 
                       <Link
+                        to={`/users/${user.id}`}
+                        onClick={() => setShowUserDropdown(false)}
+                        className="block px-4 py-2 text-sm text-text-secondary hover:text-primary hover:bg-slate-50 transition-colors"
+                      >
+                        Trang cá nhân
+                      </Link>
+                      <Link
+                        to="/settings/profile"
+                        onClick={() => setShowUserDropdown(false)}
+                        className="block px-4 py-2 text-sm text-text-secondary hover:text-primary hover:bg-slate-50 transition-colors"
+                      >
+                        Chỉnh sửa hồ sơ
+                      </Link>
+                      <Link
                         to="/bookmarks"
                         onClick={() => setShowUserDropdown(false)}
                         className="block px-4 py-2 text-sm text-text-secondary hover:text-primary hover:bg-slate-50 transition-colors"

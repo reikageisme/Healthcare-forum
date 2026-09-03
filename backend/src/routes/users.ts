@@ -1,13 +1,13 @@
 import { Hono } from 'hono';
-import { eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users } from '../db/schema.js';
+import { comments, posts, users } from '../db/schema.js';
 import { asUuid } from '../core/security.js';
 import { forbidden, notFound } from '../core/errors.js';
 import { parseBody } from '../lib/validate.js';
 import { userUpdateSchema } from '../schemas/requests.js';
 import { toUserResponse } from '../schemas/responses.js';
-import { currentUser, requireAuth, requireRole } from '../middleware/auth.js';
+import { currentUser, optionalAuth, requireAuth, requireRole } from '../middleware/auth.js';
 import { sanitizePlainText } from '../lib/sanitize.js';
 
 export const userRoutes = new Hono();
@@ -18,14 +18,59 @@ export const userRoutes = new Hono();
  * response_model=UserResponse to drop hashed_password on the way out.
  */
 
-userRoutes.get('/:user_id', requireAuth, async (c) => {
+/**
+ * Hồ sơ của một thành viên.
+ *
+ * Khách chưa đăng nhập cũng xem được — một diễn đàn mà phải đăng nhập mới biết
+ * người trả lời là ai thì tick "BS. đã xác thực" chẳng còn tác dụng gì. Nhưng
+ * email thì bị che: chỉ chính chủ và ban quản trị nhìn thấy, còn lại nhận
+ * chuỗi rỗng, vì đây là địa chỉ thật của người dùng chứ không phải hồ sơ công.
+ *
+ * Số bài và số bình luận đếm ngay tại đây: hồ sơ nào cũng cần, và đếm hai lần
+ * trên một bảng đã có chỉ mục author_id rẻ hơn nhiều so với việc tải cả danh
+ * sách bài về rồi đếm ở trình duyệt.
+ */
+userRoutes.get('/:user_id', optionalAuth, async (c) => {
   const id = asUuid(c.req.param('user_id'));
   if (!id) throw notFound('User not found');
 
   const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
   const user = rows[0];
   if (!user) throw notFound('User not found');
-  return c.json(toUserResponse(user));
+
+  const [postRows, commentRows] = await Promise.all([
+    db
+      .select({ n: count() })
+      .from(posts)
+      .where(
+        and(
+          eq(posts.author_id, id),
+          eq(posts.status, 'approved'),
+          eq(posts.is_published, true),
+          eq(posts.is_anonymous, false),
+        ),
+      ),
+    db
+      .select({ n: count() })
+      .from(comments)
+      .where(
+        and(
+          eq(comments.author_id, id),
+          eq(comments.is_deleted, false),
+          eq(comments.is_anonymous, false),
+        ),
+      ),
+  ]);
+
+  const viewer = c.get('currentUser');
+  const canSeeEmail = viewer?.id === user.id || viewer?.role === 'admin' || viewer?.role === 'moderator';
+
+  return c.json({
+    ...toUserResponse(canSeeEmail ? user : { ...user, email: '' }, {
+      post_count: Number(postRows[0]?.n ?? 0),
+      comment_count: Number(commentRows[0]?.n ?? 0),
+    }),
+  });
 });
 
 userRoutes.put('/:user_id', requireAuth, async (c) => {
@@ -50,6 +95,9 @@ userRoutes.put('/:user_id', requireAuth, async (c) => {
   }
   if (body.bio !== undefined && body.bio !== null) {
     patch.bio = sanitizePlainText(body.bio);
+  }
+  if (body.workplace !== undefined && body.workplace !== null) {
+    patch.workplace = sanitizePlainText(body.workplace);
   }
 
   if (Object.keys(patch).length === 0) {

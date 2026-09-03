@@ -101,9 +101,18 @@ export const PostTable: React.FC<PostTableProps> = ({ posts, showCategory = true
                         </Link>
                       </div>
                       <div className="text-[11px] text-text-secondary mt-1 flex items-center gap-1.5 flex-wrap">
-                        <span className="truncate max-w-[180px]">
-                          {author?.full_name || author?.username || 'Ẩn danh'}
-                        </span>
+                        {post.is_anonymous || !author?.id ? (
+                          <span className="truncate max-w-[180px]">
+                            {author?.full_name || author?.username || 'Ẩn danh'}
+                          </span>
+                        ) : (
+                          <Link
+                            to={`/users/${author.id}`}
+                            className="truncate max-w-[180px] hover:text-primary transition-colors"
+                          >
+                            {author.full_name || author.username}
+                          </Link>
+                        )}
                         {isVerifiedDoctor(author) && (
                           <span className="text-primary font-semibold whitespace-nowrap">· BS. đã xác thực</span>
                         )}

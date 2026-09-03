@@ -167,7 +167,16 @@ postRoutes.get('/', optionalAuth, async (c) => {
     }
   }
 
-  if (authorId) conditions.push(eq(posts.author_id, authorId));
+  if (authorId) {
+    conditions.push(eq(posts.author_id, authorId));
+    // Lọc theo tác giả mà vẫn trả bài ẩn danh thì chính bộ lọc là chỗ rò rỉ:
+    // người đọc chỉ cần gọi ?author_id=<id> là nối được bài ẩn danh với tên
+    // người viết, dù phần hiển thị đã giấu tên. Chỉ chính chủ và ban quản trị
+    // mới thấy bài ẩn danh của một tài khoản.
+    if (!isAuthorQuery && !isAdminOrMod) {
+      conditions.push(eq(posts.is_anonymous, false));
+    }
+  }
 
   if (q.search && q.search.trim()) {
     // search_text is stored lowercase and diacritic-free, so "tieu duong"

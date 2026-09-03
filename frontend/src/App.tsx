@@ -14,6 +14,8 @@ import TagPage from './pages/TagPage';
 import CategoryPage from './pages/CategoryPage';
 import ForumPage from './pages/ForumPage';
 import ForumCategoryPage from './pages/ForumCategoryPage';
+import ProfilePage from './pages/ProfilePage';
+import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import { ScrollToTop } from './components/common/ScrollToTop';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
@@ -55,6 +57,10 @@ function App() {
         {/* Diễn đàn */}
         <Route path="forum" element={<ForumPage />} />
         <Route path="forum/:slug" element={<ForumCategoryPage />} />
+
+        {/* Hồ sơ cá nhân */}
+        <Route path="users/:id" element={<ProfilePage />} />
+        <Route path="settings/profile" element={<ProfileSettingsPage />} />
 
         {/* Tags & Categories */}
         <Route path="tags/:slug" element={<TagPage />} />

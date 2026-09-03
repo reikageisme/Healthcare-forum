@@ -16,6 +16,9 @@ export interface User {
   bio?: string;
   is_active?: boolean;
   created_at?: string;
+  /** Chỉ có ở endpoint hồ sơ; feed không đếm. */
+  post_count?: number;
+  comment_count?: number;
 }
 
 export type PostType = 'article' | 'question' | 'review' | 'share' | 'ARTICLE' | 'QUESTION' | 'REVIEW' | 'SHARE';

@@ -7,4 +7,6 @@ export * from './categoryService';
 export * from './uploadService';
 export * from './adminService';
 export * from './reportService';
-
+export * from './userService';
+export * from './statsService';
+export * from './forumService';

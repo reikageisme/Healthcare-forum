@@ -92,9 +92,12 @@ export const SidebarRight: React.FC = () => {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1 min-w-0">
-                    <span className="text-sm font-bold text-text truncate">
+                    <Link
+                      to={`/users/${doc.id}`}
+                      className="text-sm font-bold text-text group-hover:text-primary transition-colors truncate"
+                    >
                       {doc.full_name || doc.username}
-                    </span>
+                    </Link>
                     <VerifiedDoctorBadge user={doc} />
                   </div>
                   <div className="text-xs text-text-secondary truncate">
