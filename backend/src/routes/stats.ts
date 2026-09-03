@@ -4,6 +4,7 @@ import { db } from '../db/index.js';
 import { categories, posts, users } from '../db/schema.js';
 import { categoryPostCount } from '../lib/categoryTree.js';
 import { toCategoryResponse, toUserResponse } from '../schemas/responses.js';
+import { settings } from '../core/config.js';
 
 export const statsRoutes = new Hono();
 
@@ -139,4 +140,26 @@ statsRoutes.get('/forum', async (c) => {
       last_post: r.last_post ?? null,
     })),
   );
+});
+
+/**
+ * Mạng lưới các trang anh em, cho thẻ ở sidebar.
+ *
+ * Trang đang mở được đánh dấu bằng cách so URL với SITE_URL, nên cùng một cấu
+ * hình dùng chung cho mọi trang trong mạng lưới mà không trang nào phải tự
+ * loại mình ra khỏi danh sách.
+ */
+statsRoutes.get('/network', (c) => {
+  const here = settings.SITE_URL.replace(/\/+$/, '');
+  c.header('Cache-Control', 'public, max-age=3600');
+  return c.json({
+    name: settings.NETWORK_NAME,
+    tagline: settings.NETWORK_TAGLINE,
+    sites: settings.NETWORK_SITES.map((site) => ({
+      ...site,
+      is_current: site.url.replace(/\/+$/, '') === here,
+    })),
+    footer_links: settings.FOOTER_LINKS,
+    contact_email: settings.CONTACT_EMAIL,
+  });
 });

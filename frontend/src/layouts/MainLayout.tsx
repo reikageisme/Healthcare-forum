@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Header from '../components/Header/Header';
 import SidebarLeft from '../components/Sidebar/SidebarLeft';
 import SidebarRight from '../components/Sidebar/SidebarRight';
+import Footer from '../components/common/Footer';
 
 const MainLayout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -37,6 +38,8 @@ const MainLayout: React.FC = () => {
           <SidebarRight />
         </aside>
       </div>
+
+      <Footer />
     </div>
   );
 };

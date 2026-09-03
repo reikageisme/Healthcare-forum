@@ -21,3 +21,30 @@ export const forumService = {
     return response.data;
   },
 };
+
+export interface NetworkSite {
+  name: string;
+  url: string;
+  description?: string;
+  is_current: boolean;
+}
+
+export interface FooterLink {
+  name: string;
+  url: string;
+}
+
+export interface NetworkInfo {
+  name: string;
+  tagline: string;
+  sites: NetworkSite[];
+  footer_links: FooterLink[];
+  contact_email: string;
+}
+
+export const networkService = {
+  getNetwork: async (): Promise<NetworkInfo> => {
+    const response = await api.get<NetworkInfo>('/network');
+    return response.data;
+  },
+};

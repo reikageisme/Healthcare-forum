@@ -5,6 +5,7 @@ import { tagService } from '../../services/tagService';
 import { statsService, CommunityStats, FeaturedDoctor } from '../../services/statsService';
 import { getAvatarUrl } from '../../lib/utils';
 import { VerifiedDoctorBadge } from '../common/Badges';
+import NetworkCard from './NetworkCard';
 
 /** 12543 -> "12.5K". Ô thống kê chỉ có chỗ cho vài ký tự. */
 const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
@@ -145,9 +146,8 @@ export const SidebarRight: React.FC = () => {
         </div>
       </div>
 
-      <div className="text-xs text-text-secondary text-center">
-        © 2026 SứcKhỏeVN. All rights reserved.
-      </div>
+      <NetworkCard />
+
     </div>
   );
 };
