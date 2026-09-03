@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { settings } from './config.js';
@@ -9,13 +10,8 @@ export type TokenKind = 'access' | 'refresh';
 export interface TokenPayload {
   sub: string;
   role: string;
-  /**
-   * Added during the migration. The Python implementation issued access and
-   * refresh tokens with byte-identical payloads, so a leaked 30-minute access
-   * token could be exchanged at /auth/refresh for a 7-day refresh token and
-   * kept alive forever. Refresh now requires this claim.
-   */
-  type?: TokenKind;
+  /** Untyped legacy sessions must sign in again. */
+  type: TokenKind;
   exp: number;
 }
 
@@ -50,6 +46,9 @@ async function sign(sub: string, role: string, type: TokenKind, expiresIn: strin
   return new SignJWT({ role, type })
     .setProtectedHeader({ alg: settings.JWT_ALGORITHM })
     .setSubject(String(sub))
+    .setIssuedAt()
+    // Refreshes in the same second must still issue distinct credentials.
+    .setJti(randomUUID())
     .setExpirationTime(expiresIn)
     .sign(secretKey);
 }
@@ -62,18 +61,20 @@ export function createRefreshToken(sub: string, role: string) {
   return sign(sub, role, 'refresh', `${settings.REFRESH_TOKEN_EXPIRE_DAYS}d`);
 }
 
-/** Returns null on any failure, matching decode_token()'s contract. */
-export async function decodeToken(token: string): Promise<TokenPayload | null> {
+/** Verify the kind, expiry and UUID before any user lookup; invalid tokens return null. */
+export async function decodeToken(token: string, expectedType: TokenKind): Promise<TokenPayload | null> {
   try {
     const { payload } = await jwtVerify(token, secretKey, {
       algorithms: [settings.JWT_ALGORITHM],
+      requiredClaims: ['sub', 'exp', 'type'],
     });
-    if (!payload.sub) return null;
+    const sub = asUuid(payload.sub);
+    if (!sub || payload.type !== expectedType || typeof payload.exp !== 'number') return null;
     return {
-      sub: String(payload.sub),
-      role: String(payload.role ?? ''),
-      type: payload.type as TokenKind | undefined,
-      exp: Number(payload.exp ?? 0),
+      sub,
+      role: typeof payload.role === 'string' ? payload.role : '',
+      type: expectedType,
+      exp: payload.exp,
     };
   } catch {
     return null;
