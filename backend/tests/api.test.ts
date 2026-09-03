@@ -563,6 +563,26 @@ describe('reactions', () => {
   });
 });
 
+describe('post detail', () => {
+  it('returns the refreshed scalar row and increments views once per request', async () => {
+    const doctor = await seedUser('doctor');
+    const post = await createPost(doctor.token, 'Bài kiểm tra lượt xem chi tiết');
+
+    const firstResponse = await request(`/posts/${post.id}`, { headers: nextIp() });
+    expect(firstResponse.status).toBe(200);
+    const first = await firstResponse.json();
+
+    const secondResponse = await request(`/posts/${post.id}`, { headers: nextIp() });
+    expect(secondResponse.status).toBe(200);
+    const second = await secondResponse.json();
+
+    expect(first.view_count).toBe(1);
+    expect(second.view_count).toBe(2);
+    expect(typeof first.updated_at).toBe('string');
+    expect(typeof second.updated_at).toBe('string');
+  });
+});
+
 describe('bookmarks', () => {
   it('toggles and lists with the post’s real status', async () => {
     const doctor = await seedUser('doctor');
