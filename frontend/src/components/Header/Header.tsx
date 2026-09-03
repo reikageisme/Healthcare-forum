@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu, HeartPulse, UserCircle, LogOut, Plus, ShieldCheck } from 'lucide-react';
+import { Search, Bell, Menu, UserCircle, LogOut, Plus, ShieldCheck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getAvatarUrl } from '../../lib/utils';
@@ -37,13 +37,19 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
               >
                 <Menu size={22} />
               </button>
-              <Link to="/" className="flex items-center gap-2.5 group">
-                <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-md shadow-primary/25">
-                  <HeartPulse className="w-5 h-5" />
-                </div>
-                <span className="font-extrabold text-xl text-primary tracking-tight hidden sm:block">
-                  SứcKhỏeVN
-                </span>
+              <Link to="/" className="flex items-center shrink-0" aria-label="Medic Việt Nam — về trang chủ">
+                {/*
+                  Logo ngang gồm cả dòng tagline, nên cần cao hơn một icon
+                  vuông thì chữ mới đọc được. width/height khai báo sẵn để
+                  trình duyệt giữ chỗ, không giật layout khi ảnh tải xong.
+                */}
+                <img
+                  src="/logo-wide.png"
+                  alt="Medic Việt Nam"
+                  width={648}
+                  height={132}
+                  className="h-9 sm:h-11 w-auto"
+                />
               </Link>
             </div>
 

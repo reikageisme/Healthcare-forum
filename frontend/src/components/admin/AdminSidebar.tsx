@@ -76,7 +76,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-base text-text leading-none">Admin Hub</span>
-              <span className="text-[11px] text-text-secondary mt-0.5">SứcKhỏeVN</span>
+              <span className="text-[11px] text-text-secondary mt-0.5">Medic Việt Nam</span>
             </div>
           </Link>
           {onClose && (

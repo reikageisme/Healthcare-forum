@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { HeartPulse, Mail, ShieldAlert } from 'lucide-react';
+import { Mail, ShieldAlert } from 'lucide-react';
 import { networkService, NetworkInfo } from '../../services/forumService';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
@@ -50,11 +50,8 @@ export const Footer: React.FC = () => {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           {/* Thương hiệu */}
           <div>
-            <Link to="/" className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-md shadow-primary/25">
-                <HeartPulse className="w-5 h-5" aria-hidden="true" />
-              </div>
-              <span className="font-extrabold text-xl text-primary tracking-tight">SứcKhỏeVN</span>
+            <Link to="/" className="inline-block mb-4" aria-label="Medic Việt Nam — về trang chủ">
+              <img src="/logo-wide.png" alt="Medic Việt Nam" width={648} height={132} className="h-12 w-auto" />
             </Link>
             <p className="text-sm text-text-secondary leading-relaxed max-w-sm">
               Cổng thông tin y tế cộng đồng — nơi người bệnh đặt câu hỏi và bác sĩ đã xác thực
@@ -159,7 +156,7 @@ export const Footer: React.FC = () => {
         <div className="flex gap-3 mt-10 p-4 rounded-xl bg-amber-50 border border-amber-200">
           <ShieldAlert size={18} className="text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
           <p className="text-xs text-amber-800 leading-relaxed">
-            <b>Miễn trừ trách nhiệm y tế.</b> Mọi nội dung trên SứcKhỏeVN chỉ mang tính tham khảo
+            <b>Miễn trừ trách nhiệm y tế.</b> Mọi nội dung trên Medic Việt Nam chỉ mang tính tham khảo
             và không thay thế chẩn đoán, điều trị của bác sĩ. Đừng tự ý dùng thuốc hay ngưng thuốc
             dựa trên một bài viết. Trường hợp cấp cứu — đau ngực dữ dội, khó thở, yếu nửa người,
             ngất — hãy gọi <b>115</b> ngay thay vì đăng bài.
@@ -168,7 +165,7 @@ export const Footer: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-8 pt-6 border-t border-border">
           <p className="text-xs text-text-secondary">
-            © {year} SứcKhỏeVN. Giữ toàn bộ bản quyền.
+            © {year} Medic Việt Nam. Giữ toàn bộ bản quyền.
           </p>
           <span className="flex-1" />
           {legal.map((link) =>

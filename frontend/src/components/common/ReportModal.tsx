@@ -113,7 +113,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             </div>
             <h4 className="font-bold text-base text-slate-900">Đã gửi báo cáo thành công!</h4>
             <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              Cảm ơn bạn đã đóng góp xây dựng cộng đồng y tế SứcKhỏeVN an toàn và đáng tin cậy.
+              Cảm ơn bạn đã đóng góp xây dựng cộng đồng y tế Medic Việt Nam an toàn và đáng tin cậy.
             </p>
           </div>
         ) : (

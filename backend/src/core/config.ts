@@ -73,7 +73,7 @@ function parseNetworkSites(raw: string | undefined): NetworkSite[] {
 }
 
 export const settings = {
-  PROJECT_NAME: process.env.PROJECT_NAME ?? 'Healthcare Forum',
+  PROJECT_NAME: process.env.PROJECT_NAME ?? 'Medic Việt Nam',
   VERSION: '1.0.0',
   NODE_ENV: process.env.NODE_ENV ?? 'development',
 

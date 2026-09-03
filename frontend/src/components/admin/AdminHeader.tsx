@@ -40,7 +40,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
             {getPageTitle(location.pathname)}
           </h1>
           <p className="text-xs text-slate-500 hidden sm:block">
-            Khu vực Quản trị & Điều hành Diễn đàn SứcKhỏeVN
+            Khu vực Quản trị & Điều hành Diễn đàn Medic Việt Nam
           </p>
         </div>
       </div>

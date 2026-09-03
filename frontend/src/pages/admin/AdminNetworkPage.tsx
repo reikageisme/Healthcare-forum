@@ -176,7 +176,7 @@ export const AdminNetworkPage: React.FC = () => {
               type="text"
               value={config.name}
               onChange={(e) => patch({ name: e.target.value })}
-              placeholder="Mạng lưới SứcKhỏeVN"
+              placeholder="Mạng lưới Medic Việt Nam"
               className={inputClass}
             />
           </div>

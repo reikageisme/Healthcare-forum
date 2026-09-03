@@ -20,8 +20,8 @@ export interface SeoOptions {
   structuredData?: Record<string, unknown> | null;
 }
 
-const SITE_NAME = 'SứcKhỏeVN';
-const DEFAULT_TITLE = 'SứcKhỏeVN - Diễn đàn Y tế và Sức khỏe';
+const SITE_NAME = 'Medic Việt Nam';
+const DEFAULT_TITLE = 'Medic Việt Nam — Diễn đàn Y tế và Sức khỏe';
 const JSONLD_ID = 'seo-structured-data';
 
 function setMeta(selector: string, attr: 'name' | 'property', key: string, content: string) {
