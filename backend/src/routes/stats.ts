@@ -154,8 +154,11 @@ statsRoutes.get('/network', async (c) => {
   const config = await readNetworkConfig();
   const here = settings.SITE_URL.replace(/\/+$/, '');
 
-  // Không cache ở đây: quản trị viên vừa lưu trong /admin thì phải thấy ngay,
-  // và đây là một truy vấn theo khoá chính, không phải thứ cần tiết kiệm.
+  // Bắt trình duyệt hỏi lại mỗi lần. Bản đầu của endpoint này đặt
+  // max-age=3600, và một lượt tải trang khi danh sách còn rỗng là đủ để giữ
+  // câu trả lời rỗng đó suốt một tiếng — quản trị viên thêm site xong, API trả
+  // đúng, mà màn hình vẫn trống. Không bao giờ bỏ header này đi.
+  c.header('Cache-Control', 'no-cache');
   return c.json({
     name: config.name,
     tagline: config.tagline,
