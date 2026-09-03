@@ -1,8 +1,9 @@
 # Healthcare Forum — backend (TypeScript)
 
-Hono + Drizzle + Zod on Node 20. Replaces the FastAPI backend one-for-one:
-same 49 API paths, same JSON shapes, same Postgres database. The frontend
-was not touched.
+Hono + Drizzle + Zod on Node 20. The port preserves the former FastAPI JSON
+contracts and PostgreSQL data model, then extends them with Vietnamese search,
+accepted answers, anonymity, doctor verification, stories, SEO and a
+three-level category tree. The frontend now consumes those additions too.
 
 ## Running
 
@@ -30,10 +31,11 @@ npm run typecheck
 npm run build        # tsc -> dist/
 ```
 
-`entrypoint.sh` runs three steps before serving, all idempotent:
-`migrate` (creates the schema only on a brand-new database),
-`sanitizeExisting` (cleans content stored before sanitising existed), and
-`createAdmin`.
+`entrypoint.sh` runs four steps before serving, all idempotent:
+`createDatabase` (creates the database when the configured account has
+permission), `migrate` (creates the schema only on a brand-new database and
+applies patches), `sanitizeExisting` (cleans content stored before sanitising
+existed), and `createAdmin`.
 
 ## Layout
 
@@ -47,7 +49,7 @@ npm run build        # tsc -> dist/
 | `src/routes/` | one file per former APIRouter |
 | `src/lib/` | sanitising, slugify, cursor + batched post queries |
 | `drizzle/0000_init.sql` | DDL for a fresh database |
-| `drizzle/0001_*.sql` | Idempotent patches, applied on every boot |
+| `drizzle/0001_*.sql`–`0005_*.sql` | Idempotent patches, applied on every boot |
 
 ## Rules this port follows
 
@@ -95,15 +97,17 @@ it is deliberate and listed below.
 
 ## Category tree
 
-Categories carry a `parent_id`, two levels deep: a root can have children, a
-child cannot. `GET /categories` stays a flat list with each child listed
-directly after its parent, so the admin table, the sidebar and the post form
-all build the tree from one response instead of a second nested endpoint.
+Categories carry a `parent_id` and are capped at three levels: root → child →
+grandchild. `GET /categories` stays a depth-first flat list with each branch
+kept together, ordered by `sort_order` then name inside one level, so the admin
+table, sidebar and post form build the tree from one response instead of a
+second nested endpoint.
 
-Opening a parent shows its own posts **plus everything under its children**,
-and `post_count` follows the same rule. Deleting a parent leaves its children
-in place as roots (the foreign key is `ON DELETE SET NULL`) rather than taking
-a whole branch of the forum with it.
+Opening a parent shows its own posts **plus everything under its children and
+grandchildren**, and `post_count` follows the same rule. Reparenting checks both
+cycles and resulting branch height. Deleting a parent leaves its children in
+place as roots (the foreign key is `ON DELETE SET NULL`) rather than taking a
+whole branch of the forum with it.
 
 ## Vietnamese forum features
 
@@ -115,6 +119,7 @@ a whole branch of the forum with it.
 | Chặn spam TPCN | `src/lib/spamGuard.ts` | Luật cứng theo cụm từ, khớp trên văn bản đã bỏ dấu. Bài rủi ro vào hàng chờ **kể cả khi tác giả là bác sĩ**; `posts.risk_score` quyết định thứ tự hàng chờ. |
 | Xác thực bác sĩ | bảng `doctor_verifications` | Nộp giấy phép → admin duyệt → đặt `users.verified_at`, `role`, `specialty`, `workplace`. Chỉ admin duyệt được, moderator thì không. |
 | SEO | `src/routes/sitemap.ts` | `/sitemap.xml` và `/robots.txt` phục vụ từ gốc site, nginx proxy sang backend. |
+| Story 24 giờ | `src/routes/stories.ts` | Gom theo tác giả, tự hết hạn, chỉ nhận ảnh nội bộ `/uploads`, có báo cáo và quyền gỡ của tác giả/staff. |
 
 `assessContent()` là chỗ duy nhất cần sửa nếu sau này muốn chấm điểm bằng LLM
 thay vì luật cứng.
@@ -132,3 +137,7 @@ thay vì luật cứng.
   back to the canonical paths in a `catch`.
 - `UserRole.guest` is unused in both backend and frontend and is not in the
   TypeScript union, but the label stays in the Postgres enum type.
+- The frontend now rotates access/refresh tokens and retries one failed request,
+  but that flow still lacks a frontend automated-test gate.
+- The frontend build passes, but ESLint, a frontend test script, a lockfile and
+  CI workflows are still absent.
