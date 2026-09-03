@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, CheckCircle2, FileText } from 'lucide-react';
+import { Loader2, CheckCircle2, FileText, LayoutList, Table2 } from 'lucide-react';
 import StoriesCarousel from '../components/Stories/StoriesCarousel';
 import CreatePostBox from '../components/Feed/CreatePostBox';
 import FeedCard from '../components/Feed/FeedCard';
+import CategoryStrip from '../components/Feed/CategoryStrip';
+import PostTable from '../components/posts/PostTable';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
 import { postService } from '../services/postService';
@@ -23,6 +25,23 @@ export const HomePage: React.FC = () => {
   const searchParam = searchParams.get('search') || '';
 
   const [activeTab, setActiveTab] = useState<string>(activeTypeParam || 'ALL');
+  // Chế độ xem được nhớ lại: người đã chọn bảng thì đổi tab vẫn là bảng.
+  const [view, setView] = useState<'card' | 'table'>(() => {
+    try {
+      return localStorage.getItem('feed_view') === 'table' ? 'table' : 'card';
+    } catch {
+      return 'card';
+    }
+  });
+
+  const changeView = (next: 'card' | 'table') => {
+    setView(next);
+    try {
+      localStorage.setItem('feed_view', next);
+    } catch {
+      /* chế độ riêng tư chặn localStorage — không sao, chỉ mất ghi nhớ */
+    }
+  };
   const [posts, setPosts] = useState<Post[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -122,31 +141,63 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto xl:mx-0 xl:max-w-none">
+    <div className="max-w-4xl mx-auto xl:mx-0 xl:max-w-none">
       {/* Top Stories */}
       <StoriesCarousel />
 
       {/* Create Post Prompt Box */}
       <CreatePostBox />
 
-      {/* Feed Filters Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 mb-4">
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
-                isActive
-                  ? 'bg-primary text-white shadow-sm shadow-primary/25'
-                  : 'bg-white text-text-secondary hover:text-text hover:bg-slate-100 border border-border'
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+      {/* Danh mục */}
+      <CategoryStrip />
+
+      {/* Feed Filters Tabs + chuyển chế độ xem */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 flex-1 min-w-0">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'bg-primary text-white shadow-sm shadow-primary/25'
+                    : 'bg-white text-text-secondary hover:text-text hover:bg-slate-100 border border-border'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-1 bg-white border border-border rounded-xl p-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => changeView('card')}
+            aria-pressed={view === 'card'}
+            title="Xem dạng thẻ"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              view === 'card' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:text-text'
+            }`}
+          >
+            <LayoutList size={15} aria-hidden="true" />
+            <span className="hidden sm:inline">Thẻ</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => changeView('table')}
+            aria-pressed={view === 'table'}
+            title="Xem dạng bảng"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              view === 'table' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:text-text'
+            }`}
+          >
+            <Table2 size={15} aria-hidden="true" />
+            <span className="hidden sm:inline">Bảng</span>
+          </button>
+        </div>
       </div>
 
       {/* Feed Content List */}
@@ -168,6 +219,8 @@ export const HomePage: React.FC = () => {
           actionText="Viết bài ngay"
           actionHref="/create-post"
         />
+      ) : view === 'table' ? (
+        <PostTable posts={posts} />
       ) : (
         <div className="space-y-4">
           {posts.map((post) => (

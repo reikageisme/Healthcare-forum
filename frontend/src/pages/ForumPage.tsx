@@ -27,13 +27,13 @@ const Glyph: React.FC<{ icon?: string | null }> = ({ icon }) => {
 };
 
 const BoxRow: React.FC<{ box: ForumCategory; subs: ForumCategory[] }> = ({ box, subs }) => (
-  <div className="grid grid-cols-[44px_1fr] sm:grid-cols-[44px_1fr_80px_88px] lg:grid-cols-[44px_1fr_80px_88px_240px] gap-4 items-center px-5 py-3.5 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60 transition-colors">
-    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+  <div className="grid grid-cols-[44px_1fr] sm:grid-cols-[44px_minmax(0,1fr)_72px_80px] 2xl:grid-cols-[44px_minmax(0,1fr)_72px_80px_minmax(180px,220px)] gap-4 items-center px-5 py-3.5 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60 transition-colors">
+    <div className="w-11 h-11 shrink-0 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
       <Glyph icon={box.icon} />
     </div>
 
     <div className="min-w-0">
-      <Link to={`/forum/${box.slug}`} className="text-[15px] font-bold text-text hover:text-primary transition-colors">
+      <Link to={`/forum/${box.slug}`} className="block text-[15px] font-bold text-text hover:text-primary transition-colors truncate">
         {box.name}
       </Link>
       {box.description && (
@@ -45,28 +45,28 @@ const BoxRow: React.FC<{ box: ForumCategory; subs: ForumCategory[] }> = ({ box, 
             <Link
               key={sub.id}
               to={`/forum/${sub.slug}`}
-              className="text-[11px] font-semibold text-primary bg-primary/5 border border-primary/10 rounded-md px-1.5 py-0.5 hover:bg-primary/10 transition-colors"
+              className="text-[11px] font-semibold text-primary bg-primary/5 border border-primary/10 rounded-md px-1.5 py-0.5 whitespace-nowrap max-w-[200px] truncate hover:bg-primary/10 transition-colors"
             >
               {sub.name}
             </Link>
           ))}
           {subs.length > 5 && (
-            <span className="text-[11px] text-text-secondary px-1 py-0.5">+{subs.length - 5} mục con</span>
+            <span className="text-[11px] text-text-secondary px-1 py-0.5 whitespace-nowrap">+{subs.length - 5} mục con</span>
           )}
         </div>
       )}
     </div>
 
     <div className="hidden sm:block text-center">
-      <span className="block text-sm font-bold text-text">{box.thread_count.toLocaleString('vi-VN')}</span>
-      <span className="text-[10px] font-semibold text-slate-400">chủ đề</span>
+      <span className="block text-sm font-bold text-text tabular-nums">{box.thread_count.toLocaleString('vi-VN')}</span>
+      <span className="text-[10px] font-semibold text-slate-400 whitespace-nowrap">chủ đề</span>
     </div>
     <div className="hidden sm:block text-center">
-      <span className="block text-sm font-bold text-text">{box.reply_count.toLocaleString('vi-VN')}</span>
-      <span className="text-[10px] font-semibold text-slate-400">trả lời</span>
+      <span className="block text-sm font-bold text-text tabular-nums">{box.reply_count.toLocaleString('vi-VN')}</span>
+      <span className="text-[10px] font-semibold text-slate-400 whitespace-nowrap">trả lời</span>
     </div>
 
-    <div className="hidden lg:block min-w-0">
+    <div className="hidden 2xl:block min-w-0">
       {box.last_post ? (
         <>
           <Link
@@ -80,7 +80,7 @@ const BoxRow: React.FC<{ box: ForumCategory; subs: ForumCategory[] }> = ({ box, 
           </div>
         </>
       ) : (
-        <span className="text-[11px] text-slate-400 italic">Chưa có bài viết</span>
+        <span className="text-[11px] text-slate-400 italic whitespace-nowrap">Chưa có bài viết</span>
       )}
     </div>
   </div>
@@ -148,18 +148,18 @@ export const ForumPage: React.FC = () => {
             key={root.id}
             className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden mb-5"
           >
-            <div className="grid grid-cols-[1fr] lg:grid-cols-[1fr_80px_88px_240px] gap-4 items-center px-5 py-3 bg-sidebar border-b border-border">
-              <h2 className="text-xs font-extrabold uppercase tracking-wider text-primary-dark flex items-center gap-2">
-                <MessageSquare size={14} />
+            <div className="grid grid-cols-[1fr] sm:grid-cols-[44px_minmax(0,1fr)_72px_80px] 2xl:grid-cols-[44px_minmax(0,1fr)_72px_80px_minmax(180px,220px)] gap-4 items-center px-5 py-3 bg-sidebar border-b border-border">
+              <MessageSquare size={16} className="hidden sm:block text-primary-dark mx-auto" aria-hidden="true" />
+              <h2 className="text-xs font-extrabold uppercase tracking-wider text-primary-dark truncate">
                 {root.name}
               </h2>
-              <span className="hidden lg:block text-[10px] font-bold uppercase tracking-wide text-text-secondary text-center">
+              <span className="hidden sm:block text-[10px] font-bold uppercase tracking-wide text-text-secondary text-center whitespace-nowrap">
                 Chủ đề
               </span>
-              <span className="hidden lg:block text-[10px] font-bold uppercase tracking-wide text-text-secondary text-center">
+              <span className="hidden sm:block text-[10px] font-bold uppercase tracking-wide text-text-secondary text-center whitespace-nowrap">
                 Trả lời
               </span>
-              <span className="hidden lg:block text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+              <span className="hidden 2xl:block text-[10px] font-bold uppercase tracking-wide text-text-secondary whitespace-nowrap">
                 Bài mới nhất
               </span>
             </div>

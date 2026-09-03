@@ -1,21 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import {
-  ChevronRight,
-  CheckCircle2,
-  Clock,
-  EyeOff,
-  Loader2,
-  MessageCircle,
-  Plus,
-} from 'lucide-react';
+import { ChevronRight, Loader2, MessageCircle, Plus } from 'lucide-react';
 import { postService } from '../services/postService';
 import { categoryService } from '../services/categoryService';
 import { Post, Category } from '../types';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
-import { formatRelativeTime, getAvatarUrl, getPostTypeInfo } from '../lib/utils';
-import { isVerifiedDoctor } from '../components/common/Badges';
+import PostTable from '../components/posts/PostTable';
 
 /**
  * Danh sách chủ đề của một box — cùng dữ liệu với trang chuyên mục, chỉ đổi
@@ -25,71 +16,6 @@ import { isVerifiedDoctor } from '../components/common/Badges';
  */
 
 const PAGE_SIZE = 20;
-
-const ThreadRow: React.FC<{ post: Post }> = ({ post }) => {
-  const author = post.author;
-  const typeInfo = getPostTypeInfo(post.post_type || post.type);
-  const solved = !!post.accepted_comment_id;
-
-  return (
-    <div className="grid grid-cols-[36px_1fr] sm:grid-cols-[36px_1fr_64px_72px] gap-3.5 items-center px-4 sm:px-5 py-3 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60 transition-colors">
-      <img
-        src={getAvatarUrl(author, author?.full_name || author?.username || 'Người dùng')}
-        alt={author?.full_name || author?.username || 'Người dùng'}
-        className="w-9 h-9 rounded-full object-cover border border-border"
-      />
-
-      <div className="min-w-0">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {solved && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-              <CheckCircle2 size={10} />
-              Đã giải đáp
-            </span>
-          )}
-          {post.is_anonymous && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-              <EyeOff size={10} />
-              Ẩn danh
-            </span>
-          )}
-          {post.status?.toLowerCase() === 'pending' && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-              <Clock size={10} />
-              Chờ duyệt
-            </span>
-          )}
-          <span className={`text-[11px] font-bold ${typeInfo.color}`}>[{typeInfo.label}]</span>
-          <Link
-            to={`/posts/${post.id}`}
-            className="text-sm font-semibold text-text hover:text-primary transition-colors line-clamp-1"
-          >
-            {post.title}
-          </Link>
-        </div>
-        <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
-          <span>{author?.full_name || author?.username || 'Ẩn danh'}</span>
-          {isVerifiedDoctor(author) && <span className="text-primary font-semibold">· BS. đã xác thực</span>}
-          <span>·</span>
-          <span>{formatRelativeTime(post.created_at || post.createdAt)}</span>
-        </div>
-      </div>
-
-      <div className="hidden sm:block text-center">
-        <span className="block text-[13px] font-bold text-text">
-          {(post.comment_count ?? post.commentCount ?? 0).toLocaleString('vi-VN')}
-        </span>
-        <span className="text-[10px] font-semibold text-slate-400">trả lời</span>
-      </div>
-      <div className="hidden sm:block text-center">
-        <span className="block text-[13px] font-bold text-text">
-          {(post.view_count ?? 0).toLocaleString('vi-VN')}
-        </span>
-        <span className="text-[10px] font-semibold text-slate-400">lượt xem</span>
-      </div>
-    </div>
-  );
-};
 
 export const ForumCategoryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -222,11 +148,9 @@ export const ForumCategoryPage: React.FC = () => {
         />
       ) : (
         <>
-          <section className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden mb-4">
-            {posts.map((post) => (
-              <ThreadRow key={post.id} post={post} />
-            ))}
-          </section>
+          <div className="mb-4">
+            <PostTable posts={posts} showCategory={false} />
+          </div>
 
           {hasMore && (
             <div className="flex justify-center">
