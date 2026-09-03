@@ -62,7 +62,7 @@ describe('database enum lineage', () => {
     }
   });
 
-  it('round-trips every application enum value through Drizzle', async () => {
+  it('round-trips every application enum value and preserves rows across bootstrap', async () => {
     const suffix = randomUUID();
     const roleValues = ['guest', 'user', 'doctor', 'moderator', 'admin'] as const;
     const postTypeValues = ['article', 'question', 'review', 'share'] as const;
@@ -145,77 +145,82 @@ describe('database enum lineage', () => {
       )
       .returning({ status: doctorVerifications.status });
     expect(enumVerifications.map((row) => row.status)).toEqual(verificationStatusValues);
+
+    // The observed deployment is already canonical. Reapplying the normal
+    // patches must preserve populated rows, including IDs and timestamps.
+    const snapshot = () => Promise.all([
+      db.select().from(users).orderBy(users.id),
+      db.select().from(posts).orderBy(posts.id),
+      db.select().from(reactions).orderBy(reactions.id),
+      db.select().from(reports).orderBy(reports.id),
+      db.select().from(doctorVerifications).orderBy(doctorVerifications.id),
+    ]);
+    const before = await snapshot();
+    for (let run = 0; run < 2; run += 1) {
+      await expect(ensureSchema()).resolves.toBe('baselined');
+      expect(await snapshot()).toEqual(before);
+    }
   });
 
-  it('repairs known uppercase SQLAlchemy labels before application writes', async () => {
+  it('keeps lowercase defaults usable after repeated bootstrap', async () => {
+    const defaultsQuery = sql`
+      select table_name, column_name, column_default
+        from information_schema.columns
+       where table_schema = 'public'
+         and udt_name in (
+           'userrole', 'posttype', 'poststatus', 'reactiontype',
+           'reportstatus', 'reporttargettype', 'verificationstatus'
+         )
+       order by table_name, column_name
+    `;
+    const before = resultRows(await db.execute(defaultsQuery));
+    expect(before).toHaveLength(7);
+    await expect(ensureSchema()).resolves.toBe('baselined');
+    await expect(ensureSchema()).resolves.toBe('baselined');
+    expect(resultRows(await db.execute(defaultsQuery))).toEqual(before);
+
     const suffix = randomUUID();
     const author = await db
       .insert(users)
       .values({
-        email: `legacy-${suffix}@test.vn`,
-        username: `legacy_${suffix.slice(0, 8)}`,
+        email: `defaults-${suffix}@test.vn`,
+        username: `defaults_${suffix.slice(0, 8)}`,
         hashed_password: 'test-only-hash',
-        role: 'doctor',
       })
-      .returning({ id: users.id });
+      .returning({ id: users.id, role: users.role });
+    expect(author[0]!.role).toBe('user');
 
-    await db
+    const insertedPost = await db
       .insert(posts)
       .values({
-        title: 'Legacy enum row',
-        slug: `legacy-${suffix}`,
-        content: '<p>legacy enum row</p>',
+        title: 'Canonical defaults',
+        slug: `defaults-${suffix}`,
+        content: '<p>default enum values</p>',
         author_id: author[0]!.id,
-        post_type: 'article',
       })
-      .returning({ id: posts.id });
+      .returning({ id: posts.id, post_type: posts.post_type, status: posts.status });
+    expect(insertedPost[0]).toMatchObject({ post_type: 'article', status: 'approved' });
 
-    for (const [type, from, to] of [
-      ['posttype', 'article', 'ARTICLE'],
-      ['posttype', 'question', 'QUESTION'],
-      ['posttype', 'review', 'REVIEW'],
-      ['posttype', 'share', 'SHARE'],
-      ['reactiontype', 'helpful', 'HELPFUL'],
-      ['reactiontype', 'like', 'LIKE'],
-      ['reactiontype', 'informative', 'INFORMATIVE'],
-    ] as const) {
-      await db.execute(
-        sql.raw(`ALTER TYPE "public"."${type}" RENAME VALUE '${from}' TO '${to}'`),
-      );
-    }
-
-    await expect(ensureSchema()).resolves.toBe('baselined');
-    await expect(enumLabels('posttype')).resolves.toEqual([
-      'article',
-      'question',
-      'review',
-      'share',
-    ]);
-    await expect(enumLabels('reactiontype')).resolves.toEqual([
-      'helpful',
-      'like',
-      'informative',
-    ]);
-
-    const repaired = await db
-      .insert(posts)
+    const insertedReport = await db
+      .insert(reports)
       .values({
-        title: 'Post after enum repair',
-        slug: `repaired-${suffix}`,
-        content: '<p>lowercase writes work</p>',
-        author_id: author[0]!.id,
-        post_type: 'question',
-        status: 'pending',
+        reporter_id: author[0]!.id,
+        target_type: 'post',
+        target_id: insertedPost[0]!.id,
+        reason: 'Default status check',
       })
-      .returning({ post_type: posts.post_type, status: posts.status });
-    expect(repaired[0]).toMatchObject({ post_type: 'question', status: 'pending' });
-  });
+      .returning({ status: reports.status });
+    expect(insertedReport[0]!.status).toBe('open');
 
-  it('fails diagnostically when legacy and canonical labels coexist', async () => {
-    await db.execute(sql.raw('ALTER TYPE "public"."posttype" ADD VALUE \'ARTICLE\''));
-
-    await expect(ensureSchema()).rejects.toThrow(
-      /Enum public\.posttype contains both legacy value "ARTICLE" and canonical value "article"/,
-    );
+    const insertedVerification = await db
+      .insert(doctorVerifications)
+      .values({
+        user_id: author[0]!.id,
+        full_name: 'Default Test',
+        license_number: `DEFAULT-${suffix}`,
+        document_url: '/uploads/default.jpg',
+      })
+      .returning({ status: doctorVerifications.status });
+    expect(insertedVerification[0]!.status).toBe('pending');
   });
 });

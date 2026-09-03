@@ -41,7 +41,7 @@ existed), and `createAdmin`.
 
 | Path | What lives there |
 | --- | --- |
-| `src/db/schema.ts` | Drizzle tables, matching the two Alembic migrations exactly |
+| `src/db/schema.ts` | Current Drizzle tables and canonical lowercase PostgreSQL enums |
 | `src/schemas/responses.ts` | Zod response builders — the only place a row becomes JSON |
 | `src/schemas/requests.ts` | Input validation, replacing the Pydantic models |
 | `src/core/` | config, JWT + bcrypt, the shared error handler |
@@ -49,7 +49,15 @@ existed), and `createAdmin`.
 | `src/routes/` | one file per former APIRouter |
 | `src/lib/` | sanitising, slugify, cursor + batched post queries |
 | `drizzle/0000_init.sql` | DDL for a fresh database |
-| `drizzle/0001_*.sql`–`0005_*.sql` | Idempotent patches, applied on every boot |
+| `drizzle/0001_*.sql`–`0004_*.sql` | Idempotent patches, applied on every boot |
+| `drizzle/0006_site_settings.sql` | Idempotent network/footer settings table, applied on every boot |
+
+The deployed database has canonical lowercase enums. G1 therefore requires
+no enum-correction migration; the previously proposed `0005` has been removed.
+Bootstrap no longer converts legacy uppercase labels. A noncanonical database
+requires a separate schema audit and migration before application startup.
+See the [G1 closure record](../docs/evidence/2026-09-03-g1-closure.md) for the
+decision, regression coverage and verification limits.
 
 ## Rules this port follows
 

@@ -123,7 +123,7 @@ npm run dev          # http://localhost:3000
 
 ```bash
 cd backend
-npm test             # 88 test trên Postgres thật (PGlite), không cần database ngoài
+npm test             # Vitest trên PGlite, không cần database ngoài
 npm run typecheck
 
 cd ../frontend
