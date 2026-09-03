@@ -12,6 +12,7 @@
     <meta name="theme-color" content="#2D6DD1" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!-- Ảnh và tiêu đề khi dán link vào Facebook, Zalo, Messenger. -->
@@ -22,8 +23,13 @@
       property="og:description"
       content="Đặt câu hỏi cho bác sĩ đã xác thực, đọc kinh nghiệm khám chữa bệnh và chia sẻ kiến thức sức khỏe cho cộng đồng."
     />
-    <meta property="og:image" content="/logo-mark-512.png" />
-    <meta name="twitter:card" content="summary" />
+    <!-- 1200x630 là khổ Facebook/Zalo dựng thẻ xem trước; nền đặc chứ không
+         trong suốt, vì nhiều nơi ghép ảnh trong suốt lên nền đen. -->
+    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Medic Việt Nam — Kết nối tri thức y khoa, chia sẻ vì sức khỏe cộng đồng" />
+    <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -53,38 +59,32 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 20px;
         background: #f8fafc;
         z-index: 9999;
+        font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
       }
+      /*
+        Bông sen tự vẽ nằm trong chính file SVG (có <style> riêng), nạp bằng
+        <img>. Nhúng thẳng vào đây thì index.html phồng thêm ~8KB mà mỗi lượt
+        tải đều phải kéo lại, vì index.html cố tình không được cache; để riêng
+        một file thì trình duyệt cache nó như mọi ảnh khác.
+      */
       #app-splash img {
-        width: 220px;
-        max-width: 60vw;
-        height: auto;
+        width: 132px;
+        height: 132px;
       }
-      #app-splash .bar {
-        width: 180px;
-        max-width: 50vw;
-        height: 3px;
-        border-radius: 9999px;
-        background: #e2e8f0;
-        overflow: hidden;
+      #app-splash .msg {
+        margin-top: 18px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #1e293b;
+        letter-spacing: -0.01em;
       }
-      #app-splash .bar i {
-        display: block;
-        width: 40%;
-        height: 100%;
-        border-radius: 9999px;
-        background: #2d6dd1;
-        animation: splash-slide 1.1s ease-in-out infinite;
-      }
-      @keyframes splash-slide {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(350%); }
-      }
-      /* Người bật "giảm chuyển động" nhận một thanh tĩnh thay vì vạch chạy. */
-      @media (prefers-reduced-motion: reduce) {
-        #app-splash .bar i { animation: none; width: 100%; opacity: 0.5; }
+      #app-splash .build {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #94a3b8;
+        font-variant-numeric: tabular-nums;
       }
       /* React dựng xong là #root có con — ẩn màn chờ, không cần JS gỡ. */
       #root:not(:empty) + #app-splash { display: none; }
@@ -94,8 +94,9 @@
     <div id="root"></div>
 
     <div id="app-splash">
-      <img src="/logo-wide.png" alt="Medic Việt Nam" width="648" height="132" />
-      <div class="bar" role="progressbar" aria-label="Đang tải trang"><i></i></div>
+      <img src="/splash-lotus.svg" alt="" width="132" height="132" />
+      <p class="msg">Đang tải dữ liệu&hellip;</p>
+      <p class="build">Bản dựng %BUILD_ID%</p>
     </div>
 
     <script type="module" src="/src/main.tsx"></script>
