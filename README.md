@@ -123,12 +123,16 @@ npm run dev          # http://localhost:3000
 
 ```bash
 cd backend
-npm test             # 49 test trên Postgres thật (PGlite), không cần database ngoài
+npm test             # 88 test trên Postgres thật (PGlite), không cần database ngoài
 npm run typecheck
 
 cd ../frontend
 npm run build        # đã bật lại tsc trước khi build
 ```
+
+Hiện frontend chưa có test script/ESLint hoàn chỉnh; `npm run lint` và
+`npm test -- --run` chưa phải gate khả dụng. Backend là nơi đang có bộ test tự
+động đầy đủ; frontend cần bổ sung lint, Vitest và lockfile trước khi đưa vào CI.
 
 ## 🗄️ Các lệnh database
 
