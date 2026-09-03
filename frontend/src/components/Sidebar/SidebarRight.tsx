@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TagWithCount } from '../../types';
 import { tagService } from '../../services/tagService';
-import { statsService, CommunityStats } from '../../services/statsService';
+import { statsService, CommunityStats, FeaturedDoctor } from '../../services/statsService';
+import { getAvatarUrl } from '../../lib/utils';
+import { VerifiedDoctorBadge } from '../common/Badges';
 
 /** 12543 -> "12.5K". Ô thống kê chỉ có chỗ cho vài ký tự. */
 const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
@@ -16,33 +18,21 @@ const fallbackTags: TagWithCount[] = [
   { id: '6', name: 'Mất ngủ', slug: 'mat-ngu', post_count: 18 },
 ];
 
-const featuredDoctors = [
-  {
-    name: 'BS. Trần Văn A',
-    specialty: 'Nội tim mạch',
-    avatar: 'https://ui-avatars.com/api/?name=Tran+Van+A&background=3B82F6&color=fff',
-  },
-  {
-    name: 'BS. Nguyễn Thị B',
-    specialty: 'Nhi khoa',
-    avatar: 'https://ui-avatars.com/api/?name=Nguyen+Thi+B&background=60A5FA&color=fff',
-  },
-  {
-    name: 'BS. Lê Văn C',
-    specialty: 'Da liễu',
-    avatar: 'https://ui-avatars.com/api/?name=Le+Van+C&background=10B981&color=fff',
-  },
-];
-
 export const SidebarRight: React.FC = () => {
   const [tags, setTags] = useState<TagWithCount[]>(fallbackTags);
   const [stats, setStats] = useState<CommunityStats | null>(null);
+  const [doctors, setDoctors] = useState<FeaturedDoctor[]>([]);
 
   useEffect(() => {
     statsService
       .getCommunityStats()
       .then(setStats)
       .catch((err) => console.error('Failed to load community stats', err));
+
+    statsService
+      .getFeaturedDoctors(3)
+      .then(setDoctors)
+      .catch((err) => console.error('Failed to load featured doctors', err));
   }, []);
 
   useEffect(() => {
@@ -85,36 +75,44 @@ export const SidebarRight: React.FC = () => {
         </div>
       </div>
 
-      {/* Featured Doctors */}
-      <div className="bg-surface rounded-2xl p-5 shadow-sm border border-border">
-        <h3 className="font-bold text-text mb-4 flex items-center gap-2">
-          <span className="w-1.5 h-6 bg-accent rounded-full block" />
-          Bác sĩ nổi bật
-        </h3>
-        <div className="flex flex-col gap-3.5">
-          {featuredDoctors.map((doc, idx) => (
-            <div key={idx} className="flex items-center gap-3 group cursor-pointer">
-              <img
-                src={doc.avatar}
-                alt={doc.name}
-                className="w-10 h-10 rounded-full border-2 border-transparent group-hover:border-primary transition-colors object-cover"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-text group-hover:text-primary transition-colors truncate">
-                  {doc.name}
+      {/* Featured Doctors — bác sĩ đã xác thực, xếp theo số bài đã duyệt */}
+      {doctors.length > 0 && (
+        <div className="bg-surface rounded-2xl p-5 shadow-sm border border-border">
+          <h3 className="font-bold text-text mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-6 bg-accent rounded-full block" />
+            Bác sĩ nổi bật
+          </h3>
+          <div className="flex flex-col gap-3.5">
+            {doctors.map((doc) => (
+              <div key={doc.id} className="flex items-center gap-3 group">
+                <img
+                  src={getAvatarUrl(doc, doc.full_name || doc.username)}
+                  alt={doc.full_name || doc.username}
+                  className="w-10 h-10 rounded-full border-2 border-transparent group-hover:border-primary transition-colors object-cover"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="text-sm font-bold text-text truncate">
+                      {doc.full_name || doc.username}
+                    </span>
+                    <VerifiedDoctorBadge user={doc} />
+                  </div>
+                  <div className="text-xs text-text-secondary truncate">
+                    {doc.specialty || 'Bác sĩ'}
+                    {doc.post_count > 0 && ` • ${doc.post_count} bài`}
+                  </div>
                 </div>
-                <div className="text-xs text-text-secondary truncate">{doc.specialty}</div>
+                <Link
+                  to="/create-post?type=QUESTION"
+                  className="ml-auto text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-lg font-medium hover:bg-primary hover:text-white transition-colors"
+                >
+                  Hỏi
+                </Link>
               </div>
-              <Link
-                to={`/create-post?type=QUESTION`}
-                className="ml-auto text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-lg font-medium hover:bg-primary hover:text-white transition-colors"
-              >
-                Hỏi
-              </Link>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Stats */}
       <div className="bg-surface rounded-2xl p-5 shadow-sm border border-border">
