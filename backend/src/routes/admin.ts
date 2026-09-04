@@ -106,7 +106,7 @@ adminRoutes.get('/stats', async (c) => {
       select to_char((created_at at time zone 'utc')::date, 'YYYY-MM-DD') as day,
              count(*)::int as n
         from ${sql.raw(table)}
-       where created_at >= ${cutoff}
+       where created_at >= ${cutoff.toISOString()}::timestamptz
        group by 1
     `);
     const rows = (Array.isArray(result) ? result : (result as { rows?: unknown[] }).rows ?? []) as Array<{ day: string; n: number }>;
