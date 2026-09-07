@@ -144,6 +144,73 @@ statsRoutes.get('/forum', async (c) => {
 });
 
 /**
+ * Thời điểm trả lời gần nhất của một thớt.
+ *
+ * Không thêm cột `last_reply_at` vào bảng posts ở bước này: một cột phi chuẩn
+ * hoá phải được cập nhật ở mọi chỗ tạo/xoá bình luận, và ở quy mô hiện tại
+ * truy vấn con này còn rẻ hơn cái giá của việc quên cập nhật một chỗ. Khi
+ * bảng comments đủ lớn để chậm thì hẵng đổi, kèm index.
+ */
+const threadLastReplyAt = sql<string | null>`(
+  select max(c.created_at) from "comments" c
+   where c.post_id = "posts"."id" and c.is_deleted = false
+)`;
+
+/**
+ * "Đang bàn luận" — thẻ ở sidebar cổng tin tức, đọc sang diễn đàn.
+ *
+ * Đây là đường nối chiều ngược giữa hai tên miền: trang tin xuất bản, diễn
+ * đàn bàn luận, và thẻ này kéo phần bàn luận trở lại trang tin để hai trang
+ * còn dính vào nhau thay vì thành hai sản phẩm rời.
+ *
+ * Chỉ lấy thớt đã có ít nhất một trả lời. Một bài vừa đăng chưa ai đọc không
+ * phải là thứ "đang được bàn luận", và để nó lọt vào đây thì cả thẻ mất nghĩa.
+ *
+ * Cache 60 giây: trang tin không được phụ thuộc vào việc diễn đàn còn sống,
+ * và một phút chậm trễ ở một thẻ sidebar thì không ai nhận ra.
+ */
+statsRoutes.get('/forum/hot-threads', async (c) => {
+  const limitRaw = Number(c.req.query('limit') ?? 5);
+  const limit = Math.min(10, Math.max(1, Number.isFinite(limitRaw) ? Math.trunc(limitRaw) : 5));
+
+  const rows = await db
+    .select({
+      id: posts.id,
+      title: posts.title,
+      comment_count: posts.comment_count,
+      created_at: posts.created_at,
+      last_reply_at: threadLastReplyAt,
+      category_name: categories.name,
+      category_slug: categories.slug,
+    })
+    .from(posts)
+    .leftJoin(categories, eq(posts.category_id, categories.id))
+    .where(
+      and(
+        eq(posts.status, 'approved'),
+        eq(posts.is_published, true),
+        sql`"posts"."comment_count" > 0`,
+      ),
+    )
+    .orderBy(desc(sql`coalesce(${threadLastReplyAt}, "posts"."created_at")`))
+    .limit(limit);
+
+  c.header('Cache-Control', 'public, max-age=60');
+  return c.json(
+    rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      reply_count: Number(r.comment_count ?? 0),
+      // Thớt có bình luận thì last_reply_at luôn có; coalesce chỉ để kiểu trả
+      // về không bao giờ là null với phía client.
+      last_activity_at: r.last_reply_at ?? r.created_at,
+      category_name: r.category_name ?? null,
+      category_slug: r.category_slug ?? null,
+    })),
+  );
+});
+
+/**
  * Mạng lưới các trang anh em, cho thẻ ở sidebar.
  *
  * Trang đang mở được đánh dấu bằng cách so URL với SITE_URL, nên cùng một cấu

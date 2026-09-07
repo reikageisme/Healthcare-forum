@@ -344,3 +344,63 @@ Chạy trên một bản cài sạch (node_modules trên máy đang hỏng, xem 
 3. **NPM**: thêm proxy host `forum.medicvn.com` → container `frontend-forum` cổng 4000.
 4. Sau khi đổi tên miền: khai báo `forum.medicvn.com` trong Google Search Console,
    nộp sitemap riêng.
+
+---
+
+## 9. Nhật ký thực hiện — Chặng 2, phần nối hai trang (2026-09-07)
+
+### Một chỗ trong kế hoạch phải sửa
+
+Mục 4.2 xếp `mirrored_posts` + worker đồng bộ 5 phút vào chặng 2. Khi bắt tay
+vào làm mới thấy điều đó **không đứng vững ở chặng 2**: chặng 1 cố ý để hai
+trang dùng chung một database, nên một worker kéo bài từ database này rồi ghi
+vào chính nó là công việc rỗng — diễn đàn đã đọc thẳng bảng `posts` rồi. Xây
+một đường ống đồng bộ chỉ để copy dữ liệu về đúng chỗ nó đang nằm là thêm một
+thứ để hỏng mà không đổi lấy gì.
+
+`mirrored_posts`, endpoint `/sync/posts` ký HMAC, con trỏ `since`, mảng
+`deleted`, `rel=canonical` — **chuyển hết sang chặng 3**, nơi database thật sự
+tách và chúng mới có việc để làm. Mục 4.2 giữ nguyên như một bản thiết kế sẵn
+cho lúc đó.
+
+Cái *thật sự* thiếu ở chặng 2, và đã làm, là hai đường nối giữa hai tên miền —
+đúng hai thứ vẽ trong bản thiết kế:
+
+### Đã thay đổi
+
+**Backend**
+
+- `src/routes/stats.ts` — thêm `GET /api/v1/forum/hot-threads?limit=`.
+  Chỉ lấy thớt **đã có ít nhất một trả lời**, xếp theo lần trả lời gần nhất chứ
+  không theo ngày đăng, cache 60 giây. Bài chờ duyệt không lọt ra.
+- `tests/hot-threads.test.ts` — 6 test: thứ tự xếp, lọc bài chưa ai trả lời,
+  chặn bài chờ duyệt, đủ trường cho sidebar, kẹp `limit` lạ, header cache.
+
+**Frontend**
+
+- `services/forumService.ts` — `getHotThreads()` và kiểu `HotThread`.
+- `components/Sidebar/SidebarRight.tsx` — thẻ **"Đang bàn luận"**, chỉ hiện ở
+  cổng tin tức, mỗi dòng trỏ thẳng sang thớt bên `forum.medicvn.com`. Gọi hỏng
+  thì thẻ ẩn đi chứ không làm vỡ sidebar: trang tin không được phụ thuộc vào
+  việc diễn đàn còn sống.
+- `components/Feed/FeedCard.tsx` — nút **"Thảo luận"** dưới mỗi bài ở bảng tin,
+  mở thớt tương ứng bên diễn đàn. Không có lối đi này thì tách hai tên miền
+  chỉ làm người đọc mất đường, chứ không được gì.
+
+### Kết quả kiểm chứng
+
+- `tsc --noEmit` backend và frontend: sạch.
+- `vitest run`: **152/152 test xanh** (139 gốc + 7 SSO + 6 hot-threads).
+- `vite build` cả hai bản: xanh.
+
+### Còn lại của chặng 2
+
+Chưa làm, và cố ý để riêng vì mỗi thứ là một tính năng đủ lớn:
+
+- **Thông báo** ("có người trả lời bạn"). Đây là thứ đáng làm nhất tiếp theo —
+  không có nó thì tách diễn đàn ra chỉ khiến người dùng khó quay lại hơn.
+- **Ghim / khoá thớt, phân trang theo số trang** cho danh sách thớt.
+- `posts.last_reply_at` + index `(category_id, last_reply_at desc)`. Hiện thời
+  điểm trả lời gần nhất tính bằng truy vấn con; ở quy mô này còn rẻ hơn cái giá
+  của một cột phi chuẩn hoá phải cập nhật ở mọi chỗ tạo và xoá bình luận. Khi
+  bảng `comments` đủ lớn để chậm thì hẵng đổi.

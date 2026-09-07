@@ -15,9 +15,24 @@ export interface ForumCategory extends Category {
   last_post: ForumLastPost | null;
 }
 
+/** Một thớt đang có người trả lời, cho thẻ "Đang bàn luận" ở sidebar. */
+export interface HotThread {
+  id: string;
+  title: string;
+  reply_count: number;
+  last_activity_at: string;
+  category_name: string | null;
+  category_slug: string | null;
+}
+
 export const forumService = {
   getForumIndex: async (): Promise<ForumCategory[]> => {
     const response = await api.get<ForumCategory[]>('/forum');
+    return response.data;
+  },
+
+  getHotThreads: async (limit = 5): Promise<HotThread[]> => {
+    const response = await api.get<HotThread[]>('/forum/hot-threads', { params: { limit } });
     return response.data;
   },
 };

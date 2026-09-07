@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TagWithCount } from '../../types';
 import { tagService } from '../../services/tagService';
+import { forumService, HotThread } from '../../services/forumService';
+import SiteLink from '../common/SiteLink';
+import { IS_PORTAL, forumHref } from '../../lib/siteLinks';
+import { formatRelativeTime } from '../../lib/utils';
 import { statsService, CommunityStats, FeaturedDoctor } from '../../services/statsService';
 import { getAvatarUrl } from '../../lib/utils';
 import { VerifiedDoctorBadge } from '../common/Badges';
@@ -23,6 +27,7 @@ export const SidebarRight: React.FC = () => {
   const [tags, setTags] = useState<TagWithCount[]>(fallbackTags);
   const [stats, setStats] = useState<CommunityStats | null>(null);
   const [doctors, setDoctors] = useState<FeaturedDoctor[]>([]);
+  const [hotThreads, setHotThreads] = useState<HotThread[]>([]);
 
   useEffect(() => {
     statsService
@@ -34,6 +39,21 @@ export const SidebarRight: React.FC = () => {
       .getFeaturedDoctors(3)
       .then(setDoctors)
       .catch((err) => console.error('Failed to load featured doctors', err));
+  }, []);
+
+  /**
+   * Thẻ "Đang bàn luận" — đường nối chiều ngược từ diễn đàn về trang tin.
+   *
+   * Chỉ hiện ở cổng tin tức: ở chính diễn đàn thì nó thừa. Gọi hỏng thì thẻ
+   * biến mất chứ không làm vỡ sidebar — trang tin không được phụ thuộc vào
+   * việc diễn đàn còn sống.
+   */
+  useEffect(() => {
+    if (!IS_PORTAL) return;
+    forumService
+      .getHotThreads(3)
+      .then(setHotThreads)
+      .catch((err) => console.error('Failed to load hot threads', err));
   }, []);
 
   useEffect(() => {
@@ -115,6 +135,46 @@ export const SidebarRight: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Đang bàn luận — nội dung đến từ diễn đàn ở tên miền con */}
+      {hotThreads.length > 0 && (
+        <div className="bg-surface rounded-2xl p-5 shadow-sm border border-emerald-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-text flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-emerald-600 rounded-full block" />
+              Đang bàn luận
+            </h3>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+              DIỄN ĐÀN
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {hotThreads.map((thread, index) => (
+              <div key={thread.id}>
+                {index > 0 && <div className="h-px bg-slate-100 mb-3" />}
+                <SiteLink
+                  to={forumHref(`/posts/${thread.id}`)}
+                  className="block text-[13px] font-semibold text-text hover:text-primary leading-snug transition-colors"
+                >
+                  {thread.title}
+                </SiteLink>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  {thread.category_name ? `${thread.category_name} · ` : ''}
+                  {thread.reply_count} trả lời · {formatRelativeTime(thread.last_activity_at)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <SiteLink
+            to={forumHref()}
+            className="block mt-4 pt-3 border-t border-slate-100 text-center text-xs font-bold text-emerald-700 hover:text-emerald-800 transition-colors"
+          >
+            Vào diễn đàn
+          </SiteLink>
         </div>
       )}
 
