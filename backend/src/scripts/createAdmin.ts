@@ -56,7 +56,7 @@ async function main() {
           '',
         ].join('\n'),
       );
-      return;
+      throw new Error('ADMIN_PASSWORD is required to bootstrap an empty database.');
     }
 
     console.warn(

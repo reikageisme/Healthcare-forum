@@ -78,7 +78,7 @@ export function request(
   if (typeof init.body === 'string' && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
-  return app.request(`http://localhost/api/v1${path}`, { ...init, headers });
+  return Promise.resolve(app.request(`http://localhost/api/v1${path}`, { ...init, headers }));
 }
 
 export const json = (body: unknown) => JSON.stringify(body);

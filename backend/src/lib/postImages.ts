@@ -1,3 +1,5 @@
+import { isSafeContentUrl } from './sanitize.js';
+
 const IMG_SRC = /<img\b[^>]*?\ssrc=["']([^"']+)["']/gi;
 
 /**
@@ -14,11 +16,11 @@ export function postImages(
   limit = 20,
 ): string[] {
   const out: string[] = [];
-  if (thumbnail) out.push(thumbnail);
+  if (thumbnail && isSafeContentUrl(thumbnail)) out.push(thumbnail);
 
   for (const match of (content ?? '').matchAll(IMG_SRC)) {
     const src = match[1];
-    if (!src || src.startsWith('data:') || out.includes(src)) continue;
+    if (!src || !isSafeContentUrl(src) || out.includes(src)) continue;
     out.push(src);
     if (out.length >= limit) break;
   }

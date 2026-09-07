@@ -9,7 +9,7 @@ function createPostgresDb(): Database {
   // postgres-js connects lazily, so building this is cheap even when the
   // test suite is about to swap it out.
   const client = postgres(settings.DATABASE_URL, { max: 10 });
-  return drizzle(client, { schema, logger: settings.SQL_ECHO });
+  return drizzle(client, { schema, logger: settings.DB_ECHO });
 }
 
 /**

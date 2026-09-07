@@ -1,4 +1,5 @@
 import sanitizeHtml from 'sanitize-html';
+import { unprocessable } from '../core/errors.js';
 
 /**
  * Post and comment bodies are written with TipTap and rendered by the
@@ -12,40 +13,71 @@ import sanitizeHtml from 'sanitize-html';
  */
 const RICH_TEXT: sanitizeHtml.IOptions = {
   allowedTags: [
-    'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'hr',
-    'a', 'img', 'span', 'div',
-    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'p', 'br', 'strong', 'em', 's', 'ul', 'ol', 'li', 'blockquote',
+    'pre', 'code', 'hr', 'h1', 'h2', 'h3', 'a', 'img',
   ],
   allowedAttributes: {
     a: ['href', 'title', 'target', 'rel'],
     img: ['src', 'alt', 'title', 'width', 'height'],
-    span: ['class'],
-    div: ['class'],
     code: ['class'],
     pre: ['class'],
-    '*': ['style'],
   },
-  allowedSchemes: ['http', 'https', 'mailto'],
-  // Blocks data: and blob: image sources, which can smuggle SVG script.
-  allowedSchemesByTag: { img: ['http', 'https'] },
-  allowedStyles: {
-    '*': {
-      'text-align': [/^left$|^right$|^center$|^justify$/],
-      color: [/^#[0-9a-f]{3,8}$/i, /^rgb\(/i],
-      'background-color': [/^#[0-9a-f]{3,8}$/i, /^rgb\(/i],
-    },
-  },
+  allowedSchemes: ['http', 'https'],
+  allowProtocolRelative: false,
   transformTags: {
-    // Stops reverse-tabnabbing on links a user pastes in.
-    a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer nofollow' }, true),
+    a: cleanUrlAttributes,
+    img: cleanUrlAttributes,
   },
   disallowedTagsMode: 'discard',
 };
 
+const SAFE_CONTENT_URL = /^(?:https?:\/\/[^\s]+|\/uploads(?:\/|$))/i;
+
+/** http(s) and the application's own upload path are the only content URLs. */
+export function isSafeContentUrl(value: string | null | undefined): boolean {
+  return typeof value === 'string' && SAFE_CONTENT_URL.test(value.trim());
+}
+
+function cleanUrlAttributes(
+  tagName: string,
+  attribs: Record<string, string>,
+): { tagName: string; attribs: Record<string, string> } {
+  const attribute = tagName === 'a' ? 'href' : tagName === 'img' ? 'src' : null;
+  if (attribute && attribs[attribute] && !isSafeContentUrl(attribs[attribute])) {
+    delete attribs[attribute];
+  }
+  if (tagName === 'a') {
+    // Stops reverse-tabnabbing on links a user pastes in.
+    attribs.rel = 'noopener noreferrer nofollow';
+    if (attribs.target && attribs.target !== '_blank') delete attribs.target;
+  }
+  return { tagName, attribs };
+}
+
 export function sanitizeRichText(html: string): string {
   return sanitizeHtml(html, RICH_TEXT);
+}
+
+export function sanitizeImageUrl(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  return isSafeContentUrl(value) ? value.trim() : null;
+}
+
+export function requireSafeImageUrl(value: string): string {
+  const clean = sanitizeImageUrl(value);
+  if (!clean) throw unprocessable('Thumbnail URL is not safe');
+  return clean;
+}
+
+export function assertVisibleRichText(
+  html: string,
+  minimum = 5,
+  detail = 'Post content must contain at least 5 visible characters',
+): void {
+  const visible = stripHtmlAndTruncate(html)
+    .replace(/&(?:nbsp|#160);/gi, ' ')
+    .trim();
+  if (visible.length < minimum) throw unprocessable(detail);
 }
 
 /** For fields rendered as plain text (excerpt, report reason, bio). */

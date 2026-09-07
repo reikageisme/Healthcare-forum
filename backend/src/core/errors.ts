@@ -19,6 +19,7 @@ export class HttpError extends Error {
 }
 
 export const badRequest = (d: string) => new HttpError(400, d);
+export const unprocessable = (d: string) => new HttpError(422, d);
 export const unauthorized = (d: string) =>
   new HttpError(401, d, { 'WWW-Authenticate': 'Bearer' });
 export const forbidden = (d: string) => new HttpError(403, d);

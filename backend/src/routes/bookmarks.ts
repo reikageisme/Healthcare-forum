@@ -3,6 +3,7 @@ import { and, desc, eq, lt, or } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { bookmarks, categories, posts, users } from '../db/schema.js';
 import { findPostOr404 } from '../lib/findPost.js';
+import { publicPostCondition } from '../lib/postAccess.js';
 import {
   decodeCursor,
   encodeCursor,
@@ -17,7 +18,7 @@ export const bookmarkRoutes = new Hono();
 
 bookmarkRoutes.post('/posts/:post_id/bookmark', requireAuth, async (c) => {
   const me = currentUser(c);
-  const post = await findPostOr404(c.req.param('post_id'));
+  const post = await findPostOr404(c.req.param('post_id'), me, 'interact');
 
   const existing = await db
     .select({ id: bookmarks.id })
@@ -43,7 +44,7 @@ bookmarkRoutes.get('/users/me/bookmarks', requireAuth, async (c) => {
   const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? Math.trunc(limitRaw) : 10));
 
   // The cursor here keys off the bookmark's created_at, not the post's.
-  const conditions = [eq(bookmarks.user_id, me.id), eq(posts.is_published, true)];
+  const conditions = [eq(bookmarks.user_id, me.id), publicPostCondition()];
   const cursor = c.req.query('cursor');
   if (cursor) {
     const decoded = decodeCursor(cursor);

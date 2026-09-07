@@ -12,7 +12,7 @@ export const reactionRoutes = new Hono();
 
 reactionRoutes.post('/posts/:post_id/reactions', requireAuth, async (c) => {
   const me = currentUser(c);
-  const post = await findPostOr404(c.req.param('post_id'));
+  const post = await findPostOr404(c.req.param('post_id'), me, 'interact');
   const body = await parseBody(c, reactionCreateSchema);
 
   const existingRows = await db
@@ -57,7 +57,7 @@ reactionRoutes.post('/posts/:post_id/reactions', requireAuth, async (c) => {
 
 reactionRoutes.get('/posts/:post_id/reactions', optionalAuth, async (c) => {
   const me = c.get('currentUser');
-  const post = await findPostOr404(c.req.param('post_id'));
+  const post = await findPostOr404(c.req.param('post_id'), me, 'read');
   const counts = await getReactionBreakdown(post.id);
 
   let userReaction: string | null = null;

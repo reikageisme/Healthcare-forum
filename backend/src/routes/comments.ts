@@ -6,7 +6,8 @@ import { badRequest, forbidden, notFound } from '../core/errors.js';
 import { asUuid } from '../core/security.js';
 import { parseBody } from '../lib/validate.js';
 import { findPostOr404 } from '../lib/findPost.js';
-import { sanitizeRichText } from '../lib/sanitize.js';
+import { canReadPost } from '../lib/postAccess.js';
+import { assertVisibleRichText, sanitizeRichText } from '../lib/sanitize.js';
 import { commentCreateSchema, commentUpdateSchema } from '../schemas/requests.js';
 import { toCommentResponse, type CommentResponse } from '../schemas/responses.js';
 import { currentUser, optionalAuth, requireAuth } from '../middleware/auth.js';
@@ -17,7 +18,7 @@ const TOMBSTONE = '[Bình luận đã bị xóa]';
 
 commentRoutes.post('/posts/:post_id/comments', requireAuth, async (c) => {
   const me = currentUser(c);
-  const post = await findPostOr404(c.req.param('post_id'));
+  const post = await findPostOr404(c.req.param('post_id'), me, 'interact');
   const body = await parseBody(c, commentCreateSchema);
 
   if (body.parent_id) {
@@ -34,6 +35,8 @@ commentRoutes.post('/posts/:post_id/comments', requireAuth, async (c) => {
 
   // Comment bodies are rendered as HTML too, so they go through the same
   // allowlist as post content.
+  const content = sanitizeRichText(body.content);
+  assertVisibleRichText(content, 1, 'Comment must contain visible text');
   const inserted = await db
     .insert(comments)
     .values({
@@ -41,7 +44,7 @@ commentRoutes.post('/posts/:post_id/comments', requireAuth, async (c) => {
       parent_id: body.parent_id ?? null,
       author_id: me.id,
       is_anonymous: body.is_anonymous ?? false,
-      content: sanitizeRichText(body.content),
+      content,
     })
     .returning();
   const comment = inserted[0];
@@ -57,7 +60,7 @@ commentRoutes.post('/posts/:post_id/comments', requireAuth, async (c) => {
 
 commentRoutes.get('/posts/:post_id/comments', optionalAuth, async (c) => {
   const me = c.get('currentUser');
-  const post = await findPostOr404(c.req.param('post_id'));
+  const post = await findPostOr404(c.req.param('post_id'), me, 'read');
   const sortBy = c.req.query('sort_by') ?? 'newest';
   const viewer = {
     acceptedCommentId: post.accepted_comment_id,
@@ -117,13 +120,15 @@ commentRoutes.put('/comments/:comment_id', requireAuth, async (c) => {
   if (!id) throw notFound('Comment not found');
 
   const rows = await db
-    .select({ comment: comments, author: users })
+    .select({ comment: comments, author: users, post: posts })
     .from(comments)
+    .innerJoin(posts, eq(posts.id, comments.post_id))
     .leftJoin(users, eq(users.id, comments.author_id))
     .where(eq(comments.id, id))
     .limit(1);
   const row = rows[0];
-  if (!row) throw notFound('Comment not found');
+  // Keep hidden and absent comments indistinguishable, including their error body.
+  if (!row || !canReadPost(row.post, me)) throw notFound('Comment not found');
 
   const isAuthor = row.comment.author_id === me.id;
   const isStaff = me.role === 'admin' || me.role === 'moderator';
@@ -133,9 +138,11 @@ commentRoutes.put('/comments/:comment_id', requireAuth, async (c) => {
   if (row.comment.is_deleted) throw badRequest('Cannot edit a deleted comment');
 
   const body = await parseBody(c, commentUpdateSchema);
+  const content = sanitizeRichText(body.content);
+  assertVisibleRichText(content, 1, 'Comment must contain visible text');
   const updated = await db
     .update(comments)
-    .set({ content: sanitizeRichText(body.content), updated_at: new Date() })
+    .set({ content, updated_at: new Date() })
     .where(eq(comments.id, id))
     .returning();
   const comment = updated[0];
@@ -151,9 +158,15 @@ commentRoutes.delete('/comments/:comment_id', requireAuth, async (c) => {
   const id = asUuid(c.req.param('comment_id'));
   if (!id) throw notFound('Comment not found');
 
-  const rows = await db.select().from(comments).where(eq(comments.id, id)).limit(1);
-  const comment = rows[0];
-  if (!comment) throw notFound('Comment not found');
+  const rows = await db
+    .select({ comment: comments, post: posts })
+    .from(comments)
+    .innerJoin(posts, eq(posts.id, comments.post_id))
+    .where(eq(comments.id, id))
+    .limit(1);
+  const row = rows[0];
+  if (!row || !canReadPost(row.post, me)) throw notFound('Comment not found');
+  const comment = row.comment;
 
   const isAuthor = comment.author_id === me.id;
   const isStaff = me.role === 'admin' || me.role === 'moderator';

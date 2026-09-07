@@ -9,10 +9,9 @@ import { toTagResponse, toTagWithCount } from '../schemas/responses.js';
 export const tagRoutes = new Hono();
 
 /**
- * The post_count carried by /tags/hot and /tags/{id_or_slug} counts rows in
- * post_tags, not approved posts: tags.py left-joins posts with a status
- * filter but then counts post_tags.post_id, which the outer join cannot
- * reduce. Reproduced as-is so the numbers in the sidebar do not move.
+ * Count the filtered post side of the left join. Counting postTags.post_id
+ * would count pending/rejected/unpublished associations too, because that
+ * column is non-null before the filtered posts join removes its row.
  */
 const linkCountJoins = {
   postTagsOn: eq(postTags.tag_id, tags.id),
@@ -30,12 +29,12 @@ tagRoutes.get('/hot', async (c) => {
   const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 10));
 
   const rows = await db
-    .select({ tag: tags, post_count: count(postTags.post_id) })
+    .select({ tag: tags, post_count: count(posts.id) })
     .from(tags)
     .leftJoin(postTags, linkCountJoins.postTagsOn)
     .leftJoin(posts, linkCountJoins.postsOn)
     .groupBy(tags.id)
-    .orderBy(desc(count(postTags.post_id)), asc(tags.name))
+    .orderBy(desc(count(posts.id)), asc(tags.name))
     .limit(limit);
 
   return c.json(rows.map((r) => toTagWithCount(r.tag, Number(r.post_count))));
@@ -72,7 +71,7 @@ tagRoutes.get('/:id_or_slug', async (c) => {
   const id = asUuid(key);
 
   const rows = await db
-    .select({ tag: tags, post_count: count(postTags.post_id) })
+    .select({ tag: tags, post_count: count(posts.id) })
     .from(tags)
     .leftJoin(postTags, linkCountJoins.postTagsOn)
     .leftJoin(posts, linkCountJoins.postsOn)

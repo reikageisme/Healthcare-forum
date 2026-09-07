@@ -6,7 +6,10 @@ function toPgUrl(raw: string): string {
   return raw.replace(/^postgresql\+asyncpg:\/\//, 'postgresql://');
 }
 
-function parseOrigins(raw: string | undefined): string[] {
+const DEFAULT_DATABASE_URL = 'postgresql://postgres:postgres@db:5432/healthcare_forum';
+const DEFAULT_JWT_SECRET = 'supersecret_jwt_key_here';
+
+export function parseOrigins(raw: string | undefined): string[] {
   if (!raw || !raw.trim()) return ['http://localhost:3000'];
   const trimmed = raw.trim();
   if (trimmed.startsWith('[')) {
@@ -20,7 +23,71 @@ function parseOrigins(raw: string | undefined): string[] {
   return trimmed.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+export interface ProductionConfigInput {
+  environment: string;
+  databaseUrl: string;
+  jwtSecret: string;
+  corsOrigins: string[];
+  databaseConfigured: boolean;
+  jwtConfigured: boolean;
+  corsConfigured: boolean;
+}
+
+function isSafeDatabaseUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') return false;
+    if (!url.hostname || !url.pathname || url.pathname === '/') return false;
+    return value !== DEFAULT_DATABASE_URL;
+  } catch {
+    return false;
+  }
+}
+
+function isSafeOrigin(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      url.origin === value.replace(/\/+$/, '')
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function validateProductionConfig(input: ProductionConfigInput): void {
+  if (input.environment !== 'production') return;
+  if (!input.databaseConfigured || !isSafeDatabaseUrl(input.databaseUrl)) {
+    throw new Error(
+      'DATABASE_URL must be explicitly configured with a non-development PostgreSQL URL in production.',
+    );
+  }
+  if (
+    !input.jwtConfigured ||
+    input.jwtSecret === DEFAULT_JWT_SECRET ||
+    input.jwtSecret.length < 32
+  ) {
+    throw new Error(
+      'JWT_SECRET must be explicitly configured with at least 32 characters in production.',
+    );
+  }
+  if (
+    !input.corsConfigured ||
+    input.corsOrigins.length === 0 ||
+    input.corsOrigins.includes('*') ||
+    input.corsOrigins.some((origin) => !isSafeOrigin(origin))
+  ) {
+    throw new Error(
+      'BACKEND_CORS_ORIGINS must list explicit http(s) origins in production; "*" is not allowed.',
+    );
+  }
+}
+
 const rawOrigins = parseOrigins(process.env.BACKEND_CORS_ORIGINS);
+const databaseConfigured = !!process.env.DATABASE_URL?.trim();
+const jwtConfigured = !!process.env.JWT_SECRET?.trim();
+const corsConfigured = !!process.env.BACKEND_CORS_ORIGINS?.trim();
 
 export interface NetworkSite {
   name: string;
@@ -78,11 +145,10 @@ export const settings = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
 
   DATABASE_URL: toPgUrl(
-    process.env.DATABASE_URL ??
-      'postgresql://postgres:postgres@db:5432/healthcare_forum',
+    process.env.DATABASE_URL?.trim() || DEFAULT_DATABASE_URL,
   ),
 
-  JWT_SECRET: process.env.JWT_SECRET ?? 'supersecret_jwt_key_here',
+  JWT_SECRET: process.env.JWT_SECRET?.trim() || DEFAULT_JWT_SECRET,
   JWT_ALGORITHM: 'HS256' as const,
   ACCESS_TOKEN_EXPIRE_MINUTES: Number(process.env.ACCESS_TOKEN_EXPIRE_MINUTES ?? 30),
   REFRESH_TOKEN_EXPIRE_DAYS: Number(process.env.REFRESH_TOKEN_EXPIRE_DAYS ?? 7),
@@ -118,11 +184,17 @@ export const settings = {
 
   // SQL logging is off unless explicitly asked for. The Python code had
   // echo=True hardcoded, which logged every statement and its parameters.
-  SQL_ECHO: process.env.SQL_ECHO === 'true',
+  DB_ECHO: (process.env.DB_ECHO ?? process.env.SQL_ECHO) === 'true',
+  /** Compatibility alias for older deployments; DB_ECHO is canonical. */
+  SQL_ECHO: (process.env.DB_ECHO ?? process.env.SQL_ECHO) === 'true',
 };
 
-if (settings.NODE_ENV === 'production' && settings.JWT_SECRET.length < 32) {
-  throw new Error(
-    'JWT_SECRET must be at least 32 characters in production. Refusing to start with a weak signing key.',
-  );
-}
+validateProductionConfig({
+  environment: settings.NODE_ENV,
+  databaseUrl: settings.DATABASE_URL,
+  jwtSecret: settings.JWT_SECRET,
+  corsOrigins: rawOrigins,
+  databaseConfigured,
+  jwtConfigured,
+  corsConfigured,
+});

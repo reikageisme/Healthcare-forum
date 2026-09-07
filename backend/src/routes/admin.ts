@@ -11,7 +11,7 @@ import {
   stories,
   users,
 } from '../db/schema.js';
-import { badRequest, notFound } from '../core/errors.js';
+import { badRequest, conflict, notFound } from '../core/errors.js';
 import { readNetworkConfig, writeNetworkConfig } from '../lib/siteSettings.js';
 import { asUuid } from '../core/security.js';
 import { parseBody } from '../lib/validate.js';
@@ -495,70 +495,108 @@ adminRoutes.delete('/reports/:report_id/content', async (c) => {
   const id = asUuid(c.req.param('report_id'));
   if (!id) throw notFound('Report not found');
 
-  const rows = await db.select().from(reports).where(eq(reports.id, id)).limit(1);
-  const report = rows[0];
-  if (!report) throw notFound('Report not found');
-
   const now = new Date();
   const NOTE = 'Content removed by moderator';
 
-  if (report.target_type === 'post') {
-    await db
-      .update(posts)
-      .set({
-        status: 'rejected',
-        is_published: false,
-        rejection_reason: NOTE,
-        updated_at: now,
-      })
-      .where(eq(posts.id, report.target_id));
-  } else if (report.target_type === 'story') {
-    // A story has no rejected state to move it into — removing it is the
-    // only action, and it would have expired within the day anyway.
-    await db.delete(stories).where(eq(stories.id, report.target_id));
-  } else if (report.target_type === 'comment') {
-    await db
-      .update(comments)
-      .set({
-        is_deleted: true,
-        content: '[Nội dung đã bị xóa do vi phạm tiêu chuẩn cộng đồng]',
-        updated_at: now,
-      })
-      .where(eq(comments.id, report.target_id));
-  } else {
-    await db
-      .update(users)
-      .set({ is_active: false, updated_at: now })
-      .where(eq(users.id, report.target_id));
-  }
+  const outcome = await db.transaction(async (tx) => {
+    const rows = await tx.select().from(reports).where(eq(reports.id, id)).limit(1);
+    const report = rows[0];
+    if (!report) throw notFound('Report not found');
+    if (report.status !== 'open') throw conflict('Report is already closed');
 
-  // Every open report about the same target is resolved together, not just
-  // the one that was acted on.
-  await db
-    .update(reports)
-    .set({
-      status: 'resolved',
-      resolution_notes: NOTE,
-      resolved_by: me.id,
-      resolved_at: now,
-      updated_at: now,
-    })
-    .where(
-      or(
-        and(
-          eq(reports.target_type, report.target_type),
-          eq(reports.target_id, report.target_id),
-          eq(reports.status, 'open'),
+    let targetExists = false;
+    if (report.target_type === 'post') {
+      const target = await tx
+        .select({ id: posts.id })
+        .from(posts)
+        .where(eq(posts.id, report.target_id))
+        .limit(1);
+      targetExists = !!target[0];
+      if (targetExists) {
+        await tx
+          .update(posts)
+          .set({
+            status: 'rejected',
+            is_published: false,
+            rejection_reason: NOTE,
+            updated_at: now,
+          })
+          .where(eq(posts.id, report.target_id));
+      }
+    } else if (report.target_type === 'story') {
+      // A story has no rejected state to move it into — removing it is the
+      // only action, and it would have expired within the day anyway.
+      const target = await tx
+        .select({ id: stories.id })
+        .from(stories)
+        .where(eq(stories.id, report.target_id))
+        .limit(1);
+      targetExists = !!target[0];
+      if (targetExists) await tx.delete(stories).where(eq(stories.id, report.target_id));
+    } else if (report.target_type === 'comment') {
+      const target = await tx
+        .select({ id: comments.id })
+        .from(comments)
+        .where(eq(comments.id, report.target_id))
+        .limit(1);
+      targetExists = !!target[0];
+      if (targetExists) {
+        await tx
+          .update(comments)
+          .set({
+            is_deleted: true,
+            content: '[Nội dung đã bị xóa do vi phạm tiêu chuẩn cộng đồng]',
+            updated_at: now,
+          })
+          .where(eq(comments.id, report.target_id));
+      }
+    } else {
+      const target = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, report.target_id))
+        .limit(1);
+      targetExists = !!target[0];
+      if (targetExists) {
+        await tx
+          .update(users)
+          .set({ is_active: false, updated_at: now })
+          .where(eq(users.id, report.target_id));
+      }
+    }
+
+    // Every open report about the same target is resolved together, not just
+    // the one that was acted on. An absent target is still a successful,
+    // idempotent closure so stale queue entries cannot block moderation.
+    await tx
+      .update(reports)
+      .set({
+        status: 'resolved',
+        resolution_notes: NOTE,
+        resolved_by: me.id,
+        resolved_at: now,
+        updated_at: now,
+      })
+      .where(
+        or(
+          and(
+            eq(reports.target_type, report.target_type),
+            eq(reports.target_id, report.target_id),
+            eq(reports.status, 'open'),
+          ),
+          eq(reports.id, report.id),
         ),
-        eq(reports.id, report.id),
-      ),
-    );
+      );
+
+    return { report, targetExists };
+  });
 
   return c.json({
     success: true,
     message: 'Reported content removed and report resolved',
-    deleted_type: report.target_type,
-    target_id: report.target_id,
+    deleted_type: outcome.report.target_type,
+    target_id: outcome.report.target_id,
+    target_exists: outcome.targetExists,
   });
 });
 

@@ -5,9 +5,17 @@ import { categories, comments, posts, tags, postTags, users } from '../db/schema
 import { badRequest, forbidden, notFound } from '../core/errors.js';
 import { asUuid } from '../core/security.js';
 import { parseBody } from '../lib/validate.js';
-import { sanitizePlainText, sanitizeRichText, stripHtmlAndTruncate } from '../lib/sanitize.js';
+import {
+  assertVisibleRichText,
+  requireSafeImageUrl,
+  sanitizePlainText,
+  sanitizeRichText,
+  stripHtmlAndTruncate,
+} from '../lib/sanitize.js';
 import { deaccent, toSearchText } from '../lib/slugify.js';
 import { assessContent } from '../lib/spamGuard.js';
+import { findPostOr404 } from '../lib/findPost.js';
+import { postListAccessCondition, requirePostAccess } from '../lib/postAccess.js';
 import {
   decodeCursor,
   encodeCursor,
@@ -46,7 +54,11 @@ postRoutes.post('/', requireAuth, async (c) => {
   // detail page and in the moderation preview. Cleaning on write means the
   // stored row is safe for every reader, moderators included.
   const content = sanitizeRichText(body.content);
+  assertVisibleRichText(content);
   const title = sanitizePlainText(body.title);
+  const thumbnail = body.thumbnail === undefined || body.thumbnail === null
+    ? null
+    : requireSafeImageUrl(body.thumbnail);
 
   const slug = await generateUniqueSlug(title);
   const excerpt = body.excerpt
@@ -69,7 +81,7 @@ postRoutes.post('/', requireAuth, async (c) => {
       slug,
       content,
       excerpt,
-      thumbnail: body.thumbnail ?? null,
+      thumbnail,
       post_type: body.post_type,
       status,
       risk_score: risk.score,
@@ -112,23 +124,10 @@ postRoutes.get('/', optionalAuth, async (c) => {
   const limitRaw = Number(q.limit ?? 10);
   const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? Math.trunc(limitRaw) : 10));
   const authorId = q.author_id ? asUuid(q.author_id) : null;
-  const conditions = [eq(posts.is_published, true)];
+  const conditions = [postListAccessCondition(me, authorId, q.status)];
 
   const isAdminOrMod = !!me && (me.role === 'admin' || me.role === 'moderator');
   const isAuthorQuery = !!authorId && !!me && me.id === authorId;
-
-  if (isAuthorQuery || isAdminOrMod) {
-    const wanted = q.status?.toLowerCase();
-    if (wanted && wanted !== 'all') {
-      if (wanted === 'pending' || wanted === 'approved' || wanted === 'rejected') {
-        conditions.push(eq(posts.status, wanted));
-      }
-    } else if (!isAuthorQuery && !q.status) {
-      conditions.push(eq(posts.status, 'approved'));
-    }
-  } else {
-    conditions.push(eq(posts.status, 'approved'));
-  }
 
   if (q.category) {
     const catId = asUuid(q.category);
@@ -257,14 +256,7 @@ postRoutes.get('/:id_or_slug', optionalAuth, async (c) => {
   const found = await loadPostByIdOrSlug(id ?? key, !!id);
   if (!found) throw notFound('Post not found');
 
-  // A pending or rejected post is visible only to its author and to staff;
-  // everyone else gets the same 404 as a post that does not exist, so the
-  // queue cannot be probed.
-  if (found.post.status !== 'approved') {
-    const isAuthor = !!me && me.id === found.post.author_id;
-    const isStaff = !!me && (me.role === 'admin' || me.role === 'moderator');
-    if (!isAuthor && !isStaff) throw notFound('Post not found');
-  }
+  requirePostAccess(found.post, me, 'read');
 
   const bumped = await db
     .update(posts)
@@ -300,6 +292,7 @@ postRoutes.put('/:id_or_slug', requireAuth, async (c) => {
 
   const found = await loadPostByIdOrSlug(id ?? key, !!id);
   if (!found) throw notFound('Post not found');
+  requirePostAccess(found.post, me, 'read');
 
   const isAuthor = found.post.author_id === me.id;
   const isStaff = me.role === 'admin' || me.role === 'moderator';
@@ -316,7 +309,9 @@ postRoutes.put('/:id_or_slug', requireAuth, async (c) => {
   }
 
   if (body.content !== undefined && body.content !== null) {
-    patch.content = sanitizeRichText(body.content);
+    const content = sanitizeRichText(body.content);
+    assertVisibleRichText(content);
+    patch.content = content;
     if (body.excerpt === undefined || body.excerpt === null) {
       patch.excerpt = stripHtmlAndTruncate(patch.content);
     }
@@ -325,7 +320,7 @@ postRoutes.put('/:id_or_slug', requireAuth, async (c) => {
     patch.excerpt = sanitizePlainText(body.excerpt);
   }
   if (body.thumbnail !== undefined && body.thumbnail !== null) {
-    patch.thumbnail = body.thumbnail;
+    patch.thumbnail = requireSafeImageUrl(body.thumbnail);
   }
   if (body.post_type !== undefined && body.post_type !== null) {
     patch.post_type = body.post_type;
@@ -403,16 +398,7 @@ postRoutes.put('/:id_or_slug', requireAuth, async (c) => {
  */
 postRoutes.put('/:id_or_slug/accepted-answer', requireAuth, async (c) => {
   const me = currentUser(c);
-  const key = c.req.param('id_or_slug');
-  const id = asUuid(key);
-
-  const rows = await db
-    .select()
-    .from(posts)
-    .where(id ? eq(posts.id, id) : eq(posts.slug, key))
-    .limit(1);
-  const post = rows[0];
-  if (!post) throw notFound('Post not found');
+  const post = await findPostOr404(c.req.param('id_or_slug'), me, 'read');
 
   const isStaff = me.role === 'admin' || me.role === 'moderator';
   if (post.author_id !== me.id && !isStaff) {
@@ -445,16 +431,7 @@ postRoutes.put('/:id_or_slug/accepted-answer', requireAuth, async (c) => {
 
 postRoutes.delete('/:id_or_slug', requireAuth, async (c) => {
   const me = currentUser(c);
-  const key = c.req.param('id_or_slug');
-  const id = asUuid(key);
-
-  const rows = await db
-    .select()
-    .from(posts)
-    .where(id ? eq(posts.id, id) : eq(posts.slug, key))
-    .limit(1);
-  const post = rows[0];
-  if (!post) throw notFound('Post not found');
+  const post = await findPostOr404(c.req.param('id_or_slug'), me, 'read');
 
   const isAuthor = post.author_id === me.id;
   const isStaff = me.role === 'admin' || me.role === 'moderator';

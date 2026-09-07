@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { CategoryRow, CommentRow, PostRow, ReportRow, TagRow, UserRow } from '../db/schema.js';
 import { toIso, toIsoRequired } from '../lib/datetime.js';
 import { postImages } from '../lib/postImages.js';
+import { sanitizeImageUrl, sanitizeRichText } from '../lib/sanitize.js';
 import {
   postStatusValues,
   postTypeValues,
@@ -219,13 +220,15 @@ function authorFor(
  * same twenty fields by hand.
  */
 export function toPostSummary(post: PostRow, ctx: PostViewContext): PostSummaryResponse {
+  const content = sanitizeRichText(post.content);
+  const thumbnail = sanitizeImageUrl(post.thumbnail);
   return postSummarySchema.parse({
     id: post.id,
     title: post.title,
     slug: post.slug,
     excerpt: post.excerpt,
-    thumbnail: post.thumbnail,
-    images: postImages(post.content, post.thumbnail),
+    thumbnail,
+    images: postImages(content, thumbnail),
     post_type: post.post_type,
     status: post.status,
     rejection_reason: post.rejection_reason,
@@ -252,7 +255,7 @@ export function toPostDetail(
 ): PostDetailResponse {
   return postDetailSchema.parse({
     ...toPostSummary(post, ctx),
-    content: post.content,
+    content: sanitizeRichText(post.content),
   });
 }
 
@@ -300,7 +303,7 @@ export function toCommentResponse(
     id: row.id,
     post_id: row.post_id,
     parent_id: row.parent_id,
-    content: row.content,
+    content: sanitizeRichText(row.content),
     vote_count: row.vote_count,
     is_anonymous: row.is_anonymous,
     is_accepted: opts.acceptedCommentId === row.id,
