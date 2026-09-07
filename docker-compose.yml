@@ -12,7 +12,8 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - path: .env
+        required: false
     volumes:
       - ./backend/src:/app/src
       - ./backend/drizzle:/app/drizzle
@@ -34,8 +35,6 @@ services:
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/vite.config.ts:/app/vite.config.ts
-    env_file:
-      - .env
     networks:
       - healthcare-net
 

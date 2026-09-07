@@ -17,6 +17,7 @@
     "sanitize-existing": "tsx src/scripts/sanitizeExisting.ts",
     "seed:categories": "tsx src/scripts/seedCategories.ts",
     "fix:tag-names": "tsx src/scripts/fixTagNames.ts",
+    "verify:postgres": "tsx src/scripts/verifyPostgres.ts",
     "db:create": "tsx src/scripts/createDatabase.ts",
     "db:setup": "npm run db:create && npm run db:migrate && npm run create-admin"
   },

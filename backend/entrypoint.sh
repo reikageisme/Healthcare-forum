@@ -5,7 +5,7 @@
 #   2. create the schema (only on a brand-new database) and apply patches
 #   3. clean any content stored before sanitising existed
 #   4. create the first admin account when ADMIN_PASSWORD is set
-set -e
+set -eu
 
 run() {
   if [ -f "dist/scripts/$1.js" ]; then

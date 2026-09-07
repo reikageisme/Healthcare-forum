@@ -8,6 +8,9 @@ services:
     command: node dist/server.js
     environment:
       NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required for production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required for production}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:?BACKEND_CORS_ORIGINS is required for production}
     restart: always
 
   frontend:
