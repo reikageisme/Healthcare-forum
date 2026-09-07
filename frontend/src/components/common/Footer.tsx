@@ -5,6 +5,8 @@ import { networkService, NetworkInfo } from '../../services/forumService';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
 import { rootsOf } from '../../lib/categoryTree';
+import SiteLink from './SiteLink';
+import { forumCategoryHref, forumHref, portalHref } from '../../lib/siteLinks';
 import SiteAvatar from './SiteAvatar';
 
 /**
@@ -20,8 +22,8 @@ import SiteAvatar from './SiteAvatar';
  */
 
 const EXPLORE = [
-  { label: 'Trang chủ', to: '/' },
-  { label: 'Diễn đàn', to: '/forum' },
+  { label: 'Trang chủ', to: portalHref('/') },
+  { label: 'Diễn đàn', to: forumHref() },
   { label: 'Hỏi đáp', to: '/?type=question' },
   { label: 'Bài viết', to: '/?type=article' },
   { label: 'Đánh giá', to: '/?type=review' },
@@ -75,12 +77,12 @@ export const Footer: React.FC = () => {
             <ul className="flex flex-col gap-2.5">
               {EXPLORE.map((item) => (
                 <li key={item.label}>
-                  <Link
+                  <SiteLink
                     to={item.to}
                     className="text-sm text-text-secondary hover:text-primary transition-colors"
                   >
                     {item.label}
-                  </Link>
+                  </SiteLink>
                 </li>
               ))}
             </ul>
@@ -98,12 +100,12 @@ export const Footer: React.FC = () => {
               <ul className="flex flex-col gap-2.5">
                 {topCategories.map((cat) => (
                   <li key={cat.id}>
-                    <Link
-                      to={`/forum/${cat.slug}`}
+                    <SiteLink
+                      to={forumCategoryHref(cat.slug)}
                       className="text-sm text-text-secondary hover:text-primary transition-colors line-clamp-1"
                     >
                       {cat.name}
-                    </Link>
+                    </SiteLink>
                   </li>
                 ))}
               </ul>

@@ -10,9 +10,9 @@ import {
   ChevronUp,
   Newspaper,
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import SiteLink from '../common/SiteLink';
-import { IS_FORUM, forumHref, portalHref } from '../../lib/siteLinks';
+import { IS_FORUM, forumCategoryHref, forumHref, portalHref } from '../../lib/siteLinks';
 import { cn } from '../../lib/utils';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
@@ -54,7 +54,7 @@ const portalNav = [
 ];
 
 const forumNav = [
-  { name: 'Diễn đàn', icon: MessagesSquare, path: '/forum' },
+  { name: 'Diễn đàn', icon: MessagesSquare, path: forumHref() },
   { name: 'Trang tin', icon: Newspaper, path: portalHref('/') },
   { name: 'Đã lưu', icon: Bookmark, path: '/bookmarks' },
 ];
@@ -93,8 +93,8 @@ const CategoryBranch: React.FC<{
   return (
     <div>
       <div className="flex items-center">
-        <Link
-          to={IS_FORUM ? `/forum/${node.slug}` : `/category/${node.slug}`}
+        <SiteLink
+          to={IS_FORUM ? forumCategoryHref(node.slug) : `/category/${node.slug}`}
           className={cn(
             'flex items-center gap-2 px-3 rounded-lg group flex-1 min-w-0 transition-colors',
             depth === 1 ? 'py-2 text-xs font-medium' : 'py-1.5 text-xs',
@@ -110,7 +110,7 @@ const CategoryBranch: React.FC<{
               {node.post_count}
             </span>
           )}
-        </Link>
+        </SiteLink>
 
         {kids.length > 0 && (
           <button
@@ -164,7 +164,7 @@ export const SidebarLeft: React.FC = () => {
   // /category/:slug và /chuyen-khoa/:slug cùng dẫn tới trang chuyên mục; ở
   // bản diễn đàn thì chính /forum/:slug là trang của chuyên mục đó.
   const activeSlug =
-    /^\/(?:category|chuyen-khoa|forum)\/([^/]+)/.exec(location.pathname)?.[1] ?? null;
+    /^\/(?:category|chuyen-khoa|forum|c)\/([^/]+)/.exec(location.pathname)?.[1] ?? null;
 
   const [openSpecialties, setOpenSpecialties] = useState(true);
 
@@ -178,8 +178,8 @@ export const SidebarLeft: React.FC = () => {
               ? location.pathname === '/' && !location.search
               : item.path.includes('?')
               ? location.pathname + location.search === item.path
-              : item.path === '/forum'
-              ? location.pathname.startsWith('/forum')
+              : item.path === '/'
+              ? location.pathname === '/'
               : location.pathname === item.path || (item.path === '/bookmarks' && location.pathname === '/da-luu');
 
           return (

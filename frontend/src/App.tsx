@@ -7,7 +7,7 @@ import { IS_FORUM } from './lib/siteLinks';
 /**
  * Một mã nguồn, hai bản dựng.
  *
- * VITE_APP=forum cho ra bản chạy ở forum.medicvn.com, mặc định là cổng tin
+ * VITE_APP=forum cho ra bản chạy ở forums.medicvn.com, mặc định là cổng tin
  * tức medicvn.com. Chọn ở đây chứ không phải trong main.tsx để phần bọc
  * (ErrorBoundary, ScrollToTop) dùng chung cho cả hai, và để Vite loại bỏ
  * nhánh không dùng khi dựng — bản diễn đàn không mang theo trang quản trị.

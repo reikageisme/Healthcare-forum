@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Plus, ChevronRight } from 'lucide-react';
 import SiteLink from '../components/common/SiteLink';
-import { portalHref } from '../lib/siteLinks';
+import { forumCategoryHref, portalHref } from '../lib/siteLinks';
 import { forumService, ForumCategory } from '../services/forumService';
 import { childrenMap, rootsOf } from '../lib/categoryTree';
 import { FallbackCategoryIcon, isEmojiIcon, resolveCategoryIcon } from '../lib/categoryIcon';
@@ -35,22 +35,22 @@ const BoxRow: React.FC<{ box: ForumCategory; subs: ForumCategory[] }> = ({ box, 
     </div>
 
     <div className="min-w-0">
-      <Link to={`/forum/${box.slug}`} className="block text-[15px] font-bold text-text hover:text-primary transition-colors truncate">
+      <SiteLink to={forumCategoryHref(box.slug)} className="block text-[15px] font-bold text-text hover:text-primary transition-colors truncate">
         {box.name}
-      </Link>
+      </SiteLink>
       {box.description && (
         <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{box.description}</p>
       )}
       {subs.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-1.5">
           {subs.slice(0, 5).map((sub) => (
-            <Link
+            <SiteLink
               key={sub.id}
-              to={`/forum/${sub.slug}`}
+              to={forumCategoryHref(sub.slug)}
               className="text-[11px] font-semibold text-primary bg-primary/5 border border-primary/10 rounded-md px-1.5 py-0.5 whitespace-nowrap max-w-[200px] truncate hover:bg-primary/10 transition-colors"
             >
               {sub.name}
-            </Link>
+            </SiteLink>
           ))}
           {subs.length > 5 && (
             <span className="text-[11px] text-text-secondary px-1 py-0.5 whitespace-nowrap">+{subs.length - 5} mục con</span>

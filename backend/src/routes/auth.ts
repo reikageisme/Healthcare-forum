@@ -33,7 +33,7 @@ function isUniqueViolation(error: unknown): boolean {
  * Cookie giữ refresh token, dùng chung cho trang tin và diễn đàn.
  *
  * Trước đây refresh token chỉ nằm trong localStorage của trình duyệt, mà
- * localStorage gắn chặt với một origin: forum.medicvn.com không có cách nào
+ * localStorage gắn chặt với một origin: forums.medicvn.com không có cách nào
  * đọc được phiên đăng nhập của medicvn.com. Cookie đặt ở tên miền cha
  * (.medicvn.com) thì cả hai tên miền cùng gửi kèm nó, nên người dùng chỉ phải
  * đăng nhập một lần.

@@ -7,7 +7,7 @@ import { closeDatabase, freshDatabase, json, request, seedUser, type SeededUser 
 /**
  * Đăng nhập một lần cho hai tên miền.
  *
- * Diễn đàn tách sang forum.medicvn.com nhưng không giữ mật khẩu và không có
+ * Diễn đàn tách sang forums.medicvn.com nhưng không giữ mật khẩu và không có
  * localStorage chung với trang mẹ. Toàn bộ cơ chế nằm ở cookie refresh token
  * đặt ở tên miền cha, nên những gì kiểm ở đây chính là thứ giữ cho người dùng
  * không phải đăng nhập lại — và là thứ cắt quyền khi tài khoản bị khoá.

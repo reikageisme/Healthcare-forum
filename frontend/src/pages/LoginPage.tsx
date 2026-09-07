@@ -22,7 +22,7 @@ export const LoginPage: React.FC = () => {
    * Nơi quay về sau khi đăng nhập.
    *
    * Diễn đàn không có trang đăng nhập của riêng nó — bấm "Trả lời" ở
-   * forum.medicvn.com sẽ sang đây kèm ?next=<thớt đang đọc>. safeNext chỉ
+   * forums.medicvn.com sẽ sang đây kèm ?next=<thớt đang đọc>. safeNext chỉ
    * chấp nhận địa chỉ thuộc hai tên miền của mình; không có nó thì
    * ?next=https://trang-lua-dao biến trang này thành một open redirect.
    */
