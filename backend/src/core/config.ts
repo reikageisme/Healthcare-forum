@@ -113,6 +113,27 @@ export const settings = {
   /** Địa chỉ liên hệ hiện ở cột "Kết nối". Để trống thì cột đó không hiện. */
   CONTACT_EMAIL: process.env.CONTACT_EMAIL ?? '',
 
+  /**
+   * Địa chỉ công khai của hai trang trong cặp trang tin / diễn đàn.
+   *
+   * Diễn đàn chạy trên một tên miền con riêng nhưng dùng chung máy chủ danh
+   * tính này, nên backend phải biết cả hai để dựng liên kết quay về và để
+   * giới hạn `next` khi đăng nhập.
+   */
+  PORTAL_URL: process.env.PORTAL_URL ?? process.env.SITE_URL ?? 'http://localhost:3000',
+  FORUM_URL: process.env.FORUM_URL ?? 'http://localhost:4000',
+
+  /**
+   * Tên miền gắn vào cookie refresh token.
+   *
+   * Đặt `.medicvn.com` thì cookie đi kèm cả medicvn.com lẫn
+   * forum.medicvn.com — đó là toàn bộ cơ chế "đăng nhập một lần cho hai
+   * trang". Để trống ở môi trường phát triển: cookie khi đó gắn với đúng
+   * host đang gọi, mà localhost:3000 và localhost:4000 vẫn dùng chung cookie
+   * vì cookie không phân biệt cổng.
+   */
+  COOKIE_DOMAIN: process.env.COOKIE_DOMAIN ?? '',
+
   UPLOAD_DIR: process.env.UPLOAD_DIR ?? 'uploads',
   PORT: Number(process.env.PORT ?? 8000),
 

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Plus, ChevronRight } from 'lucide-react';
+import SiteLink from '../components/common/SiteLink';
+import { portalHref } from '../lib/siteLinks';
 import { forumService, ForumCategory } from '../services/forumService';
 import { childrenMap, rootsOf } from '../lib/categoryTree';
 import { FallbackCategoryIcon, isEmojiIcon, resolveCategoryIcon } from '../lib/categoryIcon';
@@ -175,13 +177,13 @@ export const ForumPage: React.FC = () => {
         );
       })}
 
-      <Link
-        to="/"
+      <SiteLink
+        to={portalHref('/')}
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary transition-colors"
       >
         Về bảng tin
         <ChevronRight size={15} />
-      </Link>
+      </SiteLink>
     </div>
   );
 };

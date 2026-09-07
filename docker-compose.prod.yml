@@ -14,7 +14,25 @@ services:
     build:
       context: ./frontend
       target: prod
+      args:
+        VITE_APP: portal
+        VITE_PORTAL_URL: ${VITE_PORTAL_URL:-}
+        VITE_FORUM_URL: ${VITE_FORUM_URL:-}
+        NGINX_CONF: nginx.conf
     volumes: []
+    restart: always
+
+  frontend-forum:
+    build:
+      context: ./frontend
+      target: prod
+      args:
+        VITE_APP: forum
+        VITE_PORTAL_URL: ${VITE_PORTAL_URL:-}
+        VITE_FORUM_URL: ${VITE_FORUM_URL:-}
+        NGINX_CONF: nginx.forum.conf
+    volumes: []
+    command: ["nginx", "-g", "daemon off;"]
     restart: always
 
   adminer:
