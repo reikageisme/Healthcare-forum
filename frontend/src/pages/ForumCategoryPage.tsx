@@ -6,6 +6,8 @@ import { categoryService } from '../services/categoryService';
 import { Post, Category } from '../types';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
+import SiteLink from '../components/common/SiteLink';
+import { portalHref } from '../lib/siteLinks';
 import PostTable from '../components/posts/PostTable';
 
 /**
@@ -89,7 +91,7 @@ export const ForumCategoryPage: React.FC = () => {
   return (
     <div>
       <div className="flex items-center gap-1.5 text-xs text-text-secondary mb-3">
-        <Link to="/" className="hover:text-primary">Trang chủ</Link>
+        <SiteLink to={portalHref('/')} className="hover:text-primary">Trang tin</SiteLink>
         <ChevronRight size={12} />
         <Link to="/forum" className="hover:text-primary">Diễn đàn</Link>
         <ChevronRight size={12} />

@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import api from '../lib/api';
 import { Loader2, HeartPulse, User, Lock, Mail, ArrowRight } from 'lucide-react';
 import { describeApiError } from '../lib/apiError';
+import { safeNext } from '../lib/siteLinks';
 
 export const LoginPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,6 +17,25 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((state) => state.login);
+
+  /**
+   * Nơi quay về sau khi đăng nhập.
+   *
+   * Diễn đàn không có trang đăng nhập của riêng nó — bấm "Trả lời" ở
+   * forum.medicvn.com sẽ sang đây kèm ?next=<thớt đang đọc>. safeNext chỉ
+   * chấp nhận địa chỉ thuộc hai tên miền của mình; không có nó thì
+   * ?next=https://trang-lua-dao biến trang này thành một open redirect.
+   */
+  const nextUrl = safeNext(new URLSearchParams(location.search).get('next'));
+
+  /** Rời tên miền thì phải dùng window.location, react-router không làm được. */
+  const goAfterAuth = (fallback: string) => {
+    if (nextUrl) {
+      window.location.replace(nextUrl);
+      return;
+    }
+    navigate(fallback);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +65,12 @@ export const LoginPage: React.FC = () => {
         // 4. Update store với user thật
         login(user, token);
 
-        // 5. Điều hướng: Admin/Mod vào thẳng Dashboard
+        // 5. Điều hướng: có ?next thì về đúng chỗ vừa đứng (thường là một
+        // thớt bên diễn đàn), không thì Admin/Mod vào thẳng Dashboard.
         const role = user.role?.toLowerCase();
-        if (role === 'admin' || role === 'moderator') {
+        if (nextUrl) {
+          goAfterAuth('/');
+        } else if (role === 'admin' || role === 'moderator') {
           navigate('/admin');
         } else {
           navigate(location.state?.from?.pathname || '/');
@@ -77,7 +100,7 @@ export const LoginPage: React.FC = () => {
         );
         const profileRes = await api.get('/auth/me');
         login(profileRes.data, token);
-        navigate('/');
+        goAfterAuth('/');
       }
     } catch (err: any) {
       setError(describeApiError(err, 'Có lỗi xảy ra. Vui lòng kiểm tra lại thông tin.'));

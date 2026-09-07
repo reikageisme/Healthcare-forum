@@ -22,10 +22,15 @@ services:
     networks:
       - healthcare-net
 
+  # Cổng tin tức medicvn.com.
   frontend:
     build:
       context: ./frontend
       target: dev
+      args:
+        VITE_APP: portal
+        VITE_PORTAL_URL: ${VITE_PORTAL_URL:-}
+        VITE_FORUM_URL: ${VITE_FORUM_URL:-}
     container_name: healthcare_frontend
     ports:
       - "3000:3000"
@@ -36,6 +41,36 @@ services:
       - ./frontend/vite.config.ts:/app/vite.config.ts
     env_file:
       - .env
+    # `environment` thắng env_file, nên .env đặt VITE_APP thế nào cũng không
+    # làm hai container dựng ra cùng một trang.
+    environment:
+      VITE_APP: portal
+    networks:
+      - healthcare-net
+
+  # Diễn đàn forum.medicvn.com — cùng mã nguồn, khác bản dựng, cổng 4000.
+  # NPM trỏ host forum.medicvn.com về cổng này.
+  frontend-forum:
+    build:
+      context: ./frontend
+      target: dev
+      args:
+        VITE_APP: forum
+        VITE_PORTAL_URL: ${VITE_PORTAL_URL:-}
+        VITE_FORUM_URL: ${VITE_FORUM_URL:-}
+    container_name: healthcare_frontend_forum
+    ports:
+      - "4000:4000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+    env_file:
+      - .env
+    environment:
+      VITE_APP: forum
+    command: npm run dev -- --host 0.0.0.0 --port 4000
     networks:
       - healthcare-net
 

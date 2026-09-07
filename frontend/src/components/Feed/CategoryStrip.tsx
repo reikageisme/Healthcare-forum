@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LayoutGrid } from 'lucide-react';
+import SiteLink from '../common/SiteLink';
+import { forumHref } from '../../lib/siteLinks';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
 import { rootsOf } from '../../lib/categoryTree';
@@ -40,9 +42,12 @@ export const CategoryStrip: React.FC = () => {
           <LayoutGrid size={16} className="text-primary" aria-hidden="true" />
           Danh mục
         </h2>
-        <Link to="/forum" className="text-xs font-semibold text-primary hover:text-primary-dark transition-colors">
+        <SiteLink
+          to={forumHref()}
+          className="text-xs font-semibold text-primary hover:text-primary-dark transition-colors"
+        >
           Xem diễn đàn
-        </Link>
+        </SiteLink>
       </div>
       <div className="flex flex-wrap gap-2">
         {roots.map((cat) => (

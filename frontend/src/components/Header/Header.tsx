@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu, UserCircle, LogOut, Plus, ShieldCheck } from 'lucide-react';
+import { Search, Bell, Menu, UserCircle, LogOut, Plus, ShieldCheck, Newspaper } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getAvatarUrl } from '../../lib/utils';
+import api from '../../lib/api';
+import SiteLink from '../common/SiteLink';
+import { IS_FORUM, loginHref, portalHref } from '../../lib/siteLinks';
 
 interface HeaderProps {
   toggleMobileMenu: () => void;
@@ -13,6 +16,23 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const navigate = useNavigate();
+
+  /**
+   * Đăng xuất phải chạm tới server, không chỉ xoá store.
+   *
+   * Refresh token nằm trong cookie ở tên miền cha; xoá mỗi state phía trình
+   * duyệt thì mở lại trang là useSilentLogin lấy cookie ra đăng nhập lại
+   * ngay. Gọi /auth/logout mới thực sự thoát, và thoát cho cả hai tên miền.
+   */
+  const handleLogout = async () => {
+    setShowUserDropdown(false);
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Mất mạng thì vẫn phải thoát ở phía trình duyệt; cookie sẽ hết hạn.
+    }
+    logout();
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +71,17 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                   className="h-9 sm:h-11 w-auto"
                 />
               </Link>
+
+              {/*
+                Nhãn cho biết mình đang đứng ở tên miền nào. Hai trang cố ý
+                giống hệt nhau về màu và bố cục, nên nếu không có nhãn này thì
+                người dùng không nhận ra mình vừa chuyển sang diễn đàn.
+              */}
+              {IS_FORUM && (
+                <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold whitespace-nowrap">
+                  Diễn đàn
+                </span>
+              )}
             </div>
 
             {/* Center section: Search Bar */}
@@ -71,13 +102,24 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
 
             {/* Right section: Create post button & User auth */}
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Lối quay về cổng tin tức — chỉ có ở bản diễn đàn. */}
+              {IS_FORUM && (
+                <SiteLink
+                  to={portalHref('/')}
+                  className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-text-secondary hover:text-primary text-xs sm:text-sm font-semibold rounded-full hover:bg-primary/5 transition-colors"
+                >
+                  <Newspaper size={16} />
+                  <span>Trang tin</span>
+                </SiteLink>
+              )}
+
               {/* Write post button */}
               <Link
                 to="/create-post"
                 className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-full text-xs sm:text-sm font-semibold shadow-sm transition-colors"
               >
                 <Plus size={16} />
-                <span>Viết bài</span>
+                <span>{IS_FORUM ? 'Tạo chủ đề' : 'Viết bài'}</span>
               </Link>
 
               <button
@@ -115,15 +157,18 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                         <p className="text-xs text-text-secondary truncate">{user.email}</p>
                       </div>
 
+                      {/* Trang quản trị chỉ có ở cổng tin tức, kể cả khi đang
+                          đứng ở diễn đàn — nó là nơi giữ danh tính và cây
+                          chuyên mục cho cả hai trang. */}
                       {canModerate && (
-                        <Link
-                          to="/admin/dashboard"
+                        <SiteLink
+                          to={portalHref('/admin/dashboard')}
                           onClick={() => setShowUserDropdown(false)}
                           className="flex items-center gap-2 px-4 py-2 text-sm text-primary font-bold hover:bg-primary/5 transition-colors border-b border-border/60"
                         >
                           <ShieldCheck size={16} className="text-primary" />
                           <span>Trang quản trị (Admin)</span>
-                        </Link>
+                        </SiteLink>
                       )}
 
                       <Link
@@ -158,10 +203,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                       <div className="border-t border-border mt-1 pt-1">
                         <button
                           type="button"
-                          onClick={() => {
-                            logout();
-                            setShowUserDropdown(false);
-                          }}
+                          onClick={handleLogout}
                           className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition-colors flex items-center gap-2"
                         >
                           <LogOut size={16} />
@@ -172,13 +214,13 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                   )}
                 </div>
               ) : (
-                <Link
-                  to="/login"
+                <SiteLink
+                  to={loginHref()}
                   className="flex items-center gap-1.5 bg-primary text-white px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold hover:bg-primary-dark shadow-sm transition-colors"
                 >
                   <UserCircle size={18} />
                   <span>Đăng nhập</span>
-                </Link>
+                </SiteLink>
               )}
             </div>
           </div>

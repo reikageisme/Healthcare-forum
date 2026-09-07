@@ -8,8 +8,11 @@ import {
   Bookmark,
   ChevronDown,
   ChevronUp,
+  Newspaper,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import SiteLink from '../common/SiteLink';
+import { IS_FORUM, forumHref, portalHref } from '../../lib/siteLinks';
 import { cn } from '../../lib/utils';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
@@ -34,14 +37,29 @@ const CategoryGlyph: React.FC<{ icon?: string | null; size?: number }> = ({ icon
   );
 };
 
-const mainNav = [
+/**
+ * Điều hướng chính, khác nhau giữa hai bản dựng.
+ *
+ * Ở cổng tin tức, "Diễn đàn" là một liên kết rời tên miền; ở diễn đàn thì
+ * ngược lại, "Trang tin" là lối quay về. Các mục lọc theo loại bài (Hỏi đáp,
+ * Bài viết, Đánh giá) thuộc về bảng tin nên không xuất hiện ở diễn đàn.
+ */
+const portalNav = [
   { name: 'Trang chủ', icon: Home, path: '/' },
-  { name: 'Diễn đàn', icon: MessagesSquare, path: '/forum' },
+  { name: 'Diễn đàn', icon: MessagesSquare, path: forumHref() },
   { name: 'Hỏi đáp', icon: MessageCircle, path: '/?type=question' },
   { name: 'Bài viết', icon: BookOpen, path: '/?type=article' },
   { name: 'Đánh giá', icon: Star, path: '/?type=review' },
   { name: 'Đã lưu', icon: Bookmark, path: '/bookmarks' },
 ];
+
+const forumNav = [
+  { name: 'Diễn đàn', icon: MessagesSquare, path: '/forum' },
+  { name: 'Trang tin', icon: Newspaper, path: portalHref('/') },
+  { name: 'Đã lưu', icon: Bookmark, path: '/bookmarks' },
+];
+
+const mainNav = IS_FORUM ? forumNav : portalNav;
 
 /** Có chuyên mục nào trong nhánh đang được mở không. */
 function branchHasSlug(
@@ -76,7 +94,7 @@ const CategoryBranch: React.FC<{
     <div>
       <div className="flex items-center">
         <Link
-          to={`/category/${node.slug}`}
+          to={IS_FORUM ? `/forum/${node.slug}` : `/category/${node.slug}`}
           className={cn(
             'flex items-center gap-2 px-3 rounded-lg group flex-1 min-w-0 transition-colors',
             depth === 1 ? 'py-2 text-xs font-medium' : 'py-1.5 text-xs',
@@ -143,8 +161,10 @@ export const SidebarLeft: React.FC = () => {
   const rootCategories = rootsOf(categories);
   const childrenOf = childrenMap(categories);
 
-  // /category/:slug and /chuyen-khoa/:slug both land on the category page.
-  const activeSlug = /^\/(?:category|chuyen-khoa)\/([^/]+)/.exec(location.pathname)?.[1] ?? null;
+  // /category/:slug và /chuyen-khoa/:slug cùng dẫn tới trang chuyên mục; ở
+  // bản diễn đàn thì chính /forum/:slug là trang của chuyên mục đó.
+  const activeSlug =
+    /^\/(?:category|chuyen-khoa|forum)\/([^/]+)/.exec(location.pathname)?.[1] ?? null;
 
   const [openSpecialties, setOpenSpecialties] = useState(true);
 
@@ -163,7 +183,7 @@ export const SidebarLeft: React.FC = () => {
               : location.pathname === item.path || (item.path === '/bookmarks' && location.pathname === '/da-luu');
 
           return (
-            <Link
+            <SiteLink
               key={item.name}
               to={item.path}
               className={cn(
@@ -178,7 +198,7 @@ export const SidebarLeft: React.FC = () => {
                 className={isActive ? 'text-primary' : 'text-text-secondary group-hover:text-primary'}
               />
               <span>{item.name}</span>
-            </Link>
+            </SiteLink>
           );
         })}
       </div>
