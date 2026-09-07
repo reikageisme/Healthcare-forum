@@ -3,7 +3,7 @@ import MainLayout from '../layouts/MainLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import AdminRouteGuard from '../components/admin/AdminRouteGuard';
 import AdminOnlyGuard from '../components/admin/AdminOnlyGuard';
-import ExternalRedirect from '../components/common/ExternalRedirect';
+import ExternalRedirect, { ForumCategoryRedirect } from '../components/common/ExternalRedirect';
 import { forumHref } from '../lib/siteLinks';
 
 // Client pages
@@ -41,9 +41,12 @@ export const PortalApp = () => (
   <Routes>
     <Route path="/login" element={<LoginPage />} />
 
-    {/* Link cũ tới diễn đàn. Ở production nginx đã trả 301 trước khi tới đây. */}
-    <Route path="/forum/*" element={<ExternalRedirect origin={forumHref('')} />} />
-    <Route path="/forum" element={<ExternalRedirect origin={forumHref('')} />} />
+    {/*
+      Link cũ tới diễn đàn. Ở production nginx đã trả 301 trước khi tới đây;
+      hai route này là lưới đỡ cho môi trường phát triển.
+    */}
+    <Route path="/forum" element={<ExternalRedirect origin={forumHref('/')} keepPath={false} />} />
+    <Route path="/forum/:slug" element={<ForumCategoryRedirect />} />
 
     {/* Client / Public Routes */}
     <Route path="/" element={<MainLayout />}>

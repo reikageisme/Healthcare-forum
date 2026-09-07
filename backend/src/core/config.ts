@@ -127,7 +127,7 @@ export const settings = {
    * Tên miền gắn vào cookie refresh token.
    *
    * Đặt `.medicvn.com` thì cookie đi kèm cả medicvn.com lẫn
-   * forum.medicvn.com — đó là toàn bộ cơ chế "đăng nhập một lần cho hai
+   * forums.medicvn.com — đó là toàn bộ cơ chế "đăng nhập một lần cho hai
    * trang". Để trống ở môi trường phát triển: cookie khi đó gắn với đúng
    * host đang gọi, mà localhost:3000 và localhost:4000 vẫn dùng chung cookie
    * vì cookie không phân biệt cổng.

@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { LayoutGrid } from 'lucide-react';
 import SiteLink from '../common/SiteLink';
-import { forumHref } from '../../lib/siteLinks';
+import { forumCategoryHref, forumHref } from '../../lib/siteLinks';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
 import { rootsOf } from '../../lib/categoryTree';
@@ -51,9 +50,9 @@ export const CategoryStrip: React.FC = () => {
       </div>
       <div className="flex flex-wrap gap-2">
         {roots.map((cat) => (
-          <Link
+          <SiteLink
             key={cat.id}
-            to={`/forum/${cat.slug}`}
+            to={forumCategoryHref(cat.slug)}
             className="inline-flex items-center gap-2 whitespace-nowrap px-3 py-2 rounded-xl border border-border bg-white text-xs font-semibold text-text-secondary hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
           >
             <Glyph icon={cat.icon} />
@@ -61,7 +60,7 @@ export const CategoryStrip: React.FC = () => {
             {typeof cat.post_count === 'number' && cat.post_count > 0 && (
               <span className="text-[10px] text-slate-400 tabular-nums">{cat.post_count}</span>
             )}
-          </Link>
+          </SiteLink>
         ))}
       </div>
     </nav>

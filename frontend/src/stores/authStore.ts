@@ -28,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
        * Refresh token cố ý KHÔNG được lưu xuống localStorage nữa.
        *
        * Nó sống trong cookie HttpOnly đặt ở tên miền cha, nên hai việc cùng
-       * đạt được: forum.medicvn.com nhận ra phiên đăng nhập mở từ
+       * đạt được: forums.medicvn.com nhận ra phiên đăng nhập mở từ
        * medicvn.com (localStorage thì không, vì gắn chặt một origin), và một
        * lỗ XSS cũng không đọc được tấm vé sống 7 ngày ấy.
        *

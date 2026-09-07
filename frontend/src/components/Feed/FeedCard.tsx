@@ -282,7 +282,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
             <SiteLink
               to={forumHref(`/posts/${post.id}`)}
               className="hidden sm:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-lg transition-colors"
-              title="Mở thớt thảo luận trên forum.medicvn.com"
+              title="Mở thớt thảo luận trên forums.medicvn.com"
             >
               <MessagesSquare size={17} />
               <span className="hidden lg:inline">Thảo luận</span>

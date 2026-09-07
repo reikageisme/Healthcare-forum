@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2, Clock, EyeOff, MessageCircle, XCircle } from 'lucide-react';
 import { Post } from '../../types';
 import { formatRelativeTime, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
+import SiteLink from '../common/SiteLink';
+import { forumCategoryHref } from '../../lib/siteLinks';
 import { isVerifiedDoctor } from '../common/Badges';
 
 /**
@@ -128,12 +130,12 @@ export const PostTable: React.FC<PostTableProps> = ({ posts, showCategory = true
                 {showCategory && (
                   <td className="hidden lg:table-cell px-3 py-3 align-middle">
                     {post.category ? (
-                      <Link
-                        to={`/forum/${post.category.slug}`}
+                      <SiteLink
+                        to={forumCategoryHref(post.category.slug)}
                         className="inline-block max-w-full truncate whitespace-nowrap text-xs font-semibold text-primary bg-primary/5 border border-primary/10 rounded-lg px-2 py-1 hover:bg-primary/10 transition-colors"
                       >
                         {post.category.name}
-                      </Link>
+                      </SiteLink>
                     ) : (
                       <span className="text-xs text-slate-400">—</span>
                     )}

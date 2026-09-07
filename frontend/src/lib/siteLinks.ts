@@ -2,7 +2,7 @@
  * Cặp trang tin / diễn đàn.
  *
  * Từ chặng tách tên miền, một mã nguồn dựng ra hai bản: bản "portal" chạy ở
- * medicvn.com và bản "forum" chạy ở forum.medicvn.com. Cùng components, cùng
+ * medicvn.com và bản "forum" chạy ở forums.medicvn.com. Cùng components, cùng
  * bảng màu, chỉ khác tập route và vài liên kết trỏ sang trang kia.
  *
  * Chọn bản nào là do biến VITE_APP lúc build quyết định, không phải lúc chạy —
@@ -22,29 +22,53 @@ const PORTAL_ORIGIN = trim(import.meta.env.VITE_PORTAL_URL || '');
 const FORUM_ORIGIN = trim(import.meta.env.VITE_FORUM_URL || '');
 
 /**
- * Đường dẫn gốc của diễn đàn.
+ * Địa chỉ mặc định khi thiếu biến môi trường.
  *
- * Cố ý giữ nguyên "/forum" ở cả hai bản: mọi liên kết cũ trong FeedCard,
- * CategoryStrip, ForumPage... vẫn đúng, và nginx của trang tin chỉ việc
- * chuyển hướng 301 nguyên si phần đuôi sang tên miền con.
+ * Docker compose luôn truyền VITE_PORTAL_URL và VITE_FORUM_URL vào lúc dựng,
+ * nên hai giá trị này chỉ dùng khi ai đó chạy `npm run dev` trần. Thà trỏ về
+ * cổng dev tương ứng còn hơn sinh ra một liên kết tương đối dẫn về chính
+ * trang đang đứng — kiểu lỗi đó im lặng và rất khó nhận ra.
  */
-export const FORUM_BASE = '/forum';
+const DEV_PORTAL_ORIGIN = 'http://localhost:3000';
+const DEV_FORUM_ORIGIN = 'http://localhost:4000';
 
 /**
  * Địa chỉ tới một trang trên cổng tin tức.
  *
- * Đang ở chính trang tin, hoặc chưa cấu hình tên miền (chạy dev một app), thì
- * trả về đường dẫn tương đối để react-router xử lý nội bộ — không tải lại trang.
+ * Đang ở chính trang tin thì trả về đường dẫn tương đối để react-router xử lý
+ * nội bộ — không tải lại trang.
  */
 export function portalHref(path = '/'): string {
-  if (IS_PORTAL || !PORTAL_ORIGIN) return path;
-  return PORTAL_ORIGIN + path;
+  if (IS_PORTAL) return path;
+  return (PORTAL_ORIGIN || DEV_PORTAL_ORIGIN) + path;
 }
 
-/** Địa chỉ tới một trang trên diễn đàn. */
-export function forumHref(path: string = FORUM_BASE): string {
-  if (IS_FORUM || !FORUM_ORIGIN) return path;
-  return FORUM_ORIGIN + path;
+/**
+ * Địa chỉ tới một trang trên diễn đàn.
+ *
+ * Trang chủ diễn đàn nằm ở gốc tên miền con: forums.medicvn.com/ chứ không
+ * phải forums.medicvn.com/forum — lặp lại chữ "forum" trong địa chỉ của chính
+ * trang diễn đàn thì thừa.
+ */
+export function forumHref(path = '/'): string {
+  if (IS_FORUM) return path;
+  return (FORUM_ORIGIN || DEV_FORUM_ORIGIN) + path;
+}
+
+/**
+ * Địa chỉ một box của diễn đàn.
+ *
+ * Tách thành hàm riêng vì tiền tố "/c/" xuất hiện ở bảy chỗ trong các
+ * component dùng chung — Footer, PostTable, CategoryStrip, SidebarLeft,
+ * ForumPage... Đổi cách đặt đường dẫn về sau thì sửa đúng một nơi.
+ */
+export function forumCategoryHref(slug: string): string {
+  return forumHref(`/c/${slug}`);
+}
+
+/** Địa chỉ một thớt trên diễn đàn. */
+export function forumThreadHref(id: string): string {
+  return forumHref(`/posts/${id}`);
 }
 
 /** Địa chỉ này có rời khỏi tên miền hiện tại không. */

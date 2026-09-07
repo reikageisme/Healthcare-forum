@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 /**
  * Nhận lại phiên đăng nhập từ cookie khi vừa mở trang.
  *
- * Người dùng đăng nhập ở medicvn.com rồi bấm sang forum.medicvn.com: tên miền
+ * Người dùng đăng nhập ở medicvn.com rồi bấm sang forums.medicvn.com: tên miền
  * con không có gì trong localStorage của nó, nhưng cookie refresh token đặt ở
  * tên miền cha thì vẫn đi kèm. Một lần gọi /auth/refresh là đủ để đổi lấy
  * access token mới và hồ sơ người dùng — họ không phải nhập lại mật khẩu.

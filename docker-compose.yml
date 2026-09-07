@@ -48,8 +48,8 @@ services:
     networks:
       - healthcare-net
 
-  # Diễn đàn forum.medicvn.com — cùng mã nguồn, khác bản dựng, cổng 4000.
-  # NPM trỏ host forum.medicvn.com về cổng này.
+  # Diễn đàn forums.medicvn.com — cùng mã nguồn, khác bản dựng, cổng 4000.
+  # NPM trỏ host forums.medicvn.com về cổng này.
   frontend-forum:
     build:
       context: ./frontend

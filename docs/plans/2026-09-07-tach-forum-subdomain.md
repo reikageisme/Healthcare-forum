@@ -1,4 +1,4 @@
-# Tách diễn đàn sang forum.medicvn.com
+# Tách diễn đàn sang forums.medicvn.com
 
 Ngày: 2026-09-07. Người soạn: Claude (theo yêu cầu của Tanh, chuyển từ yêu cầu của sếp).
 Cơ sở: đọc `backend/src`, `frontend/src`, `docker-compose*.yml`, `frontend/nginx.conf`,
@@ -13,7 +13,7 @@ Bản thiết kế trực quan (sơ đồ + mockup): xem canvas "Tách diễn đ
 Sếp yêu cầu bốn điều:
 
 1. `medicvn.com` giữ nguyên, là trang chính;
-2. người dùng cần vào diễn đàn thì chuyển ngay sang `forum.medicvn.com`;
+2. người dùng cần vào diễn đàn thì chuyển ngay sang `forums.medicvn.com`;
 3. trang con là **một web độc lập**, đồng bộ tài khoản từ trang mẹ;
 4. dữ liệu cũng "crawl về"; trang chính đóng vai trò đăng bài báo, tin tức.
 
@@ -50,24 +50,24 @@ thể thất bại. Cái giá đó phải có người trả; hiện chưa ai c�
 ## 2. Chặng 0 — dọn đường (≈ 1 ngày, không đụng code ứng dụng)
 
 1. Bản ghi DNS `forum` trong Cloudflare, thêm ingress trong tunnel trỏ về NPM.
-2. Proxy host mới trong NPM: `forum.medicvn.com` → container diễn đàn cổng 3001,
+2. Proxy host mới trong NPM: `forums.medicvn.com` → container diễn đàn cổng 3001,
    bật SSL, giữ nguyên cấu hình đọc IP thật qua `CF-Connecting-IP` như host hiện tại.
 3. Thêm biến vào `.env` và `.env.example`:
 
    ```env
    PORTAL_URL=https://medicvn.com
-   FORUM_URL=https://forum.medicvn.com
+   FORUM_URL=https://forums.medicvn.com
    COOKIE_DOMAIN=.medicvn.com
-   BACKEND_CORS_ORIGINS=["https://medicvn.com","https://forum.medicvn.com"]
+   BACKEND_CORS_ORIGINS=["https://medicvn.com","https://forums.medicvn.com"]
    VITE_PORTAL_URL=https://medicvn.com
-   VITE_FORUM_URL=https://forum.medicvn.com
+   VITE_FORUM_URL=https://forums.medicvn.com
    ```
 
 4. Sửa `PROJECT.md` — đang mô tả kiến trúc FastAPI + SQLAlchemy + Alembic, code là
    Hono + Drizzle từ lâu. Tài liệu sai hại hơn không có tài liệu, và người làm chặng 1
    sẽ đọc nó đầu tiên.
 
-**Xong khi:** mở `https://forum.medicvn.com` ra trang trắng có chứng chỉ hợp lệ.
+**Xong khi:** mở `https://forums.medicvn.com` ra trang trắng có chứng chỉ hợp lệ.
 
 ---
 
@@ -120,7 +120,7 @@ Access token giữ trong bộ nhớ; mở tab mới thì lấy lại bằng `/au
 
 Chưa đăng nhập vẫn đọc được diễn đàn. Nút "Trả lời" và "Tạo chủ đề" đưa về
 `${PORTAL_URL}/login?next=<url hiện tại>`; `LoginPage` đọc `next`, chỉ chấp nhận URL
-thuộc `medicvn.com` hoặc `forum.medicvn.com` (danh sách trắng — nếu không thì đây là một
+thuộc `medicvn.com` hoặc `forums.medicvn.com` (danh sách trắng — nếu không thì đây là một
 open redirect).
 
 ### 3.3 Link cũ không được gãy
@@ -129,7 +129,7 @@ Trong `frontend/nginx.conf` của **bản portal**, đặt trước khối SPA f
 
 ```nginx
 location ^~ /forum {
-    rewrite ^/forum/?(.*)$ https://forum.medicvn.com/$1 permanent;
+    rewrite ^/forum/?(.*)$ https://forums.medicvn.com/$1 permanent;
 }
 ```
 
@@ -253,9 +253,9 @@ Mỗi chặng phải qua trước khi sang chặng sau:
   chữ ký sai trả 401.
 - Thủ công: đăng nhập trang mẹ → sang diễn đàn không phải nhập lại; đăng xuất một bên
   mất phiên cả hai; `medicvn.com/forum/tim-mach` trả 301 về đúng
-  `forum.medicvn.com/c/tim-mach`; tắt container diễn đàn → trang mẹ vẫn tải bình thường,
+  `forums.medicvn.com/c/tim-mach`; tắt container diễn đàn → trang mẹ vẫn tải bình thường,
   chỉ thiếu thẻ "Đang bàn luận".
-- Khai báo `forum.medicvn.com` trong Google Search Console **ngay hôm chuyển**, nộp
+- Khai báo `forums.medicvn.com` trong Google Search Console **ngay hôm chuyển**, nộp
   sitemap riêng.
 
 ---
@@ -316,7 +316,7 @@ Chặng 0 và chặng 1 đã code xong. Chặng 2 và 3 vẫn ở dạng kế ho
 **Hạ tầng**
 
 - `frontend/nginx.forum.conf` (mới) — nghe cổng 4000.
-- `frontend/nginx.conf` — `location ^~ /forum` trả **301** sang `https://forum.medicvn.com`
+- `frontend/nginx.conf` — `location ^~ /forum` trả **301** sang `https://forums.medicvn.com`
   (đây là chỗ duy nhất ghi tên miền diễn đàn ở phía trang tin).
 - `frontend/Dockerfile` — `ARG VITE_APP`, `ARG NGINX_CONF`.
 - `docker-compose.yml` / `.prod.yml` — thêm service `frontend-forum` cổng 4000.
@@ -341,8 +341,8 @@ Chạy trên một bản cài sạch (node_modules trên máy đang hỏng, xem 
    `backend/node_modules` rồi `npm install` lại.
 2. **`_to_delete/`** trong `backend/` và `frontend/` chứa file tạm dùng để kiểm chứng —
    xoá được, không có gì trong repo tham chiếu tới.
-3. **NPM**: thêm proxy host `forum.medicvn.com` → container `frontend-forum` cổng 4000.
-4. Sau khi đổi tên miền: khai báo `forum.medicvn.com` trong Google Search Console,
+3. **NPM**: thêm proxy host `forums.medicvn.com` → container `frontend-forum` cổng 4000.
+4. Sau khi đổi tên miền: khai báo `forums.medicvn.com` trong Google Search Console,
    nộp sitemap riêng.
 
 ---
@@ -380,7 +380,7 @@ Cái *thật sự* thiếu ở chặng 2, và đã làm, là hai đường nối
 
 - `services/forumService.ts` — `getHotThreads()` và kiểu `HotThread`.
 - `components/Sidebar/SidebarRight.tsx` — thẻ **"Đang bàn luận"**, chỉ hiện ở
-  cổng tin tức, mỗi dòng trỏ thẳng sang thớt bên `forum.medicvn.com`. Gọi hỏng
+  cổng tin tức, mỗi dòng trỏ thẳng sang thớt bên `forums.medicvn.com`. Gọi hỏng
   thì thẻ ẩn đi chứ không làm vỡ sidebar: trang tin không được phụ thuộc vào
   việc diễn đàn còn sống.
 - `components/Feed/FeedCard.tsx` — nút **"Thảo luận"** dưới mỗi bài ở bảng tin,
@@ -404,3 +404,34 @@ Chưa làm, và cố ý để riêng vì mỗi thứ là một tính năng đủ
   điểm trả lời gần nhất tính bằng truy vấn con; ở quy mô này còn rẻ hơn cái giá
   của một cột phi chuẩn hoá phải cập nhật ở mọi chỗ tạo và xoá bình luận. Khi
   bảng `comments` đủ lớn để chậm thì hẵng đổi.
+
+---
+
+## 10. Sửa sau khi dựng thật (2026-09-07, chiều)
+
+Hai chỗ lệch với thực tế, phát hiện khi bản dựng đầu tiên đã lên server:
+
+**Tên miền là `forums.medicvn.com`, có chữ s.** Toàn bộ kế hoạch và code viết
+`forum.medicvn.com` — tên miền đó không phân giải, nên liên kết "Diễn đàn" ở
+cổng tin tức trỏ vào chỗ chết. Đã đổi ở mọi nơi: `nginx.conf`, `.env`,
+`.env.example`, chú thích trong mã nguồn và cả tài liệu này.
+
+**Trang chủ diễn đàn chuyển từ `/forum` về gốc tên miền con.**
+`forums.medicvn.com/forum` lặp chữ "forum" hai lần trong cùng một địa chỉ.
+
+- `/` là trang chủ diễn đàn, box nằm ở `/c/<slug>`.
+- `/forum` và `/forum/<slug>` giữ lại làm lối chuyển hướng, nên link đã chia sẻ
+  trước đó không gãy.
+- nginx của trang tin ánh xạ đúng phần đuôi thay vì bê nguyên:
+  `/forum` → `https://forums.medicvn.com/`, `/forum/<slug>` →
+  `https://forums.medicvn.com/c/<slug>`, cả hai đều 301.
+
+Tiền tố `/c/` xuất hiện ở bảy chỗ trong các component dùng chung (Footer,
+PostTable, CategoryStrip, SidebarLeft, ForumPage, ForumCategoryPage), nên nó
+được gói vào `forumCategoryHref()` trong `lib/siteLinks.ts` — đổi cách đặt
+đường dẫn về sau thì sửa đúng một nơi.
+
+Nhân tiện: `portalHref`/`forumHref` khi thiếu biến môi trường giờ trỏ về
+`http://localhost:3000` / `http://localhost:4000` thay vì trả đường dẫn tương
+đối. Đường dẫn tương đối trong trường hợp đó dẫn ngược về chính trang đang
+đứng — một kiểu lỗi im lặng và rất khó nhận ra.

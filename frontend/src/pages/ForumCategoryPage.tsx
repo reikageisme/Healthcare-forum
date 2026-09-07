@@ -7,7 +7,7 @@ import { Post, Category } from '../types';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
 import SiteLink from '../components/common/SiteLink';
-import { portalHref } from '../lib/siteLinks';
+import { forumHref, portalHref } from '../lib/siteLinks';
 import PostTable from '../components/posts/PostTable';
 
 /**
@@ -93,7 +93,7 @@ export const ForumCategoryPage: React.FC = () => {
       <div className="flex items-center gap-1.5 text-xs text-text-secondary mb-3">
         <SiteLink to={portalHref('/')} className="hover:text-primary">Trang tin</SiteLink>
         <ChevronRight size={12} />
-        <Link to="/forum" className="hover:text-primary">Diễn đàn</Link>
+        <SiteLink to={forumHref()} className="hover:text-primary">Diễn đàn</SiteLink>
         <ChevronRight size={12} />
         <span className="text-text font-medium">{category?.name || slug}</span>
       </div>
