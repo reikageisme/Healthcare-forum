@@ -196,14 +196,50 @@ export interface UploadResponse {
   size: number;
 }
 
+export interface AuthTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: 'bearer';
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface AuthSession extends AuthTokens {
+  user: User;
+}
+
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface RegisterInput extends LoginInput {
+  username: string;
+  full_name?: string;
+}
+
+export interface ApiValidationIssue {
+  loc?: Array<string | number>;
+  msg: string;
+  type?: string;
+}
+
+export interface ApiErrorResponse {
+  detail?: string | ApiValidationIssue[];
+}
+
 export interface AuthState {
   user: User | null;
+  /** Compatibility name used by existing API callers; this is the access token. */
   token: string | null;
-  /** Đổi lấy access token mới khi token 30 phút hết hạn. */
   refreshToken: string | null;
   isAuthenticated: boolean;
-  login: (user: User, token: string, refreshToken?: string | null) => void;
-  setTokens: (token: string, refreshToken: string | null) => void;
+  setSession: (session: AuthSession) => void;
+  rotateTokens: (tokens: AuthTokens) => void;
+  clearSession: () => void;
   logout: () => void;
   setUser: (user: User) => void;
 }
@@ -249,7 +285,7 @@ export interface AdminStats {
 }
 
 // Phase 3: Reports
-export type ReportTargetType = 'post' | 'comment' | 'user' | 'POST' | 'COMMENT' | 'USER';
+export type ReportTargetType = 'post' | 'comment' | 'user' | 'story' | 'POST' | 'COMMENT' | 'USER' | 'STORY';
 export type ReportStatus = 'open' | 'resolved' | 'dismissed' | 'OPEN' | 'RESOLVED' | 'DISMISSED';
 
 export interface Report {
@@ -263,11 +299,14 @@ export interface Report {
   status: ReportStatus;
   created_at: string;
   resolved_at?: string | null;
+  report_type?: string | null;
+  resolved_by?: string | null;
+  resolver?: User | null;
+  /** Compatibility alias used by older callers. */
   resolved_by_id?: string | null;
-  resolved_by?: User | null;
   resolution_notes?: string | null;
-  target_title?: string;
-  target_author_name?: string;
+  target_title?: string | null;
+  target_author_name?: string | null;
   target_preview?: {
     title?: string;
     content?: string;

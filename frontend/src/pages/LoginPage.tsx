@@ -1,9 +1,39 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import api from '../lib/api';
+import { authService } from '../services/authService';
 import { Loader2, HeartPulse, User, Lock, Mail, ArrowRight } from 'lucide-react';
 import { describeApiError } from '../lib/apiError';
+
+function asSafeLocalPath(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null;
+  if (
+    value.includes('\\') ||
+    Array.from(value).some((character) => {
+      const code = character.charCodeAt(0);
+      return code < 0x20 || code === 0x7f;
+    })
+  ) return null;
+  if (value === '/login' || value.startsWith('/login?')) return null;
+  return value;
+}
+
+export function resolveLoginReturnPath(search: string, state: unknown): string | null {
+  const queryPath = asSafeLocalPath(new URLSearchParams(search).get('from'));
+  if (queryPath) return queryPath;
+  if (!state || typeof state !== 'object') return null;
+
+  const from = (state as { from?: unknown }).from;
+  if (typeof from === 'string') return asSafeLocalPath(from);
+  if (!from || typeof from !== 'object') return null;
+
+  const route = from as { pathname?: unknown; search?: unknown; hash?: unknown };
+  const pathname = asSafeLocalPath(route.pathname);
+  if (!pathname) return null;
+  const routeSearch = typeof route.search === 'string' ? route.search : '';
+  const hash = typeof route.hash === 'string' ? route.hash : '';
+  return `${pathname}${routeSearch}${hash}`;
+}
 
 export const LoginPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,7 +45,8 @@ export const LoginPage: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const login = useAuthStore((state) => state.login);
+  const setSession = useAuthStore((state) => state.setSession);
+  const clearSession = useAuthStore((state) => state.clearSession);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,64 +56,31 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
+      const normalizedEmail = email.trim();
+      const returnPath = resolveLoginReturnPath(location.search, location.state);
+      let tokens;
+
       if (isLogin) {
-        // 1. Lấy token
-        const res = await api.post('/auth/login', { email: email.trim(), password });
-        const token = res.data.access_token;
-        const refreshToken = res.data.refresh_token ?? null;
-
-        // 2. Set tạm token vào store để axios interceptor gửi kèm Header
-        login(
-          { id: '', email: '', username: '', full_name: '', role: 'USER' } as any,
-          token,
-          refreshToken,
-        );
-        
-        // 3. Lấy thông tin user thật
-        const profileRes = await api.get('/auth/me');
-        const user = profileRes.data;
-        
-        // 4. Update store với user thật
-        login(user, token);
-
-        // 5. Điều hướng: Admin/Mod vào thẳng Dashboard
-        const role = user.role?.toLowerCase();
-        if (role === 'admin' || role === 'moderator') {
-          navigate('/admin');
-        } else {
-          navigate(location.state?.from?.pathname || '/');
-        }
+        tokens = await authService.login({ email: normalizedEmail, password });
       } else {
-        // Form Đăng ký. /auth/register trả sẵn cặp token, nên đăng nhập luôn
-        // thay vì bắt người dùng gõ lại mật khẩu và chờ băm bcrypt lần nữa.
-        const username = email.split('@')[0];
-        const res = await api.post('/auth/register', {
-          email: email.trim(),
+        const username = normalizedEmail.split('@')[0];
+        tokens = await authService.register({
+          email: normalizedEmail,
           password,
           username,
           full_name: fullName.trim() || username,
         });
-
-        const token = res.data.access_token;
-        if (!token) {
-          setIsLogin(true);
-          setError('Đăng ký thành công! Vui lòng đăng nhập.');
-          return;
-        }
-
-        login(
-          { id: '', email: '', username, full_name: '', role: 'USER' } as any,
-          token,
-          res.data.refresh_token ?? null,
-        );
-        const profileRes = await api.get('/auth/me');
-        login(profileRes.data, token);
-        navigate('/');
       }
-    } catch (err: any) {
+
+      const session = await authService.sessionFromTokens(tokens);
+      setSession(session);
+
+      const role = session.user.role.toLowerCase();
+      const defaultPath = role === 'admin' || role === 'moderator' ? '/admin' : '/';
+      navigate(returnPath ?? defaultPath, { replace: true });
+    } catch (err: unknown) {
       setError(describeApiError(err, 'Có lỗi xảy ra. Vui lòng kiểm tra lại thông tin.'));
-      // Xoá token dở dang, dù hỏng ở bước đăng nhập hay đăng ký.
-      useAuthStore.getState().logout();
+      clearSession();
     } finally {
       setIsLoading(false);
     }

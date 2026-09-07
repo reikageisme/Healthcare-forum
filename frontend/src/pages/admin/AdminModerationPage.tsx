@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Clock,
   CheckCircle,
@@ -15,8 +15,12 @@ import { adminService } from '../../services/adminService';
 import { categoryService } from '../../services/categoryService';
 import { Post, Category } from '../../types';
 import RejectModal from '../../components/admin/RejectModal';
+import PaginationControls from '../../components/admin/PaginationControls';
 import { formatDate, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
 import { flattenTree, indentLabel } from '../../lib/categoryTree';
+import { sanitizeHtml } from '../../lib/sanitizeHtml';
+
+const PAGE_SIZE = 20;
 
 export const AdminModerationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
@@ -24,14 +28,18 @@ export const AdminModerationPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [, setTotal] = useState(0);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modals
   const [previewPost, setPreviewPost] = useState<Post | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [rejectingPost, setRejectingPost] = useState<Post | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const previewRequestId = useRef(0);
 
   const fetchCategories = async () => {
     try {
@@ -47,14 +55,14 @@ export const AdminModerationPage: React.FC = () => {
       setIsLoading(true);
       const res = await adminService.getModerationPosts({
         status: activeTab === 'all' ? undefined : activeTab,
-        search: searchKeyword.trim() || undefined,
+        search: search || undefined,
         category_id: selectedCategory || undefined,
         page,
-        limit: 20,
+        limit: PAGE_SIZE,
       });
 
       setPosts(res.items || []);
-      setTotal(res.total || (res.items ? res.items.length : 0));
+      setTotal(res.total ?? (res.items ? res.items.length : 0));
     } catch (err) {
       console.error('Failed to load moderation posts', err);
     } finally {
@@ -68,12 +76,37 @@ export const AdminModerationPage: React.FC = () => {
 
   useEffect(() => {
     fetchModerationPosts();
-  }, [activeTab, selectedCategory, page]);
+  }, [activeTab, selectedCategory, search, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchModerationPosts();
+    setSearch(searchKeyword.trim());
+  };
+
+  const closePreview = () => {
+    previewRequestId.current += 1;
+    setPreviewPost(null);
+    setIsPreviewLoading(false);
+    setPreviewError(null);
+  };
+
+  const openPreview = async (post: Post) => {
+    const requestId = ++previewRequestId.current;
+    setPreviewPost(post);
+    setIsPreviewLoading(true);
+    setPreviewError(null);
+    try {
+      const fullPost = await adminService.getModerationPost(post.id);
+      if (requestId === previewRequestId.current) setPreviewPost(fullPost);
+    } catch (err) {
+      console.error('Failed to load moderation preview', err);
+      if (requestId === previewRequestId.current) {
+        setPreviewError('Không thể tải toàn bộ nội dung bài viết.');
+      }
+    } finally {
+      if (requestId === previewRequestId.current) setIsPreviewLoading(false);
+    }
   };
 
   const handleApprove = async (postId: string) => {
@@ -336,7 +369,7 @@ export const AdminModerationPage: React.FC = () => {
                 <div className="flex items-center gap-2 flex-shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-border">
                   <button
                     type="button"
-                    onClick={() => setPreviewPost(post)}
+                    onClick={() => void openPreview(post)}
                     className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5"
                   >
                     <Eye size={14} />
@@ -373,6 +406,15 @@ export const AdminModerationPage: React.FC = () => {
         )}
       </div>
 
+      <PaginationControls
+        page={page}
+        total={total}
+        pageSize={PAGE_SIZE}
+        isLoading={isLoading}
+        itemLabel="bài viết"
+        onPageChange={setPage}
+      />
+
       {/* Preview Modal */}
       {previewPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
@@ -384,7 +426,7 @@ export const AdminModerationPage: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={() => setPreviewPost(null)}
+                onClick={closePreview}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
               >
                 <X size={18} />
@@ -392,30 +434,40 @@ export const AdminModerationPage: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-4">
-              <h2 className="text-xl font-extrabold text-slate-900 leading-snug">
-                {previewPost.title}
-              </h2>
-
-              {previewPost.thumbnail && (
-                <div className="rounded-xl overflow-hidden bg-slate-100 max-h-72">
-                  <img
-                    src={previewPost.thumbnail}
-                    alt="Thumbnail"
-                    className="w-full object-cover max-h-72"
-                  />
+              {isPreviewLoading ? (
+                <div className="py-12 text-center text-sm text-slate-500">
+                  Đang tải toàn bộ nội dung bài viết...
                 </div>
-              )}
+              ) : previewError ? (
+                <div className="py-12 text-center text-sm text-danger">{previewError}</div>
+              ) : (
+                <>
+                  <h2 className="text-xl font-extrabold text-slate-900 leading-snug">
+                    {previewPost.title}
+                  </h2>
 
-              <div
-                className="prose prose-sm max-w-none text-slate-800 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: previewPost.content || '' }}
-              />
+                  {previewPost.thumbnail && (
+                    <div className="rounded-xl overflow-hidden bg-slate-100 max-h-72">
+                      <img
+                        src={previewPost.thumbnail}
+                        alt="Thumbnail"
+                        className="w-full object-cover max-h-72"
+                      />
+                    </div>
+                  )}
+
+                  <div
+                    className="prose prose-sm max-w-none text-slate-800 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewPost.content || '') }}
+                  />
+                </>
+              )}
             </div>
 
             <div className="p-4 border-t border-border bg-slate-50 flex items-center justify-between">
               <button
                 type="button"
-                onClick={() => setPreviewPost(null)}
+                onClick={closePreview}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl"
               >
                 Đóng
@@ -427,7 +479,7 @@ export const AdminModerationPage: React.FC = () => {
                     type="button"
                     onClick={() => {
                       const id = previewPost.id;
-                      setPreviewPost(null);
+                      closePreview();
                       handleApprove(id);
                     }}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5"
@@ -440,7 +492,7 @@ export const AdminModerationPage: React.FC = () => {
                     type="button"
                     onClick={() => {
                       const p = previewPost;
-                      setPreviewPost(null);
+                      closePreview();
                       setRejectingPost(p);
                     }}
                     className="px-4 py-2 bg-danger hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5"

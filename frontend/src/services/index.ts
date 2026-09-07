@@ -10,3 +10,4 @@ export * from './reportService';
 export * from './userService';
 export * from './statsService';
 export * from './forumService';
+export * from './authService';

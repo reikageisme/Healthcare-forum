@@ -30,6 +30,7 @@ import {
 } from '../components/common/MedicalSafety';
 import { AnonymousBadge, VerifiedDoctorBadge, isVerifiedDoctor } from '../components/common/Badges';
 import { articleStructuredData, useSeo } from '../lib/seo';
+import { sanitizeHtml } from '../lib/sanitizeHtml';
 
 export const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -319,7 +320,7 @@ export const PostDetailPage: React.FC = () => {
         {/* Post Content */}
         <div
           className="prose prose-blue max-w-none text-text leading-relaxed text-base prose-headings:text-text prose-p:text-text prose-strong:text-text prose-img:rounded-xl prose-img:border prose-img:border-border prose-img:shadow-sm"
-          dangerouslySetInnerHTML={{ __html: post.content || '' }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content || '') }}
         />
 
         <MedicalDisclaimer className="mt-8" />

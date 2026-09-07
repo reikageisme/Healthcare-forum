@@ -3,14 +3,17 @@ import { Flag, CheckCircle, Eye, RefreshCw, AlertTriangle, User as UserIcon, Mes
 import { adminService } from '../../services/adminService';
 import { Report } from '../../types';
 import ReportActionModal from '../../components/admin/ReportActionModal';
+import PaginationControls from '../../components/admin/PaginationControls';
 import { formatDate } from '../../lib/utils';
+
+const PAGE_SIZE = 20;
 
 export const AdminReportsPage: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
-  const [statusFilter, setStatusFilter] = useState<'open' | 'resolved' | 'all'>('open');
+  const [statusFilter, setStatusFilter] = useState<'open' | 'resolved' | 'dismissed' | 'all'>('open');
   const [targetTypeFilter, setTargetTypeFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
-  const [, setTotal] = useState(0);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected report for modal
@@ -24,11 +27,11 @@ export const AdminReportsPage: React.FC = () => {
         status: statusFilter === 'all' ? undefined : statusFilter,
         target_type: targetTypeFilter === 'all' ? undefined : targetTypeFilter,
         page,
-        limit: 20,
+        limit: PAGE_SIZE,
       });
 
       setReports(res.items || []);
-      setTotal(res.total || (res.items ? res.items.length : 0));
+      setTotal(res.total ?? (res.items ? res.items.length : 0));
     } catch (err) {
       console.error('Failed to load reports', err);
     } finally {
@@ -58,14 +61,10 @@ export const AdminReportsPage: React.FC = () => {
     }
   };
 
-  const handleDeleteContent = async (reportId: string, targetType: string, targetId: string) => {
+  const handleDeleteContent = async (reportId: string) => {
     try {
       setIsActionLoading(true);
-      await adminService.deleteViolatingContent(targetType, targetId);
-      await adminService.resolveReport(reportId, {
-        status: 'resolved',
-        resolution_notes: 'Nội dung vi phạm đã bị gỡ bỏ bởi Quản trị viên.',
-      });
+      await adminService.deleteReportContent(reportId);
       alert('Đã gỡ bỏ nội dung vi phạm và đóng báo cáo!');
       setSelectedReport(null);
       fetchReports();
@@ -151,6 +150,17 @@ export const AdminReportsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => {
+              setStatusFilter('dismissed');
+              setPage(1);
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            Đã bỏ qua (Dismissed)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
               setStatusFilter('all');
               setPage(1);
             }}
@@ -178,6 +188,7 @@ export const AdminReportsPage: React.FC = () => {
             <option value="post">Bài viết (Post)</option>
             <option value="comment">Bình luận (Comment)</option>
             <option value="user">Người dùng (User)</option>
+            <option value="story">Story</option>
           </select>
         </div>
       </div>
@@ -207,7 +218,7 @@ export const AdminReportsPage: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-border">
                 {reports.map((report) => {
-                  const isOpen = report.status?.toLowerCase() === 'open';
+                  const status = report.status?.toLowerCase();
 
                   return (
                     <tr key={report.id} className="hover:bg-slate-50/60 transition-colors">
@@ -241,13 +252,17 @@ export const AdminReportsPage: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        {isOpen ? (
+                        {status === 'open' ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
                             <AlertTriangle size={11} /> Chờ xử lý
                           </span>
+                        ) : status === 'dismissed' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            <Flag size={11} /> Đã bỏ qua
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                            <CheckCircle size={11} /> Đã xử lý
+                            <CheckCircle size={11} /> Đã giải quyết
                           </span>
                         )}
                       </td>
@@ -270,6 +285,15 @@ export const AdminReportsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <PaginationControls
+        page={page}
+        total={total}
+        pageSize={PAGE_SIZE}
+        isLoading={isLoading}
+        itemLabel="báo cáo"
+        onPageChange={setPage}
+      />
 
       {/* Action Modal */}
       {selectedReport && (

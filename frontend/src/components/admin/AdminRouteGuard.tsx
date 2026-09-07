@@ -7,11 +7,17 @@ interface AdminRouteGuardProps {
 }
 
 export const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
-  const { isAuthenticated, canModerate, user } = useAuth();
+  const { isLoggedIn, canModerate, user } = useAuth();
   const location = useLocation();
 
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/" state={{ from: location, message: 'Vui lòng đăng nhập để truy cập.' }} replace />;
+  if (!isLoggedIn() || !user) {
+    return (
+      <Navigate
+        to="/login"
+        state={{ from: location, message: 'Vui lòng đăng nhập để truy cập.' }}
+        replace
+      />
+    );
   }
 
   if (!canModerate) {

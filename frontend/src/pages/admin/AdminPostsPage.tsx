@@ -10,8 +10,6 @@ import {
   XCircle,
   Clock,
   MessageCircle,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import { categoryService } from '../../services/categoryService';
@@ -19,6 +17,7 @@ import { postService } from '../../services/postService';
 import { Category, Post } from '../../types';
 import { formatDate } from '../../lib/utils';
 import { flattenTree, indentLabel } from '../../lib/categoryTree';
+import PaginationControls from '../../components/admin/PaginationControls';
 
 const PAGE_SIZE = 20;
 
@@ -39,8 +38,6 @@ export const AdminPostsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const fetchPosts = async () => {
     try {
@@ -65,7 +62,6 @@ export const AdminPostsPage: React.FC = () => {
 
   useEffect(() => {
     fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, categoryFilter, search, page]);
 
   useEffect(() => {
@@ -345,33 +341,14 @@ export const AdminPostsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Pagination */}
-      {total > PAGE_SIZE && (
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-xs text-slate-500">
-            Trang <span className="font-bold text-slate-700">{page}</span> / {totalPages} —{' '}
-            {total} bài viết
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1 || isLoading}
-              className="inline-flex items-center gap-1 px-3 py-2 bg-white border border-border rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40"
-            >
-              <ChevronLeft size={14} /> Trước
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages || isLoading}
-              className="inline-flex items-center gap-1 px-3 py-2 bg-white border border-border rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40"
-            >
-              Sau <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
+      <PaginationControls
+        page={page}
+        total={total}
+        pageSize={PAGE_SIZE}
+        isLoading={isLoading}
+        itemLabel="bài viết"
+        onPageChange={setPage}
+      />
     </div>
   );
 };

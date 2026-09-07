@@ -16,37 +16,18 @@ export const adminService = {
     page?: number;
     limit?: number;
   }): Promise<PaginatedResponse<Post>> => {
-    try {
-      const response = await api.get<PaginatedResponse<Post>>('/admin/moderation/posts', { params });
-      return response.data;
-    } catch {
-      // Fallback to /admin/posts/pending or /admin/posts
-      const response = await api.get<any>('/admin/posts', { params });
-      if (Array.isArray(response.data)) {
-        return { items: response.data, total: response.data.length };
-      }
-      return response.data;
-    }
+    const response = await api.get<PaginatedResponse<Post>>('/admin/posts', { params });
+    return response.data;
   },
 
   approvePost: async (postId: string): Promise<Post> => {
-    try {
-      const response = await api.post(`/admin/moderation/posts/${postId}/approve`);
-      return response.data.post || response.data;
-    } catch {
-      const response = await api.put<Post>(`/admin/posts/${postId}/status`, { status: 'approved' });
-      return response.data;
-    }
+    const response = await api.post<{ post: Post }>(`/admin/posts/${postId}/approve`);
+    return response.data.post;
   },
 
   rejectPost: async (postId: string, reason?: string): Promise<Post> => {
-    try {
-      const response = await api.post(`/admin/moderation/posts/${postId}/reject`, { reason });
-      return response.data.post || response.data;
-    } catch {
-      const response = await api.put<Post>(`/admin/posts/${postId}/status`, { status: 'rejected', reason });
-      return response.data;
-    }
+    const response = await api.post<{ post: Post }>(`/admin/posts/${postId}/reject`, { reason });
+    return response.data.post;
   },
 
   getReports: async (params?: {
@@ -55,10 +36,12 @@ export const adminService = {
     page?: number;
     limit?: number;
   }): Promise<PaginatedResponse<Report>> => {
-    const response = await api.get<any>('/admin/reports', { params });
-    if (Array.isArray(response.data)) {
-      return { items: response.data, total: response.data.length };
-    }
+    const response = await api.get<PaginatedResponse<Report>>('/admin/reports', { params });
+    return response.data;
+  },
+
+  getModerationPost: async (postId: string): Promise<Post> => {
+    const response = await api.get<Post>('/posts/' + postId);
     return response.data;
   },
 
@@ -70,26 +53,12 @@ export const adminService = {
       status: payload?.status || 'resolved',
       resolution_notes: payload?.resolution_notes || payload?.action || 'Resolved by admin',
     };
-    try {
-      const response = await api.patch<Report>(`/admin/reports/${reportId}`, body);
-      return response.data;
-    } catch {
-      const response = await api.put<Report>(`/admin/reports/${reportId}`, body);
-      return response.data;
-    }
+    const response = await api.put<Report>(`/admin/reports/${reportId}`, body);
+    return response.data;
   },
 
   deleteReportContent: async (reportId: string): Promise<void> => {
     await api.delete(`/admin/reports/${reportId}/content`);
-  },
-
-  deleteViolatingContent: async (targetType: string, targetId: string): Promise<void> => {
-    const type = targetType.toLowerCase();
-    if (type === 'post') {
-      await api.delete(`/posts/${targetId}`);
-    } else if (type === 'comment') {
-      await api.delete(`/comments/${targetId}`);
-    }
   },
 
   getUsers: async (params?: {
@@ -100,21 +69,13 @@ export const adminService = {
     limit?: number;
     sort_by?: string;
   }): Promise<PaginatedResponse<User>> => {
-    const response = await api.get<any>('/admin/users', { params });
-    if (Array.isArray(response.data)) {
-      return { items: response.data, total: response.data.length };
-    }
+    const response = await api.get<PaginatedResponse<User>>('/admin/users', { params });
     return response.data;
   },
 
   updateUser: async (userId: string, data: UserAdminUpdateRoleInput): Promise<User> => {
-    try {
-      const response = await api.patch<User>(`/admin/users/${userId}`, data);
-      return response.data;
-    } catch {
-      const response = await api.put<User>(`/admin/users/${userId}`, data);
-      return response.data;
-    }
+    const response = await api.patch<User>(`/admin/users/${userId}`, data);
+    return response.data;
   },
 
   updateUserRole: async (userId: string, role: UserRole, specialty?: string, bio?: string): Promise<User> => {

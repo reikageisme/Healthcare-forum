@@ -6,15 +6,19 @@ import EditUserModal from '../../components/admin/EditUserModal';
 import { formatDate, getAvatarUrl } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 import { describeApiError } from '../../lib/apiError';
+import PaginationControls from '../../components/admin/PaginationControls';
+
+const PAGE_SIZE = 20;
 
 export const AdminUsersPage: React.FC = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [, setTotal] = useState(0);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modal
@@ -25,15 +29,15 @@ export const AdminUsersPage: React.FC = () => {
     try {
       setIsLoading(true);
       const res = await adminService.getUsers({
-        search: searchKeyword.trim() || undefined,
+        search: search || undefined,
         role: roleFilter || undefined,
         is_active: statusFilter === '' ? undefined : statusFilter === 'active',
         page,
-        limit: 20,
+        limit: PAGE_SIZE,
       });
 
       setUsers(res.items || []);
-      setTotal(res.total || (res.items ? res.items.length : 0));
+      setTotal(res.total ?? (res.items ? res.items.length : 0));
     } catch (err) {
       console.error('Failed to load users', err);
     } finally {
@@ -43,12 +47,12 @@ export const AdminUsersPage: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter, statusFilter, page]);
+  }, [roleFilter, statusFilter, search, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchUsers();
+    setSearch(searchKeyword.trim());
   };
 
   const handleSaveUser = async (
@@ -307,6 +311,15 @@ export const AdminUsersPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <PaginationControls
+        page={page}
+        total={total}
+        pageSize={PAGE_SIZE}
+        isLoading={isLoading}
+        itemLabel="người dùng"
+        onPageChange={setPage}
+      />
 
       {/* Edit User Modal */}
       {editingUser && (

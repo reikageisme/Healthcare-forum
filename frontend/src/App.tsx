@@ -3,6 +3,7 @@ import MainLayout from './layouts/MainLayout';
 import AdminLayout from './layouts/AdminLayout';
 import AdminRouteGuard from './components/admin/AdminRouteGuard';
 import AdminOnlyGuard from './components/admin/AdminOnlyGuard';
+import AuthenticatedRouteGuard from './components/auth/AuthenticatedRouteGuard';
 
 // Client pages
 import HomePage from './pages/HomePage';
@@ -49,7 +50,14 @@ function App() {
         {/* Posts CRUD */}
         <Route path="create-post" element={<CreatePostPage />} />
         <Route path="posts/:id" element={<PostDetailPage />} />
-        <Route path="posts/:id/edit" element={<EditPostPage />} />
+        <Route
+          path="posts/:id/edit"
+          element={
+            <AuthenticatedRouteGuard>
+              <EditPostPage />
+            </AuthenticatedRouteGuard>
+          }
+        />
 
         {/* Bookmarks */}
         <Route path="bookmarks" element={<BookmarksPage />} />

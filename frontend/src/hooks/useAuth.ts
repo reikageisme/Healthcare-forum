@@ -2,7 +2,8 @@ import { useAuthStore } from '../stores/authStore';
 import { UserRole } from '../types';
 
 export const useAuth = () => {
-  const { user, token, isAuthenticated, login, logout, setUser } = useAuthStore();
+  const { user, token, refreshToken, isAuthenticated, setSession, clearSession, logout, setUser } =
+    useAuthStore();
 
   const isLoggedIn = () => isAuthenticated && !!token;
 
@@ -20,6 +21,7 @@ export const useAuth = () => {
   return {
     user,
     token,
+    refreshToken,
     isAuthenticated,
     isLoggedIn,
     hasRole,
@@ -28,7 +30,8 @@ export const useAuth = () => {
     isModerator,
     isDoctor,
     canModerate,
-    login,
+    setSession,
+    clearSession,
     logout,
     setUser,
   };

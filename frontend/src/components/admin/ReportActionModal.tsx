@@ -8,7 +8,7 @@ interface ReportActionModalProps {
   report: Report | null;
   onClose: () => void;
   onResolve: (reportId: string, status: string, notes: string) => Promise<void>;
-  onDeleteContent: (reportId: string, targetType: string, targetId: string) => Promise<void>;
+  onDeleteContent: (reportId: string) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -24,7 +24,10 @@ export const ReportActionModal: React.FC<ReportActionModalProps> = ({
 
   if (!isOpen || !report) return null;
 
-  const isResolved = report.status?.toLowerCase() === 'resolved';
+  const status = report.status?.toLowerCase();
+  const isReportOpen = status === 'open';
+  const statusLabel =
+    status === 'dismissed' ? 'Báo cáo đã được bỏ qua' : 'Báo cáo đã được giải quyết';
 
   const handleResolve = async (status: string) => {
     await onResolve(report.id, status, resolutionNotes.trim());
@@ -36,7 +39,7 @@ export const ReportActionModal: React.FC<ReportActionModalProps> = ({
         'Bạn có chắc chắn muốn xóa nội dung vi phạm này không? Thao tác này sẽ gỡ bỏ nội dung và tự động đánh dấu báo cáo là đã giải quyết.'
       )
     ) {
-      await onDeleteContent(report.id, String(report.target_type), report.target_id);
+      await onDeleteContent(report.id);
     }
   };
 
@@ -110,7 +113,7 @@ export const ReportActionModal: React.FC<ReportActionModalProps> = ({
             </div>
           )}
 
-          {!isResolved && (
+          {isReportOpen && (
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Ghi chú xử lý (Tùy chọn):
@@ -128,7 +131,7 @@ export const ReportActionModal: React.FC<ReportActionModalProps> = ({
 
         {/* Footer Actions */}
         <div className="mt-6 pt-4 border-t border-border flex items-center justify-between flex-wrap gap-2">
-          {!isResolved ? (
+          {isReportOpen ? (
             <>
               <button
                 type="button"
@@ -163,7 +166,7 @@ export const ReportActionModal: React.FC<ReportActionModalProps> = ({
           ) : (
             <div className="w-full flex items-center justify-between">
               <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                <CheckCircle size={14} /> Báo cáo đã được xử lý
+                <CheckCircle size={14} /> {statusLabel}
               </span>
               <button
                 type="button"
