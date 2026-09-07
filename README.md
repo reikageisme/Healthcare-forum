@@ -127,15 +127,44 @@ npm test             # Vitest trên PGlite, không cần database ngoài
 npm run typecheck
 
 cd ../frontend
+npm test             # Vitest: auth service/store, refresh và route guards
+npm run typecheck
 npm run build        # đã bật lại tsc trước khi build
 ```
 
-Hiện frontend chưa có test script/ESLint hoàn chỉnh; `npm run lint` và
-`npm test -- --run` chưa phải gate khả dụng. Backend là nơi đang có bộ test tự
-động đầy đủ; frontend cần bổ sung lint, Vitest và lockfile trước khi đưa vào CI.
+Frontend hiện có lockfile, ESLint zero-warning và bộ test Vitest cho auth,
+sanitizer, moderation và pagination. Chạy `npm run lint` trước
+`npm test -- --run`.
 
-Kết quả kiểm thử backend và hành vi token của G2 được ghi tại
-[G2 implementation evidence](docs/evidence/2026-09-03-g2-auth.md).
+Kết quả chi tiết được ghi tại [G2 backend auth evidence](docs/evidence/2026-09-03-g2-auth.md)
+và [G3 frontend auth evidence](docs/evidence/2026-09-03-g3-frontend-auth.md).
+
+G4 dùng một chính sách chung cho quyền xem bài và tương tác cộng đồng;
+chạy `cd backend` rồi `npm test -- tests/visibility.test.ts` để kiểm tra ma trận
+người đọc/trạng thái. Xem [G4 visibility evidence](docs/evidence/2026-09-03-g4-visibility.md).
+
+Các nhóm G5–G11 được ghi tại [hardening evidence](docs/evidence/2026-09-07-g5-g11.md),
+bao gồm sanitizer, tag/report moderation, frontend lint/test, proxy, Compose,
+CI và smoke checklist.
+
+## 🛠️ Vận hành, CI và rollback
+
+Production Compose requires explicit DATABASE_URL, JWT_SECRET and
+BACKEND_CORS_ORIGINS values. The backend rejects development database/JWT
+defaults, wildcard CORS and SQL echo in production. A brand-new database also
+requires ADMIN_PASSWORD with at least 12 characters; an existing database may
+skip admin bootstrap when the account already exists.
+
+The startup sequence is createDatabase, migrate, sanitizeExisting and
+createAdmin, followed by the supplied server command. The Drizzle patches are
+idempotent, but they do not roll back data. Before production deployment, run
+pg_dump in custom format, preserve the dump, deploy, check the health endpoint,
+and run the PowerShell smoke script. If the smoke fails, restore traffic to
+the previous image and use a rehearsed database restore plan.
+
+CI runs backend clean install/typecheck/build/tests, frontend npm ci/lint/build/
+tests, and a PostgreSQL migration plus enum/ORM smoke. Run the local equivalent
+from the Testing section before opening a pull request.
 
 ## 🗄️ Các lệnh database
 

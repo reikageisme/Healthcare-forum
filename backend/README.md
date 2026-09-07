@@ -47,7 +47,7 @@ existed), and `createAdmin`.
 | `src/core/` | config, JWT + bcrypt, the shared error handler |
 | `src/middleware/` | auth, role guards, rate limiting |
 | `src/routes/` | one file per former APIRouter |
-| `src/lib/` | sanitising, slugify, cursor + batched post queries |
+| `src/lib/` | post visibility/access, sanitising, slugify, cursor + batched post queries |
 | `drizzle/0000_init.sql` | DDL for a fresh database |
 | `drizzle/0001_*.sql`–`0004_*.sql` | Idempotent patches, applied on every boot |
 | `drizzle/0006_site_settings.sql` | Idempotent network/footer settings table, applied on every boot |
@@ -122,6 +122,47 @@ Run `npm test -- tests/auth.test.ts` for the G2 auth gate. The
 AUTH-01–09 coverage, the full backend results and the session cutover behavior.
 The existing POLICY-01 production-rollout decision remains deferred.
 
+## Post visibility and community interactions (G4)
+
+`src/lib/postAccess.ts` is the policy shared by post list/detail, comments,
+reactions and bookmarks. A public post is both `approved` and
+`is_published=true`; neither flag alone is enough.
+
+| Actor | Public read | Non-public read | New comment/reply, reaction or bookmark toggle on non-public content |
+| --- | --- | --- | --- |
+| Anonymous | 200 | 404 | 401 |
+| Unrelated authenticated user (including doctors) | 200 | 404 | 404 |
+| Post owner, moderator or admin | 200 | 200 | 409, no mutation |
+
+Authenticated users can interact with public posts as before. Hidden and
+missing posts return the same `{detail: "Post not found"}` body. Comment
+edit/delete endpoints likewise use `{detail: "Comment not found"}` for both
+missing comments and comments the caller cannot read. Access is checked
+before body validation, counters or related rows are changed.
+
+The ordinary feed remains public for every role. An owner's own `author_id`
+query may include private posts; staff can explicitly request `pending`,
+`rejected`, `approved` or `all` statuses, including unpublished rows. Invalid
+staff status filters do not expand the default feed. Existing category/tag/
+search filters, anonymous-author filtering and cursor order are unchanged.
+
+The bookmark feed always filters to public posts, even for owners/staff, and
+does so before pagination. A bookmark that becomes hidden remains stored but
+cannot be toggled while hidden; if the post becomes public again, one toggle
+removes the saved row. Deleting a post retains the existing bookmark cascade.
+
+Editorial actions are separate from new community interactions: post
+edit/delete and accepted-answer selection retain their existing owner/staff
+checks after visibility is verified. Comment authors still need access to the
+parent post to edit/delete their comment; staff may moderate private threads.
+Being the post owner does not grant edit/delete rights over someone else's
+comment.
+
+Run `npm test -- tests/visibility.test.ts` for the G4 matrix. The
+[G4 evidence](../docs/evidence/2026-09-03-g4-visibility.md) records all scenarios
+and verification. This implements the documented recommended default for the
+requested G4 work; it does not close the broader POLICY-01 release/rollout gate.
+
 ## Category tree
 
 Categories carry a `parent_id` and are capped at three levels: root → child →
@@ -164,7 +205,5 @@ thay vì luật cứng.
   back to the canonical paths in a `catch`.
 - `UserRole.guest` is unused in both backend and frontend and is not in the
   TypeScript union, but the label stays in the Postgres enum type.
-- The frontend now rotates access/refresh tokens and retries one failed request,
-  but that flow still lacks a frontend automated-test gate.
-- The frontend build passes, but ESLint, a frontend test script, a lockfile and
-  CI workflows are still absent.
+- The frontend has the focused G3 auth/guard tests and a lockfile. ESLint,
+  broader frontend coverage and CI workflows remain G8/G11 work.

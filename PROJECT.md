@@ -1,5 +1,23 @@
 # Project: Healthcare Forum Phase 3 (Dashboard & Admin)
 
+Runtime note: the executable repository is Hono + Drizzle + Zod on Node 20
+with PostgreSQL 16. The older FastAPI/SQLAlchemy diagrams and paths below are
+historical product requirements; use the current backend and frontend source,
+the root README and backend README for runnable commands and response shapes.
+
+Current operations:
+
+- Dev Compose accepts an optional root .env; docker-compose.db.yml provides a
+  local PostgreSQL overlay.
+- Production Compose requires DATABASE_URL, JWT_SECRET and
+  BACKEND_CORS_ORIGINS, and the backend validates them again at startup.
+- Backend startup runs createDatabase, migrate, sanitizeExisting and
+  createAdmin before the supplied server command. A new database needs an
+  explicit ADMIN_PASSWORD.
+- The PowerShell smoke script covers register, moderation, public read,
+  interaction, report/delete and upload retrieval. Backup/rollback guidance is
+  in the root README.
+
 ## Architecture
 Healthcare Forum Phase 3 implements an administrative and moderation subsystem for the FastAPI + React platform. It introduces role-based access control (RBAC), a hybrid content moderation engine, community reporting workflows, real-time analytics with Recharts, and administrative management of users and categories.
 
