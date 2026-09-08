@@ -31,6 +31,7 @@ import {
 } from '../components/common/MedicalSafety';
 import { AnonymousBadge, VerifiedDoctorBadge, isVerifiedDoctor } from '../components/common/Badges';
 import { articleStructuredData, useSeo } from '../lib/seo';
+import { confirmDialog, toast } from '../lib/ui';
 
 export const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,14 +81,20 @@ export const PostDetailPage: React.FC = () => {
 
   const handleDeletePost = async () => {
     if (!post) return;
-    if (window.confirm('Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.')) {
+    const ok = await confirmDialog({
+      title: 'Xóa bài viết?',
+      message: 'Bài viết và toàn bộ bình luận sẽ bị xóa vĩnh viễn.',
+      confirmLabel: 'Xóa bài',
+      danger: true,
+    });
+    if (ok) {
       try {
         await postService.deletePost(post.id);
-        alert('Đã xóa bài viết thành công!');
+        toast.success('Đã xóa bài viết thành công!');
         navigate('/');
       } catch (err) {
         console.error('Failed to delete post', err);
-        alert('Không thể xóa bài viết. Vui lòng thử lại sau.');
+        toast.error('Không thể xóa bài viết. Vui lòng thử lại sau.');
       }
     }
   };
@@ -96,7 +103,7 @@ export const PostDetailPage: React.FC = () => {
     const fullUrl = window.location.href;
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(fullUrl);
-      alert('Đã sao chép liên kết bài viết vào clipboard!');
+      toast.success('Đã sao chép liên kết bài viết vào clipboard!');
     }
   };
 
@@ -174,7 +181,7 @@ export const PostDetailPage: React.FC = () => {
       setPost({ ...post, accepted_comment_id: commentId });
     } catch (err) {
       console.error('Failed to set accepted answer', err);
-      window.alert('Không lưu được lựa chọn câu trả lời. Vui lòng thử lại.');
+      toast.error('Không lưu được lựa chọn câu trả lời. Vui lòng thử lại.');
     }
   };
 
@@ -182,19 +189,24 @@ export const PostDetailPage: React.FC = () => {
   const statusNorm = post.status?.toLowerCase();
 
   return (
-    <div className="max-w-4xl mx-auto py-2">
-      {/* Navigation Breadcrumb */}
-      <div className="flex items-center justify-between gap-4 mb-6">
+    <div className="w-full max-w-[760px] mx-auto">
+      {/*
+        Đường dẫn ngược, để trần bên trên thẻ.
+
+        Nó là chỉ dẫn, không phải nội dung — đóng khung nó thành một hộp trắng
+        riêng thì trang xem bài thành ba mảnh rời ngay từ cái nhìn đầu tiên.
+      */}
+      <div className="flex items-center justify-between gap-4 mb-2.5 text-[12px]">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm font-medium text-text-secondary hover:text-primary transition-colors bg-white px-3.5 py-2 rounded-xl border border-border"
+          className="flex items-center gap-1.5 font-medium text-text-secondary hover:text-primary transition-colors"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={15} />
           <span>Quay lại</span>
         </button>
 
-        <div className="flex items-center gap-2 text-xs sm:text-sm text-text-secondary">
+        <div className="flex items-center gap-1.5 text-text-secondary">
           <Link to="/" className="hover:text-primary transition-colors">Trang chủ</Link>
           <span>/</span>
           {post.category ? (
@@ -207,11 +219,18 @@ export const PostDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Post Card */}
-      <article className="bg-surface rounded-2xl p-6 sm:p-8 shadow-sm border border-border mb-6">
+      {/*
+        MỘT khối duy nhất: bài và phần thảo luận nằm trong cùng một thẻ.
+
+        Trước đây bài là một thẻ, bình luận là một thẻ nữa bên dưới, cách nhau
+        một khoảng trống — đọc hết bài là gặp một đường cắt rồi mới tới trả
+        lời, như thể hai thứ không liên quan. Facebook, voz và mọi diễn đàn
+        đều để chúng liền một mạch, vì đó vốn là một cuộc trò chuyện.
+      */}
+      <article className="bg-surface rounded-xl p-4 sm:p-6 shadow-sm border border-border">
         {/* Pending & Rejected Notification Banners */}
         {statusNorm === 'pending' && (
-          <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="text-sm font-bold text-amber-900">Bài viết đang chờ phê duyệt</h4>
@@ -223,7 +242,7 @@ export const PostDetailPage: React.FC = () => {
           </div>
         )}
         {statusNorm === 'rejected' && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
+          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="text-sm font-bold text-red-900">Bài viết đã bị từ chối phê duyệt</h4>
@@ -270,12 +289,12 @@ export const PostDetailPage: React.FC = () => {
         </div>
 
         {/* Title */}
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-text leading-tight mb-6">
+        <h1 className="text-xl sm:text-2xl font-extrabold text-text leading-snug mb-4">
           {post.title}
         </h1>
 
         {/* Author Card */}
-        <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 mb-6 flex-wrap">
+        <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200 mb-4 flex-wrap">
           <div className="flex items-center gap-3.5">
             <img
               src={getAvatarUrl(author, author?.full_name || author?.username || 'Doctor')}
@@ -402,17 +421,18 @@ export const PostDetailPage: React.FC = () => {
             </button>
           </div>
         </div>
-      </article>
 
-      {/* Nested Comments Section */}
-      <div id="comments">
-        <CommentTree
-          postId={post.id}
-          totalComments={post.comment_count || post.commentCount || 0}
-          canAcceptAnswer={canAcceptAnswer}
-          onAcceptAnswer={handleAcceptAnswer}
-        />
-      </div>
+        {/* Thảo luận, liền mạch với bài — cùng thẻ, chỉ ngăn bằng một đường kẻ. */}
+        <div id="comments" className="mt-5 pt-5 border-t border-border">
+          <CommentTree
+            embedded
+            postId={post.id}
+            totalComments={post.comment_count || post.commentCount || 0}
+            canAcceptAnswer={canAcceptAnswer}
+            onAcceptAnswer={handleAcceptAnswer}
+          />
+        </div>
+      </article>
 
       {showReportModal && (
         <ReportModal

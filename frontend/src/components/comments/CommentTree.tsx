@@ -4,6 +4,7 @@ import { Comment } from '../../types';
 import { commentService } from '../../services/commentService';
 import { CommentForm } from './CommentForm';
 import { CommentItem } from './CommentItem';
+import { toast } from '../../lib/ui';
 
 interface CommentTreeProps {
   postId: string;
@@ -12,6 +13,13 @@ interface CommentTreeProps {
   /** Set when the viewer may choose the accepted answer (asker or staff). */
   onAcceptAnswer?: (commentId: string | null) => Promise<void>;
   canAcceptAnswer?: boolean;
+  /**
+   * Nằm bên trong một thẻ khác (trang xem bài, popup) thì bỏ khung riêng đi.
+   *
+   * Một thẻ bo góc có viền lồng trong một thẻ bo góc có viền là thứ khiến
+   * trang xem bài trông như ba mảnh rời thay vì một bài viết.
+   */
+  embedded?: boolean;
 }
 
 /** Cứ ngần này một lần thì hỏi lại server xem có ai vừa trả lời không. */
@@ -36,6 +44,7 @@ export const CommentTree: React.FC<CommentTreeProps> = ({
   onCommentCountChange,
   onAcceptAnswer,
   canAcceptAnswer = false,
+  embedded = false,
 }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,7 +142,7 @@ export const CommentTree: React.FC<CommentTreeProps> = ({
       if (onCommentCountChange) onCommentCountChange(Math.max(0, totalComments - 1));
     } catch (error) {
       console.error('Failed to delete comment', error);
-      alert('Không thể xóa bình luận. Vui lòng thử lại sau.');
+      toast.error('Không thể xóa bình luận. Vui lòng thử lại sau.');
     }
   };
 
@@ -150,7 +159,13 @@ export const CommentTree: React.FC<CommentTreeProps> = ({
   });
 
   return (
-    <section className="bg-surface rounded-xl p-4 sm:p-5 shadow-sm border border-border mt-4">
+    <section
+      className={
+        embedded
+          ? 'w-full'
+          : 'bg-surface rounded-xl p-4 sm:p-5 shadow-sm border border-border mt-4'
+      }
+    >
       {/* Section Header */}
       <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-border">
         <div className="flex items-center gap-2">
