@@ -122,7 +122,7 @@ export const ForumPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-[1040px] mx-auto">
+    <div>
       <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
         <div>
           <h1 className="text-2xl sm:text-[26px] font-extrabold text-text tracking-tight">Diễn đàn Sức khỏe</h1>

@@ -88,7 +88,7 @@ export const CategoryPage: React.FC = () => {
   }, [hasMore, isFetchingNext, isLoadingInitial, nextCursor]);
 
   return (
-    <div className="w-full max-w-[700px] mx-auto">
+    <div className="max-w-3xl mx-auto xl:mx-0 xl:max-w-none">
       {/* Category Header Banner */}
       <div className="bg-surface rounded-2xl p-6 shadow-sm border border-border mb-6">
         <div className="flex items-center gap-2 text-xs text-text-secondary mb-3">

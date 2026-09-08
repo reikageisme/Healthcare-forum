@@ -23,12 +23,14 @@
    * Cỡ chữ gốc, và cũng là cỡ của toàn bộ khoảng cách.
    *
    * Tailwind đo mọi thứ bằng rem — text-sm, p-4, gap-6, h-16 — nên đổi một
-   * dòng này là cả trang thu lại cùng tỉ lệ: chữ nhỏ hơn, đệm hẹp hơn, nhiều
-   * thớt trên một màn hình hơn, mà không thẻ nào bị méo. 16px của Tailwind
-   * hợp với trang giới thiệu sản phẩm; một diễn đàn thì người ta vào để đọc
-   * cho nhanh và cho nhiều.
+   * dòng này là cả trang co giãn cùng tỉ lệ, không thẻ nào bị méo.
    *
-   * Màn hình nhỏ giữ 15px: 14px trên điện thoại là đã sát ngưỡng khó đọc.
+   * Một con số cố định thì không đủ. 14px vừa mắt trên laptop 1366–1600px,
+   * nhưng trên màn 2K ở mức thu phóng 100% thì viewport có tới 2560 điểm ảnh
+   * CSS: cùng 14px ấy chiếm một phần nhỏ hơn hẳn của màn hình, và cả trang
+   * trông bé xíu. Cỡ chữ vì thế lớn dần theo bề ngang màn hình.
+   *
+   * Màn hẹp giữ 15px: 14px trên điện thoại đã sát ngưỡng khó đọc.
    */
   html {
     font-size: 15px;
@@ -37,6 +39,19 @@
   @media (min-width: 1024px) {
     html {
       font-size: 14px;
+    }
+  }
+
+  @media (min-width: 1600px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  /* Từ 2K trở lên. Quay lại đúng cỡ mặc định của trình duyệt. */
+  @media (min-width: 1920px) {
+    html {
+      font-size: 16px;
     }
   }
 

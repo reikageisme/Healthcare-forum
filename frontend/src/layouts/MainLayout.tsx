@@ -13,18 +13,20 @@ const MainLayout: React.FC = () => {
       <Header toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       
       {/*
-        Ba cột kiểu Facebook.
+        Ba cột, căn giữa, và nới rộng dần theo bề ngang màn hình.
 
-        Trước đây cả khung bị bó trong max-w-[1600px] rồi căn giữa, nên trên
-        màn hình rộng hai sidebar bị kéo vào sát cột giữa và phần đọc nằm lệch
-        về một bên. Bỏ trần đi: sidebar dán vào hai mép màn hình, phần giữa
-        lấy hết khoảng còn lại, rồi TỪNG TRANG tự giới hạn bề ngang phần đọc
-        (~700px) và căn giữa. Màn càng rộng thì hai bên càng giãn ra, còn chỗ
-        để mắt nhìn thì luôn ở giữa và luôn cùng một bề ngang.
+        Đã thử dán sidebar vào sát hai mép kiểu Facebook: trên màn 2K nó hỏng.
+        Facebook để lọt được vì họ chỉ có MỘT cột đọc hẹp; ở đây hai sidebar
+        bị hất ra xa hàng trăm pixel còn phần giữa đứng chơ vơ, mắt phải quét
+        ngang cả màn hình mới gom đủ thông tin, và mọi thứ trông bé xíu.
+
+        Quay lại khung căn giữa. Khác một chỗ với bản cũ: trần nới thêm ở
+        2xl thay vì đứng yên ở 1600px, nên màn càng rộng thì cả ba cột cùng
+        rộng ra chứ không để thừa hai dải trống hai bên.
       */}
-      <div className="flex-1 w-full px-3 sm:px-4 lg:px-5 py-5 flex gap-4 xl:gap-6 pt-20">
+      <div className="flex-1 w-full max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex gap-6 pt-24">
         {/* Left Sidebar */}
-        <aside className={`fixed lg:sticky lg:top-20 top-16 left-0 h-[calc(100vh-5.5rem)] w-60 xl:w-64 shrink-0 bg-surface z-40 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 border-r border-border' : '-translate-x-full'}`}>
+        <aside className={`fixed lg:sticky lg:top-24 top-16 left-0 h-[calc(100vh-6rem)] w-64 xl:w-72 shrink-0 bg-surface z-40 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 border-r border-border' : '-translate-x-full'}`}>
           <div className="h-full overflow-y-auto px-4 py-4">
             <SidebarLeft />
           </div>
@@ -44,7 +46,7 @@ const MainLayout: React.FC = () => {
         </main>
 
         {/* Right Sidebar */}
-        <aside className="hidden xl:block w-72 2xl:w-80 shrink-0 sticky top-20 h-[calc(100vh-5.5rem)] overflow-y-auto">
+        <aside className="hidden xl:block w-80 2xl:w-[22rem] shrink-0 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
           <SidebarRight />
         </aside>
       </div>
