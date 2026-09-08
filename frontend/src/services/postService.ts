@@ -1,4 +1,5 @@
 import api from '../lib/api';
+import { SURFACE } from '../lib/siteLinks';
 import { Post, PostCreateInput, PostUpdateInput, PostCursorPage } from '../types';
 
 export interface GetPostsParams {
@@ -10,6 +11,12 @@ export interface GetPostsParams {
   author_id?: string;
   search?: string;
   sort_by?: 'newest' | 'helpful' | 'comments';
+  /**
+   * Lấy bài của trang nào. Bỏ trống thì lấy đúng trang đang đứng — đó là thứ
+   * khiến medicvn.com và forums.medicvn.com thôi hiện cùng một danh sách.
+   * Truyền 'all' khi thật sự cần cả hai (trang quản trị).
+   */
+  surface?: 'portal' | 'forum' | 'all';
 }
 
 export const postService = {
@@ -25,6 +32,8 @@ export const postService = {
       if (params.search) cleanParams.search = params.search;
       if (params.sort_by) cleanParams.sort_by = params.sort_by;
     }
+    const surface = params?.surface ?? SURFACE;
+    if (surface !== 'all') cleanParams.surface = surface;
     const response = await api.get<PostCursorPage>('/posts', { params: cleanParams });
     return response.data;
   },
@@ -35,7 +44,9 @@ export const postService = {
   },
 
   createPost: async (data: PostCreateInput): Promise<Post> => {
-    const response = await api.post<Post>('/posts', data);
+    // Bài sinh ra ở trang nào thì thuộc về trang đó. Backend không đoán được,
+    // vì cả hai bản dựng gọi cùng một endpoint.
+    const response = await api.post<Post>('/posts', { surface: SURFACE, ...data });
     return response.data;
   },
 

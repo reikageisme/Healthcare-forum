@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { and, asc, count, eq, ne, or } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, ne, or } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { categories, posts } from '../db/schema.js';
 import { badRequest, notFound } from '../core/errors.js';
@@ -11,8 +11,29 @@ import { assertValidParent, categoryPostCount, categoryScope } from '../lib/cate
 import { categoryCreateSchema, categoryUpdateSchema } from '../schemas/requests.js';
 import { toCategoryResponse } from '../schemas/responses.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { asSurface } from '../lib/surface.js';
 
 export const categoryRoutes = new Hono();
+
+/**
+ * Id của một chuyên mục và toàn bộ nhánh dưới nó.
+ *
+ * Cây sâu tối đa ba cấp (cha -> con -> cháu) nên hai vòng lặp là đủ; không
+ * đáng đổi lấy một câu WITH RECURSIVE cho một cái cây bốn mươi hàng.
+ */
+async function descendantIds(rootId: string): Promise<string[]> {
+  const ids = [rootId];
+  for (let depth = 0; depth < 2; depth += 1) {
+    const kids = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(inArray(categories.parent_id, ids));
+    const fresh = kids.map((k) => k.id).filter((id) => !ids.includes(id));
+    if (fresh.length === 0) break;
+    ids.push(...fresh);
+  }
+  return ids;
+}
 
 /**
  * The list stays flat and carries parent_id; the tree is assembled by the
@@ -25,9 +46,19 @@ export const categoryRoutes = new Hono();
  * name, so an unordered category still lands alphabetically.
  */
 categoryRoutes.get('/', async (c) => {
+  /**
+   * ?surface=portal|forum lấy đúng một cây.
+   *
+   * Trang tin xếp theo chuyên trang toà soạn, diễn đàn chia theo chuyên khoa —
+   * hai cây khác nhau trong cùng một bảng. Không truyền gì thì trả cả hai, vì
+   * trang quản trị cần quản lý cả hai ở một chỗ.
+   */
+  const surface = asSurface(c.req.query('surface'));
+
   const rows = await db
     .select({ category: categories, post_count: categoryPostCount })
     .from(categories)
+    .where(surface ? eq(categories.surface, surface) : undefined)
     .orderBy(asc(categories.sort_order), asc(categories.name));
 
   const all = rows.map((r) => toCategoryResponse(r.category, Number(r.post_count)));
@@ -82,6 +113,9 @@ categoryRoutes.post('/', requireAuth, requireRole('admin', 'moderator'), async (
       description: body.description ? sanitizePlainText(body.description) : null,
       parent_id: body.parent_id ?? null,
       sort_order: body.sort_order ?? 0,
+      // Mục con luôn thuộc cùng cây với cha nó; không thì trang tin có một
+      // nhánh treo dưới một chuyên khoa của diễn đàn.
+      surface: asSurface(body.surface) ?? 'forum',
     })
     .returning();
   const category = inserted[0];
@@ -142,6 +176,10 @@ categoryRoutes.put('/:id_or_slug', requireAuth, requireRole('admin', 'moderator'
   }
 
   if (body.icon !== undefined && body.icon !== null) patch.icon = body.icon;
+  // Chuyển một chuyên mục sang cây bên kia. Cả nhánh con đi theo, nếu không
+  // trang tin sẽ có một mục cha mà bấm vào thì rơi vào chuyên khoa diễn đàn.
+  const nextSurface = asSurface(body.surface);
+  if (nextSurface && nextSurface !== category.surface) patch.surface = nextSurface;
   if (body.sort_order !== undefined && body.sort_order !== null) {
     patch.sort_order = body.sort_order;
   }
@@ -167,6 +205,15 @@ categoryRoutes.put('/:id_or_slug', requireAuth, requireRole('admin', 'moderator'
       .where(eq(categories.id, category.id))
       .returning();
     updated = rows[0] ?? category;
+
+    // Cả nhánh đi theo cha. Một mục con ở lại cây cũ nghĩa là bấm vào nó rơi
+    // sang trang bên kia — đúng kiểu "hai trang dính vào nhau" cần bỏ.
+    if (patch.surface) {
+      await db
+        .update(categories)
+        .set({ surface: patch.surface, updated_at: new Date() })
+        .where(inArray(categories.id, await descendantIds(category.id)));
+    }
   }
 
   const counted = await db

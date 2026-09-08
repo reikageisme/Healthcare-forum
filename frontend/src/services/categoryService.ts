@@ -1,4 +1,5 @@
 import api from '../lib/api';
+import { SURFACE } from '../lib/siteLinks';
 import { Category } from '../types';
 
 export interface CategoryInput {
@@ -8,11 +9,20 @@ export interface CategoryInput {
   description?: string | null;
   parent_id?: string | null;
   sort_order?: number;
+  surface?: 'portal' | 'forum';
 }
 
 export const categoryService = {
-  getCategories: async (): Promise<Category[]> => {
-    const response = await api.get<Category[]>('/categories');
+  /**
+   * Cây chuyên mục của trang đang đứng.
+   *
+   * Trang tin xếp theo chuyên trang toà soạn, diễn đàn chia theo chuyên khoa.
+   * Truyền 'all' khi cần cả hai — chỉ trang quản trị mới cần.
+   */
+  getCategories: async (surface: 'portal' | 'forum' | 'all' = SURFACE): Promise<Category[]> => {
+    const response = await api.get<Category[]>('/categories', {
+      params: surface === 'all' ? {} : { surface },
+    });
     return response.data;
   },
 

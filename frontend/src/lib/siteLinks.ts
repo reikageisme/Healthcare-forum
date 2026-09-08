@@ -15,6 +15,14 @@ export const APP_KIND: AppKind = import.meta.env.VITE_APP === 'forum' ? 'forum' 
 export const IS_FORUM = APP_KIND === 'forum';
 export const IS_PORTAL = !IS_FORUM;
 
+/**
+ * Nhãn gửi kèm mọi request đọc/ghi nội dung.
+ *
+ * Hai trang dùng chung một backend qua cùng một proxy, nên máy chủ không tự
+ * biết request đến từ đâu. Bản dựng thì biết — và đây là chỗ nó nói ra.
+ */
+export const SURFACE = APP_KIND;
+
 /** Bỏ dấu / cuối để nối chuỗi không sinh ra "//". */
 const trim = (value: string) => value.replace(/\/+$/, '');
 
@@ -64,6 +72,18 @@ export function forumHref(path = '/'): string {
  */
 export function forumCategoryHref(slug: string): string {
   return forumHref(`/c/${slug}`);
+}
+
+/**
+ * Đường dẫn tới một chuyên mục TRONG chính trang đang đứng.
+ *
+ * Trước đây sidebar và dải danh mục của trang tin đều gọi forumCategoryHref,
+ * nên bấm vào một chuyên mục ở medicvn.com là nhảy thẳng sang diễn đàn — hai
+ * trang dính vào nhau đúng ở chỗ khó chịu nhất. Trang tin có chuyên trang của
+ * nó (/category/:slug), diễn đàn có box của nó (/c/:slug).
+ */
+export function categoryHref(slug: string): string {
+  return IS_FORUM ? `/c/${slug}` : `/category/${slug}`;
 }
 
 /** Địa chỉ một thớt trên diễn đàn. */
