@@ -202,10 +202,21 @@ export interface AuthState {
   /** Đổi lấy access token mới khi token 30 phút hết hạn. */
   refreshToken: string | null;
   isAuthenticated: boolean;
+  /**
+   * Đã biết chắc người dùng là ai hay chưa.
+   *
+   * Ở forums.medicvn.com, localStorage của tên miền con trống trơn: danh tính
+   * chỉ đến sau một vòng gọi /auth/refresh. Trong lúc chờ, isAuthenticated là
+   * false — nhưng đó là "chưa biết", không phải "chưa đăng nhập". Mọi chỗ
+   * chặn quyền phải đợi cờ này lên rồi mới được kết luận, nếu không người
+   * đang đăng nhập vẫn bị đá về trang login.
+   */
+  authReady: boolean;
   login: (user: User, token: string, refreshToken?: string | null) => void;
   setTokens: (token: string, refreshToken: string | null) => void;
   logout: () => void;
   setUser: (user: User) => void;
+  markAuthReady: () => void;
 }
 
 export interface ApiResponse<T> {

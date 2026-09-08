@@ -4,15 +4,9 @@ import Header from '../components/Header/Header';
 import SidebarLeft from '../components/Sidebar/SidebarLeft';
 import SidebarRight from '../components/Sidebar/SidebarRight';
 import Footer from '../components/common/Footer';
-import useSilentLogin from '../hooks/useSilentLogin';
 
 const MainLayout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Nhận lại phiên đăng nhập từ cookie tên miền cha. Cần cho cả hai bản: ở
-  // diễn đàn đây là đường duy nhất để biết người dùng là ai, ở trang tin nó
-  // dựng lại phiên sau khi access token trong localStorage đã hết hạn.
-  useSilentLogin();
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">

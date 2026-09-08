@@ -247,6 +247,27 @@ describe('chặn spam thực phẩm chức năng', () => {
     expect(row[0]!.risk_score).toBeGreaterThanOrEqual(40);
   });
 
+  it('tác giả thấy bài chờ duyệt của mình trong danh sách, người khác thì không', async () => {
+    const member = await seedUser('user');
+    const other = await seedUser('user');
+
+    const posted = await createPost(member.token, 'Câu hỏi của tôi về giấc ngủ');
+    expect(posted.body.status).toBe('pending');
+
+    const ids = async (token?: string) => {
+      const res = await request('/posts?limit=50', { token, headers: nextIp() });
+      const body = await res.json();
+      return (body.items as Array<{ id: string }>).map((item) => item.id);
+    };
+
+    // Bài biến mất khỏi trang chủ ngay sau khi đăng là cách chắc chắn nhất để
+    // người viết tưởng bài bị nuốt mất. Của mình thì phải thấy...
+    expect(await ids(member.token)).toContain(posted.body.id);
+    // ...còn của người khác thì vẫn phải duyệt xong mới hiện.
+    expect(await ids(other.token)).not.toContain(posted.body.id);
+    expect(await ids()).not.toContain(posted.body.id);
+  });
+
   it('link tới ảnh của chính diễn đàn không bị tính là link ngoài', async () => {
     const doctor = await seedUser('doctor');
     const posted = await createPost(doctor.token, 'Bài có ảnh nội bộ', {

@@ -14,6 +14,7 @@ import { userService } from '../services/userService';
 import { postService } from '../services/postService';
 import { Post, User } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { useAuthStore } from '../stores/authStore';
 import { formatDate, getAvatarUrl } from '../lib/utils';
 import { VerifiedDoctorBadge, isVerifiedDoctor } from '../components/common/Badges';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
@@ -33,6 +34,7 @@ const PAGE_SIZE = 20;
 export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user: me } = useAuth();
+  const authReady = useAuthStore((s) => s.authReady);
 
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -61,11 +63,15 @@ export const ProfilePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+    // authReady: trang hồ sơ của CHÍNH mình còn hiện cả bài đang chờ duyệt,
+    // nhưng backend chỉ nới điều kiện đó khi nhận ra người gọi là chủ hồ sơ.
+    // Gọi trước khi phiên kịp dựng lại thì bài chờ duyệt không xuất hiện.
+  }, [id, authReady]);
 
   useEffect(() => {
+    if (!authReady) return;
     load();
-  }, [load]);
+  }, [load, authReady]);
 
   const loadMore = async () => {
     if (!id || !cursor || loadingMore || !hasMore) return;

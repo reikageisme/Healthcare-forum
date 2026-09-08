@@ -3,6 +3,7 @@ import { ScrollToTop } from './components/common/ScrollToTop';
 import PortalApp from './apps/PortalApp';
 import ForumApp from './apps/ForumApp';
 import { IS_FORUM } from './lib/siteLinks';
+import useSilentLogin from './hooks/useSilentLogin';
 
 /**
  * Một mã nguồn, hai bản dựng.
@@ -13,6 +14,11 @@ import { IS_FORUM } from './lib/siteLinks';
  * nhánh không dùng khi dựng — bản diễn đàn không mang theo trang quản trị.
  */
 function App() {
+  // Nhận lại phiên từ cookie tên miền cha. Đặt ở đây chứ không phải trong
+  // MainLayout: trang đăng nhập và khu quản trị nằm ngoài layout đó, mà cả
+  // hai đều cần biết người dùng là ai trước khi quyết định chặn hay cho qua.
+  useSilentLogin();
+
   return (
     <>
       <ErrorBoundary>{IS_FORUM ? <ForumApp /> : <PortalApp />}</ErrorBoundary>
