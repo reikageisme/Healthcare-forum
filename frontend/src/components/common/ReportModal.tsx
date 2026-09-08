@@ -4,6 +4,7 @@ import { reportService } from '../../services/reportService';
 import { useAuth } from '../../hooks/useAuth';
 import { ReportTargetType } from '../../types';
 import { describeApiError } from '../../lib/apiError';
+import { toast } from '../../lib/ui';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -43,7 +44,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      alert('Vui lòng đăng nhập để gửi báo cáo vi phạm.');
+      toast.info('Vui lòng đăng nhập để gửi báo cáo vi phạm.');
       return;
     }
 

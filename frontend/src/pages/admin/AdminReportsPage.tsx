@@ -4,6 +4,7 @@ import { adminService } from '../../services/adminService';
 import { Report } from '../../types';
 import ReportActionModal from '../../components/admin/ReportActionModal';
 import { formatDate } from '../../lib/utils';
+import { toast } from '../../lib/ui';
 
 export const AdminReportsPage: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
@@ -47,12 +48,12 @@ export const AdminReportsPage: React.FC = () => {
         status,
         resolution_notes: notes,
       });
-      alert('Đã cập nhật trạng thái báo cáo!');
+      toast.success('Đã cập nhật trạng thái báo cáo!');
       setSelectedReport(null);
       fetchReports();
     } catch (err) {
       console.error('Resolve report failed', err);
-      alert('Không thể cập nhật báo cáo.');
+      toast.error('Không thể cập nhật báo cáo.');
     } finally {
       setIsActionLoading(false);
     }
@@ -66,12 +67,12 @@ export const AdminReportsPage: React.FC = () => {
         status: 'resolved',
         resolution_notes: 'Nội dung vi phạm đã bị gỡ bỏ bởi Quản trị viên.',
       });
-      alert('Đã gỡ bỏ nội dung vi phạm và đóng báo cáo!');
+      toast.success('Đã gỡ bỏ nội dung vi phạm và đóng báo cáo!');
       setSelectedReport(null);
       fetchReports();
     } catch (err) {
       console.error('Delete content failed', err);
-      alert('Không thể gỡ bỏ nội dung vi phạm.');
+      toast.error('Không thể gỡ bỏ nội dung vi phạm.');
     } finally {
       setIsActionLoading(false);
     }

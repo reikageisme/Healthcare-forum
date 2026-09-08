@@ -8,6 +8,7 @@ import UserGrowthChart from '../../components/admin/UserGrowthChart';
 import PostActivityChart from '../../components/admin/PostActivityChart';
 import RejectModal from '../../components/admin/RejectModal';
 import { formatDate, getPostTypeInfo } from '../../lib/utils';
+import { toast } from '../../lib/ui';
 
 export const AdminDashboardPage: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -58,7 +59,7 @@ export const AdminDashboardPage: React.FC = () => {
       fetchDashboardData();
     } catch (err) {
       console.error('Approve failed', err);
-      alert('Không thể phê duyệt bài viết.');
+      toast.error('Không thể phê duyệt bài viết.');
     } finally {
       setIsActionLoading(false);
     }
@@ -74,7 +75,7 @@ export const AdminDashboardPage: React.FC = () => {
       fetchDashboardData();
     } catch (err) {
       console.error('Reject failed', err);
-      alert('Không thể từ chối bài viết.');
+      toast.error('Không thể từ chối bài viết.');
     } finally {
       setIsActionLoading(false);
     }

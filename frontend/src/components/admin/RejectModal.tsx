@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import { toast } from '../../lib/ui';
 
 interface RejectModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export const RejectModal: React.FC<RejectModalProps> = ({
     e.preventDefault();
     const finalReason = useCustom ? customReason.trim() : selectedPreset;
     if (!finalReason) {
-      alert('Vui lòng chọn hoặc nhập lý do từ chối.');
+      toast.info('Vui lòng chọn hoặc nhập lý do từ chối.');
       return;
     }
     await onConfirm(finalReason);

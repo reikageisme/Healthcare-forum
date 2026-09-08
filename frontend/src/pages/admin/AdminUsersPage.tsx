@@ -6,6 +6,7 @@ import EditUserModal from '../../components/admin/EditUserModal';
 import { formatDate, getAvatarUrl } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 import { describeApiError } from '../../lib/apiError';
+import { confirmDialog, toast } from '../../lib/ui';
 
 export const AdminUsersPage: React.FC = () => {
   const { user: currentUser } = useAuth();
@@ -58,13 +59,13 @@ export const AdminUsersPage: React.FC = () => {
     try {
       setIsActionLoading(true);
       await adminService.updateUser(userId, data);
-      alert('Đã cập nhật thông tin thành viên thành công!');
+      toast.success('Đã cập nhật thông tin thành viên thành công!');
       setEditingUser(null);
       fetchUsers();
     } catch (err: any) {
       console.error('Update user failed', err);
       const msg = describeApiError(err, 'Không thể cập nhật thành viên.');
-      alert(msg);
+      toast.error(msg);
     } finally {
       setIsActionLoading(false);
     }
@@ -72,14 +73,20 @@ export const AdminUsersPage: React.FC = () => {
 
   const handleToggleStatus = async (user: User) => {
     if (user.id === currentUser?.id) {
-      alert('Bạn không thể tự khóa tài khoản của chính mình.');
+      toast.error('Bạn không thể tự khóa tài khoản của chính mình.');
       return;
     }
 
     const nextState = !(user.is_active !== false);
     const actionName = nextState ? 'mở khóa' : 'khóa';
 
-    if (window.confirm(`Bạn có chắc chắn muốn ${actionName} tài khoản @${user.username}?`)) {
+    const ok = await confirmDialog({
+      title: `${nextState ? 'Mở khóa' : 'Khóa'} tài khoản?`,
+      message: `Tài khoản @${user.username} sẽ được ${actionName}.`,
+      confirmLabel: nextState ? 'Mở khóa' : 'Khóa tài khoản',
+      danger: !nextState,
+    });
+    if (ok) {
       try {
         setIsActionLoading(true);
         await adminService.toggleUserStatus(user.id, nextState);
@@ -87,7 +94,7 @@ export const AdminUsersPage: React.FC = () => {
       } catch (err: any) {
         console.error('Toggle status failed', err);
         const msg = describeApiError(err, 'Không thể thay đổi trạng thái tài khoản.');
-        alert(msg);
+        toast.error(msg);
       } finally {
         setIsActionLoading(false);
       }

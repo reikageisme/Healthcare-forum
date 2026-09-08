@@ -17,6 +17,7 @@ import { Post, Category } from '../../types';
 import RejectModal from '../../components/admin/RejectModal';
 import { formatDate, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
 import { flattenTree, indentLabel } from '../../lib/categoryTree';
+import { toast } from '../../lib/ui';
 
 export const AdminModerationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
@@ -80,11 +81,11 @@ export const AdminModerationPage: React.FC = () => {
     try {
       setIsActionLoading(true);
       await adminService.approvePost(postId);
-      alert('Đã phê duyệt bài viết thành công!');
+      toast.success('Đã phê duyệt bài viết thành công!');
       fetchModerationPosts();
     } catch (err) {
       console.error('Approve failed', err);
-      alert('Không thể phê duyệt bài viết.');
+      toast.error('Không thể phê duyệt bài viết.');
     } finally {
       setIsActionLoading(false);
     }
@@ -95,12 +96,12 @@ export const AdminModerationPage: React.FC = () => {
     try {
       setIsActionLoading(true);
       await adminService.rejectPost(rejectingPost.id, reason);
-      alert('Đã từ chối bài viết.');
+      toast.success('Đã từ chối bài viết.');
       setRejectingPost(null);
       fetchModerationPosts();
     } catch (err) {
       console.error('Reject failed', err);
-      alert('Không thể từ chối bài viết.');
+      toast.error('Không thể từ chối bài viết.');
     } finally {
       setIsActionLoading(false);
     }

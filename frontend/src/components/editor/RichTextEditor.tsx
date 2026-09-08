@@ -25,6 +25,7 @@ import {
 import { uploadService } from '../../services/uploadService';
 import { describeUploadError, validateImageFile } from '../../lib/uploadError';
 import { cn } from '../../lib/utils';
+import { toast } from '../../lib/ui';
 
 interface RichTextEditorProps {
   content?: string;
@@ -90,7 +91,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     const file = files[0];
     const localError = validateImageFile(file);
     if (localError) {
-      window.alert(localError);
+      toast.error(localError);
       if (fileInputRef.current) fileInputRef.current.value = '';
       setIsUploadingImage(false);
       return;
@@ -102,7 +103,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       editor.chain().focus().setImage({ src: res.url, alt: file.name }).run();
     } catch (error) {
       console.error('Failed to upload image', error);
-      window.alert(describeUploadError(error));
+      toast.error(describeUploadError(error));
     } finally {
       setIsUploadingImage(false);
       if (fileInputRef.current) {

@@ -14,6 +14,7 @@ import { Category } from '../../types';
 import CategoryModal from '../../components/admin/CategoryModal';
 import { childrenMap, flattenTree } from '../../lib/categoryTree';
 import { describeApiError } from '../../lib/apiError';
+import { confirmDialog, toast } from '../../lib/ui';
 
 export const AdminCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -56,10 +57,10 @@ export const AdminCategoriesPage: React.FC = () => {
       setIsSubmitting(true);
       if (editingCategory) {
         await categoryService.updateCategory(editingCategory.id, data);
-        alert('Đã cập nhật chuyên mục thành công!');
+        toast.success('Đã cập nhật chuyên mục thành công!');
       } else {
         await categoryService.createCategory(data);
-        alert('Đã tạo chuyên mục mới thành công!');
+        toast.success('Đã tạo chuyên mục mới thành công!');
       }
       setIsModalOpen(false);
       setEditingCategory(null);
@@ -67,7 +68,7 @@ export const AdminCategoriesPage: React.FC = () => {
     } catch (err: any) {
       console.error('Save category failed', err);
       const msg = describeApiError(err, 'Không thể lưu chuyên mục.');
-      alert(msg);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -112,7 +113,7 @@ export const AdminCategoriesPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Reorder category failed', err);
-      alert(describeApiError(err, 'Không thể lưu thứ tự chuyên mục.'));
+      toast.error(describeApiError(err, 'Không thể lưu thứ tự chuyên mục.'));
     } finally {
       fetchCategories();
     }
@@ -124,20 +125,22 @@ export const AdminCategoriesPage: React.FC = () => {
         ? ` Chuyên mục này hiện có ${cat.post_count} bài viết liên kết.`
         : '';
 
-    if (
-      window.confirm(
-        `Bạn có chắc chắn muốn xóa chuyên mục "${cat.name}" không?${postWarning}`
-      )
-    ) {
+    const ok = await confirmDialog({
+      title: 'Xóa chuyên mục?',
+      message: `Xóa "${cat.name}"?${postWarning} Mục con của nó sẽ trở thành chuyên mục gốc.`,
+      confirmLabel: 'Xóa chuyên mục',
+      danger: true,
+    });
+    if (ok) {
       try {
         setIsLoading(true);
         await categoryService.deleteCategory(cat.id);
-        alert('Đã xóa chuyên mục thành công!');
+        toast.success('Đã xóa chuyên mục thành công!');
         fetchCategories();
       } catch (err: any) {
         console.error('Delete category failed', err);
         const msg = describeApiError(err, 'Không thể xóa chuyên mục.');
-        alert(msg);
+        toast.error(msg);
       } finally {
         setIsLoading(false);
       }
