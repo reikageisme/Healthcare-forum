@@ -4,7 +4,6 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
-  ThumbsUp,
   ShieldCheck,
   Flag,
   CheckCircle2,
@@ -23,7 +22,7 @@ import {
 
 interface CommentItemProps {
   comment: Comment;
-  onReply: (parentId: string, content: string) => Promise<void>;
+  onReply: (parentId: string, content: string, isAnonymous: boolean) => Promise<void>;
   onDelete: (commentId: string) => Promise<void>;
   onAcceptAnswer?: (commentId: string | null) => Promise<void>;
   canAcceptAnswer?: boolean;
@@ -42,8 +41,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [localVoteCount, setLocalVoteCount] = useState(comment.vote_count || 0);
-  const [hasVoted, setHasVoted] = useState(false);
 
   const author = comment.author;
   const isVerified = isVerifiedDoctor(author);
@@ -54,18 +51,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const isAuthor = user && author && user.id === author.id;
   const canDelete = user && (isAuthor || user.role?.toUpperCase() === 'ADMIN' || user.role?.toUpperCase() === 'MODERATOR');
 
-  const handleVote = () => {
-    if (hasVoted) {
-      setLocalVoteCount((v) => Math.max(0, v - 1));
-      setHasVoted(false);
-    } else {
-      setLocalVoteCount((v) => v + 1);
-      setHasVoted(true);
-    }
-  };
-
-  const handleReplySubmit = async (content: string) => {
-    await onReply(comment.id, content);
+  const handleReplySubmit = async (content: string, isAnonymous: boolean) => {
+    await onReply(comment.id, content, isAnonymous);
     setIsReplying(false);
   };
 
@@ -78,7 +65,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const hasReplies = comment.replies && comment.replies.length > 0;
 
   return (
-    <div className={cn('relative flex flex-col', depth > 0 && 'mt-3')}>
+    <div className={cn('relative flex flex-col', depth > 0 && 'mt-2')}>
       {/* Indentation line on child items */}
       {depth > 0 && (
         <div
@@ -92,7 +79,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
       <div
         className={cn(
-          'p-3.5 rounded-xl border border-border bg-white transition-all hover:border-slate-300',
+          'px-3 py-2.5 rounded-lg border border-border bg-white transition-colors hover:border-slate-300',
           isAccepted && 'border-emerald-300 bg-emerald-50/40 hover:border-emerald-400',
           comment.is_deleted && 'bg-slate-50 border-dashed text-slate-400'
         )}
@@ -114,11 +101,11 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               <img
                 src={getAvatarUrl(author, author?.full_name || author?.username || 'User')}
                 alt={author?.full_name || 'Author'}
-                className="w-7 h-7 rounded-full object-cover border border-border"
+                className="w-6 h-6 rounded-full object-cover border border-border"
               />
             )}
 
-            <div className="flex items-center gap-1.5 flex-wrap text-xs">
+            <div className="flex items-center gap-1.5 flex-wrap text-[12px]">
               <span className="font-bold text-text">
                 {comment.is_deleted
                   ? '[Người dùng ẩn danh]'
@@ -182,14 +169,14 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         {isCollapsed ? (
           <div
             onClick={() => setIsCollapsed(false)}
-            className="text-xs text-text-secondary italic cursor-pointer hover:text-primary pl-7 py-1"
+            className="text-[12px] text-text-secondary italic cursor-pointer hover:text-primary pl-6 py-0.5"
           >
             Bình luận đã thu gọn {hasReplies && `(${comment.replies.length} phản hồi)`} — nhấn để mở
           </div>
         ) : (
           <>
             {/* Comment Body */}
-            <div className="pl-7 text-sm text-text whitespace-pre-wrap break-words leading-relaxed mb-3">
+            <div className="pl-6 text-[13px] text-text whitespace-pre-wrap break-words leading-6 mb-2">
               {comment.is_deleted ? (
                 <span className="italic text-slate-400 font-normal">
                   [Bình luận đã bị xóa]
@@ -201,23 +188,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
             {/* Comment Action Bar */}
             {!comment.is_deleted && (
-              <div className="pl-7 flex items-center gap-3 text-xs">
-                {/* Helpful / Vote */}
-                <button
-                  type="button"
-                  onClick={handleVote}
-                  className={cn(
-                    'flex items-center gap-1 font-medium px-2 py-1 rounded transition-colors',
-                    hasVoted
-                      ? 'text-primary bg-primary/10 font-bold'
-                      : 'text-text-secondary hover:text-primary hover:bg-slate-100'
-                  )}
-                  title="Thích bình luận"
-                >
-                  <ThumbsUp size={14} className={hasVoted ? 'fill-primary' : ''} />
-                  <span>{localVoteCount > 0 ? localVoteCount : 'Hữu ích'}</span>
-                </button>
-
+              <div className="pl-6 flex items-center gap-2 text-[12px]">
                 {/* Reply Button */}
                 <button
                   type="button"
@@ -248,7 +219,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
             {/* Inline Reply Form */}
             {isReplying && (
-              <div className="pl-7 mt-3 pt-3 border-t border-border">
+              <div className="pl-6 mt-2.5 pt-2.5 border-t border-border">
                 <CommentForm
                   onSubmit={handleReplySubmit}
                   onCancel={() => setIsReplying(false)}
@@ -261,13 +232,14 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
             {/* Recursive Replies Tree */}
             {hasReplies && (
-              <div className="pl-4 sm:pl-6 mt-3 space-y-3">
+              <div className="pl-3 sm:pl-5 mt-2.5 space-y-2">
                 {comment.replies.map((reply) => (
                   <CommentItem
                     key={reply.id}
                     comment={reply}
                     onReply={onReply}
                     onDelete={onDelete}
+                    onAcceptAnswer={onAcceptAnswer}
                     depth={depth + 1}
                   />
                 ))}
