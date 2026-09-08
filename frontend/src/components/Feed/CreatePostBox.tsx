@@ -1,8 +1,10 @@
 import React from 'react';
-import { PenLine, MessageCircle, Star } from 'lucide-react';
+import { PenLine, MessageCircle, Star, MessagesSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useRequireLogin } from '../../hooks/useRequireLogin';
+import { canPostHere, writeElsewhereHref } from '../../lib/canPost';
+import { IS_FORUM } from '../../lib/siteLinks';
 import { getAvatarUrl } from '../../lib/utils';
 
 export const CreatePostBox: React.FC = () => {
@@ -17,6 +19,32 @@ export const CreatePostBox: React.FC = () => {
     }
     navigate(`/create-post?type=${postType}`);
   };
+
+  /**
+   * Ở cổng tin tức, thành viên thường không đăng bài được — nội dung ở đây
+   * đứng tên toà soạn. Thay vì giấu ô soạn bài đi (rồi họ không biết đăng ở
+   * đâu), chỉ thẳng sang diễn đàn, nơi họ viết được ngay.
+   */
+  if (!IS_FORUM && !canPostHere(user)) {
+    return (
+      <a
+        href={writeElsewhereHref()}
+        className="flex items-center gap-3 bg-surface rounded-lg p-3.5 border border-border mb-4 hover:border-primary/40 transition-colors group"
+      >
+        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <MessagesSquare size={18} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-text group-hover:text-primary transition-colors">
+            Bạn có câu hỏi hoặc kinh nghiệm sức khỏe muốn chia sẻ?
+          </p>
+          <p className="text-[12px] text-text-secondary mt-0.5">
+            Đăng bài trên diễn đàn để cộng đồng và bác sĩ cùng trả lời.
+          </p>
+        </div>
+      </a>
+    );
+  }
 
   return (
     <>

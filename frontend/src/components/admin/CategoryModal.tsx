@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Folder, FolderPlus } from 'lucide-react';
-import { Category } from '../../types';
+import { Category, Surface } from '../../types';
 import {
   MAX_CATEGORY_DEPTH,
   branchHeight,
@@ -24,6 +24,7 @@ interface CategoryModalProps {
     description?: string | null;
     parent_id?: string | null;
     sort_order?: number;
+    surface?: Surface;
   }) => Promise<void>;
   isSubmitting?: boolean;
 }
@@ -42,6 +43,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const [description, setDescription] = useState('');
   const [parentId, setParentId] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
+  const [surface, setSurface] = useState<Surface>('forum');
 
   useEffect(() => {
     if (category) {
@@ -51,6 +53,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       setDescription(category.description || '');
       setParentId(category.parent_id || '');
       setSortOrder(String(category.sort_order ?? 0));
+      setSurface(category.surface ?? 'forum');
     } else {
       setName('');
       setSlug('');
@@ -58,6 +61,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       setDescription('');
       setParentId('');
       setSortOrder('0');
+      setSurface('forum');
     }
   }, [category, isOpen]);
 
@@ -113,6 +117,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       // "leave alone", so this is always sent explicitly.
       parent_id: parentId || null,
       sort_order: Number(sortOrder) || 0,
+      surface,
     });
   };
 
@@ -152,6 +157,29 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
               required
               className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
+          </div>
+
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Thuộc trang</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['forum', 'portal'] as Surface[]).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setSurface(value)}
+                  className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${
+                    surface === value
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-slate-300 text-slate-500 hover:border-slate-400'
+                  }`}
+                >
+                  {value === 'forum' ? 'Diễn đàn' : 'Trang tin'}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Hai trang có hai cây chuyên mục riêng. Đổi ở đây thì cả nhánh con đi theo.
+            </p>
           </div>
 
           <div>

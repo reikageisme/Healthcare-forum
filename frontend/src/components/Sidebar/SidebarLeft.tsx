@@ -2,9 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Home,
   MessagesSquare,
-  MessageCircle,
-  BookOpen,
-  Star,
   Bookmark,
   ChevronDown,
   ChevronUp,
@@ -12,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import SiteLink from '../common/SiteLink';
-import { IS_FORUM, forumCategoryHref, forumHref, portalHref } from '../../lib/siteLinks';
+import { IS_FORUM, categoryHref, forumHref, portalHref } from '../../lib/siteLinks';
 import { cn } from '../../lib/utils';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
@@ -40,16 +37,14 @@ const CategoryGlyph: React.FC<{ icon?: string | null; size?: number }> = ({ icon
 /**
  * Điều hướng chính, khác nhau giữa hai bản dựng.
  *
- * Ở cổng tin tức, "Diễn đàn" là một liên kết rời tên miền; ở diễn đàn thì
- * ngược lại, "Trang tin" là lối quay về. Các mục lọc theo loại bài (Hỏi đáp,
- * Bài viết, Đánh giá) thuộc về bảng tin nên không xuất hiện ở diễn đàn.
+ * Mỗi bên chỉ còn ĐÚNG MỘT liên kết sang bên kia. Trước đây trang tin còn ba
+ * mục lọc theo loại bài (Hỏi đáp, Bài viết, Đánh giá) — thứ chỉ có nghĩa với
+ * một diễn đàn — nên đứng ở medicvn.com mà cứ như đang ở forums.medicvn.com.
+ * Tin tức thì đọc theo chuyên trang, không lọc theo kiểu thớt.
  */
 const portalNav = [
   { name: 'Trang chủ', icon: Home, path: '/' },
   { name: 'Diễn đàn', icon: MessagesSquare, path: forumHref() },
-  { name: 'Hỏi đáp', icon: MessageCircle, path: '/?type=question' },
-  { name: 'Bài viết', icon: BookOpen, path: '/?type=article' },
-  { name: 'Đánh giá', icon: Star, path: '/?type=review' },
   { name: 'Đã lưu', icon: Bookmark, path: '/bookmarks' },
 ];
 
@@ -94,7 +89,7 @@ const CategoryBranch: React.FC<{
     <div>
       <div className="flex items-center">
         <SiteLink
-          to={IS_FORUM ? forumCategoryHref(node.slug) : `/category/${node.slug}`}
+          to={IS_FORUM ? categoryHref(node.slug) : `/category/${node.slug}`}
           className={cn(
             'flex items-center gap-2 px-3 rounded-lg group flex-1 min-w-0 transition-colors',
             depth === 1 ? 'py-2 text-xs font-medium' : 'py-1.5 text-xs',
