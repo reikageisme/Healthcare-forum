@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   MessageCircle,
-  MessagesSquare,
   Share2,
   MoreHorizontal,
   ShieldCheck,
@@ -17,8 +16,6 @@ import { ReactionButtons } from '../posts/ReactionButtons';
 import { BookmarkButton } from '../posts/BookmarkButton';
 import { PostGallery } from '../posts/PostGallery';
 import { ReportModal } from '../common/ReportModal';
-import SiteLink from '../common/SiteLink';
-import { IS_PORTAL, forumHref } from '../../lib/siteLinks';
 import { formatRelativeTime, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
 import { AnonymousBadge, VerifiedDoctorBadge, isVerifiedDoctor } from '../common/Badges';
@@ -270,24 +267,6 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
             <span>{post.comment_count ?? post.commentCount ?? 0}</span>
             <span className="hidden sm:inline">bình luận</span>
           </Link>
-
-          {/*
-            Lối sang diễn đàn, chỉ có ở cổng tin tức.
-
-            Trang tin xuất bản, diễn đàn bàn luận — nhưng người đọc phải nhìn
-            thấy lối đi đó ngay dưới bài thì việc tách hai tên miền mới có
-            nghĩa, thay vì thành hai trang không liên quan.
-          */}
-          {IS_PORTAL && (
-            <SiteLink
-              to={forumHref(`/posts/${post.id}`)}
-              className="hidden sm:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-lg transition-colors"
-              title="Mở thớt thảo luận trên forums.medicvn.com"
-            >
-              <MessagesSquare size={17} />
-              <span className="hidden lg:inline">Thảo luận</span>
-            </SiteLink>
-          )}
 
           {/* Bookmark Button */}
           <BookmarkButton

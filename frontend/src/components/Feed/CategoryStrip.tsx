@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { LayoutGrid } from 'lucide-react';
 import SiteLink from '../common/SiteLink';
-import { forumCategoryHref, forumHref } from '../../lib/siteLinks';
+import { categoryHref, forumHref } from '../../lib/siteLinks';
 import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
 import { rootsOf } from '../../lib/categoryTree';
@@ -39,7 +39,7 @@ export const CategoryStrip: React.FC = () => {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-bold text-text flex items-center gap-2">
           <LayoutGrid size={16} className="text-primary" aria-hidden="true" />
-          Danh mục
+          Chuyên trang
         </h2>
         <SiteLink
           to={forumHref()}
@@ -52,7 +52,7 @@ export const CategoryStrip: React.FC = () => {
         {roots.map((cat) => (
           <SiteLink
             key={cat.id}
-            to={forumCategoryHref(cat.slug)}
+            to={categoryHref(cat.slug)}
             className="inline-flex items-center gap-2 whitespace-nowrap px-3 py-2 rounded-xl border border-border bg-white text-xs font-semibold text-text-secondary hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
           >
             <Glyph icon={cat.icon} />

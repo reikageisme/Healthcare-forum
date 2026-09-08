@@ -28,7 +28,7 @@ export const AdminCategoriesPage: React.FC = () => {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const data = await categoryService.getCategories();
+      const data = await categoryService.getCategories('all');
       setCategories(data || []);
     } catch (err) {
       console.error('Failed to load categories', err);
@@ -228,6 +228,7 @@ export const AdminCategoriesPage: React.FC = () => {
                 <tr className="bg-slate-50/75 border-b border-border text-slate-500 font-bold uppercase tracking-wider">
                   <th className="py-3.5 px-4 w-12 text-center">Icon</th>
                   <th className="py-3.5 px-4">Tên chuyên mục</th>
+                  <th className="py-3.5 px-4">Thuộc trang</th>
                   <th className="py-3.5 px-4">Đường dẫn (Slug)</th>
                   <th className="py-3.5 px-4">Mô tả</th>
                   <th className="py-3.5 px-4 text-center">Số bài viết</th>
@@ -268,6 +269,23 @@ export const AdminCategoriesPage: React.FC = () => {
                           </span>
                         ) : null}
                       </div>
+                    </td>
+
+                    {/*
+                      Hai cây trong cùng một bảng: chuyên khoa của diễn đàn và
+                      chuyên trang của toà soạn. Không có nhãn này thì nhìn
+                      danh sách không biết mục nào hiện ở đâu.
+                    */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${
+                          cat.surface === 'portal'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-blue-50 text-primary border-blue-200'
+                        }`}
+                      >
+                        {cat.surface === 'portal' ? 'Trang tin' : 'Diễn đàn'}
+                      </span>
                     </td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 font-mono">

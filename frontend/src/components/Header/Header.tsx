@@ -6,6 +6,7 @@ import { getAvatarUrl } from '../../lib/utils';
 import api from '../../lib/api';
 import SiteLink from '../common/SiteLink';
 import { IS_FORUM, loginHref, portalHref } from '../../lib/siteLinks';
+import { canPostHere, writeElsewhereHref } from '../../lib/canPost';
 
 interface HeaderProps {
   toggleMobileMenu: () => void;
@@ -113,14 +114,29 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                 </SiteLink>
               )}
 
-              {/* Write post button */}
-              <Link
-                to="/create-post"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-full text-xs sm:text-sm font-semibold shadow-sm transition-colors"
-              >
-                <Plus size={16} />
-                <span>{IS_FORUM ? 'Tạo chủ đề' : 'Viết bài'}</span>
-              </Link>
+              {/*
+                Nút viết bài.
+
+                Ở cổng tin tức, thành viên thường không đăng được — nút đưa họ
+                sang diễn đàn thay vì mở một cái form rồi báo lỗi ở bước cuối.
+              */}
+              {canPostHere(user) ? (
+                <Link
+                  to="/create-post"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-full text-xs sm:text-sm font-semibold shadow-sm transition-colors"
+                >
+                  <Plus size={16} />
+                  <span>{IS_FORUM ? 'Tạo chủ đề' : 'Viết bài'}</span>
+                </Link>
+              ) : (
+                <a
+                  href={writeElsewhereHref()}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-full text-xs sm:text-sm font-semibold shadow-sm transition-colors"
+                >
+                  <Plus size={16} />
+                  <span>Đăng ở diễn đàn</span>
+                </a>
+              )}
 
               <button
                 type="button"

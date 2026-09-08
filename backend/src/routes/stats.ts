@@ -130,6 +130,9 @@ statsRoutes.get('/forum', async (c) => {
       last_post: categoryLastPost,
     })
     .from(categories)
+    // Chỉ cây của diễn đàn. Trang chủ diễn đàn từng liệt kê cả chuyên trang
+    // của toà soạn, nên hai trang trông y hệt nhau.
+    .where(eq(categories.surface, 'forum'))
     .orderBy(asc(categories.sort_order), asc(categories.name));
 
   c.header('Cache-Control', 'public, max-age=60');
@@ -189,6 +192,9 @@ statsRoutes.get('/forum/hot-threads', async (c) => {
       and(
         eq(posts.status, 'approved'),
         eq(posts.is_published, true),
+        // "Đang bàn luận" là thẻ đọc SANG diễn đàn, nên chỉ thớt diễn đàn mới
+        // vào đây — một bài báo của toà soạn lọt vào thì thẻ mất nghĩa.
+        eq(posts.surface, 'forum'),
         sql`"posts"."comment_count" > 0`,
       ),
     )

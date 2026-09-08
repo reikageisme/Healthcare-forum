@@ -35,7 +35,7 @@ export const AdminModerationPage: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      const data = await categoryService.getCategories();
+      const data = await categoryService.getCategories('all');
       setCategories(data || []);
     } catch {
       // Ignore category load error

@@ -70,7 +70,7 @@ export const AdminPostsPage: React.FC = () => {
 
   useEffect(() => {
     categoryService
-      .getCategories()
+      .getCategories('all')
       .then(setCategories)
       .catch((err) => console.error('Failed to load categories', err));
   }, []);

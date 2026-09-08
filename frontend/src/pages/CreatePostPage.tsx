@@ -12,6 +12,7 @@ import { Category, TagWithCount, PostType } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useRequireLogin } from '../hooks/useRequireLogin';
 import { useAuthStore } from '../stores/authStore';
+import { canPostHere, writeElsewhereHref } from '../lib/canPost';
 import { flattenTree, indentLabel } from '../lib/categoryTree';
 import { describeApiError } from '../lib/apiError';
 
@@ -25,7 +26,7 @@ const POST_TYPES: { type: PostType; label: string; desc: string }[] = [
 export const CreatePostPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const requireLogin = useRequireLogin();
   const authReady = useAuthStore((s) => s.authReady);
 
@@ -134,6 +135,30 @@ export const CreatePostPage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  /**
+   * Trang tin chỉ nhận bài của ban biên tập.
+   *
+   * Backend chặn cùng luật này, nên đây không phải hàng rào bảo mật — nó chỉ
+   * để người dùng không gõ xong cả bài rồi mới bị báo lỗi ở nút Đăng.
+   */
+  if (authReady && isAuthenticated && !canPostHere(user)) {
+    return (
+      <div className="max-w-xl mx-auto py-16 text-center bg-white rounded-xl p-8 border border-border">
+        <h1 className="text-lg font-bold text-text mb-2">Bài viết ở đây do ban biên tập đăng</h1>
+        <p className="text-[13px] text-text-secondary mb-6 leading-relaxed">
+          Trang tin đăng nội dung đã qua biên tập. Câu hỏi, kinh nghiệm và bài chia sẻ của bạn
+          thuộc về diễn đàn — nơi cộng đồng và bác sĩ cùng trả lời.
+        </p>
+        <a
+          href={writeElsewhereHref()}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-semibold text-[13px] hover:bg-primary-dark transition-colors"
+        >
+          Đăng bài trên diễn đàn
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-2">

@@ -94,6 +94,14 @@ export const categories = pgTable(
     // Self-reference for the parent/child tree. Depth is capped at three
     // levels by the API (cha -> con -> cháu).
     parent_id: uuid('parent_id'),
+    /**
+     * Cây chuyên mục của trang tin và của diễn đàn là hai cây khác nhau.
+     *
+     * Diễn đàn chia theo chuyên khoa (Nội, Ngoại, Sản - Phụ - Nhi...); trang
+     * tin xếp theo chuyên trang toà soạn (Tin y tế, Cảnh báo dịch bệnh...).
+     * Dùng chung một cây thì một nửa số mục ở mỗi bên vĩnh viễn để trống.
+     */
+    surface: varchar('surface', { length: 16 }).notNull().default('forum'),
     // Manual ordering inside one level. Ties fall back to the name, so a
     // category nobody has ordered yet still lands alphabetically instead of
     // wherever the database felt like putting it.
@@ -105,6 +113,7 @@ export const categories = pgTable(
     parentIdx: index('ix_categories_parent_id').on(t.parent_id),
     nameIdx: uniqueIndex('ix_categories_name').on(t.name),
     slugIdx: uniqueIndex('ix_categories_slug').on(t.slug),
+    surfaceIdx: index('ix_categories_surface').on(t.surface),
   }),
 );
 
@@ -139,6 +148,15 @@ export const posts = pgTable(
     // Only meaningful for post_type = 'question'.
     accepted_comment_id: uuid('accepted_comment_id'),
     is_anonymous: boolean('is_anonymous').notNull().default(false),
+    /**
+     * Bài này thuộc trang tin ('portal') hay diễn đàn ('forum').
+     *
+     * Hai trang dùng chung một bảng posts, một bộ bình luận, một hàng chờ
+     * kiểm duyệt — viết lại thành hai bảng chỉ để chia đôi nội dung thì phải
+     * nhân đôi toàn bộ API đó. Một cột nhãn làm đúng việc cần làm, và chuyển
+     * một bài qua lại chỉ là đổi một ô.
+     */
+    surface: varchar('surface', { length: 16 }).notNull().default('forum'),
     /** Supplement-spam heuristic score; the queue is sorted by it. */
     risk_score: integer('risk_score').notNull().default(0),
     view_count: integer('view_count').notNull().default(0),
@@ -161,6 +179,7 @@ export const posts = pgTable(
     createdIdx: index('ix_posts_created_at').on(t.created_at),
     typeIdx: index('ix_posts_post_type').on(t.post_type),
     statusIdx: index('ix_posts_status').on(t.status),
+    surfaceIdx: index('ix_posts_surface').on(t.surface),
   }),
 );
 

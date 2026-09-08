@@ -11,16 +11,16 @@ import { EmptyState } from '../components/common/EmptyState';
 import { postService } from '../services/postService';
 import { Post } from '../types';
 
-const TABS = [
-  { id: 'ALL', label: 'Tất cả', type: undefined },
-  { id: 'ARTICLE', label: 'Bài viết', type: 'ARTICLE' },
-  { id: 'QUESTION', label: 'Hỏi đáp', type: 'QUESTION' },
-  { id: 'REVIEW', label: 'Đánh giá', desc: 'Đánh giá', type: 'REVIEW' },
-  { id: 'SHARE', label: 'Chia sẻ', type: 'SHARE' },
-];
-
+/**
+ * Trang chủ của CỔNG TIN TỨC.
+ *
+ * Không còn thanh lọc Hỏi đáp / Đánh giá / Chia sẻ: ba loại đó là chuyện của
+ * diễn đàn, và giữ chúng ở đây là lý do hai trang trông y hệt nhau. Trang tin
+ * chỉ đăng bài của toà soạn, nên thứ để lọc là chuyên trang, không phải loại
+ * bài. Tham số ?type= trên URL vẫn được tôn trọng cho những link đã chia sẻ.
+ */
 export const HomePage: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const activeTypeParam = searchParams.get('type')?.toUpperCase();
   const searchParam = searchParams.get('search') || '';
 
@@ -130,16 +130,6 @@ export const HomePage: React.FC = () => {
     };
   }, [hasMore, isFetchingNext, isLoadingInitial, nextCursor]);
 
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
-    if (tabId === 'ALL') {
-      searchParams.delete('type');
-    } else {
-      searchParams.set('type', tabId.toLowerCase());
-    }
-    setSearchParams(searchParams);
-  };
-
   return (
     <div className="max-w-4xl mx-auto xl:mx-0 xl:max-w-none">
       {/* Top Stories */}
@@ -151,28 +141,9 @@ export const HomePage: React.FC = () => {
       {/* Danh mục */}
       <CategoryStrip />
 
-      {/* Feed Filters Tabs + chuyển chế độ xem */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 flex-1 min-w-0">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
-                  isActive
-                    ? 'bg-primary text-white shadow-sm shadow-primary/25'
-                    : 'bg-white text-text-secondary hover:text-text hover:bg-slate-100 border border-border'
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-1 bg-white border border-border rounded-xl p-1 shrink-0">
+      {/* Chuyển chế độ xem */}
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <div className="flex items-center gap-1 bg-white border border-border rounded-lg p-1 shrink-0">
           <button
             type="button"
             onClick={() => changeView('card')}

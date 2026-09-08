@@ -93,6 +93,8 @@ export const categoryResponseSchema = z
     description: z.string().nullable(),
     parent_id: z.string().nullable(),
     sort_order: z.number().int(),
+    /** 'portal' hay 'forum' — chuyên mục này thuộc cây của trang nào. */
+    surface: z.enum(['portal', 'forum']),
     created_at: z.string(),
     post_count: z.number().int(),
   })
@@ -108,6 +110,7 @@ export function toCategoryResponse(row: CategoryRow, postCount = 0): CategoryRes
     description: row.description,
     parent_id: row.parent_id,
     sort_order: row.sort_order ?? 0,
+    surface: row.surface === 'portal' ? 'portal' : 'forum',
     created_at: toIsoRequired(row.created_at),
     post_count: postCount,
   });
@@ -162,6 +165,8 @@ export const postSummarySchema = z
     images: z.array(z.string()).default([]),
     post_type: z.enum(postTypeValues),
     status: z.enum(postStatusValues),
+    /** Bài này thuộc trang tin hay diễn đàn. */
+    surface: z.enum(['portal', 'forum']),
     rejection_reason: z.string().nullable(),
     is_anonymous: z.boolean(),
     accepted_comment_id: z.string().nullable(),
@@ -228,6 +233,7 @@ export function toPostSummary(post: PostRow, ctx: PostViewContext): PostSummaryR
     images: postImages(post.content, post.thumbnail),
     post_type: post.post_type,
     status: post.status,
+    surface: post.surface === 'portal' ? 'portal' : 'forum',
     rejection_reason: post.rejection_reason,
     is_anonymous: post.is_anonymous,
     accepted_comment_id: post.accepted_comment_id,

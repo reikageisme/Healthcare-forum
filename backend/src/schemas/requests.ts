@@ -54,6 +54,12 @@ export const postCreateSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   tag_names: z.array(z.string()).nullish(),
   is_anonymous: z.boolean().optional().default(false),
+  /**
+   * Bài này sinh ra ở trang nào. Client biết điều đó (mỗi bản dựng là một
+   * trang), máy chủ thì không — request tới cùng một backend qua cùng một
+   * proxy. Thiếu trường này thì mặc định là diễn đàn, nơi ai cũng viết được.
+   */
+  surface: z.enum(['portal', 'forum']).optional(),
 });
 
 export const postUpdateSchema = z.object({
@@ -65,6 +71,8 @@ export const postUpdateSchema = z.object({
   category_id: z.string().uuid().nullish(),
   tags: z.array(z.string()).nullish(),
   tag_names: z.array(z.string()).nullish(),
+  /** Chuyển một bài giữa trang tin và diễn đàn; chỉ ban quản trị đổi được. */
+  surface: z.enum(['portal', 'forum']).optional(),
 });
 
 export const postModerationSchema = z.object({
@@ -82,6 +90,8 @@ export const categoryCreateSchema = z.object({
   description: optionalString(255),
   parent_id: z.string().uuid().nullish(),
   sort_order: z.number().int().min(0).max(9999).nullish(),
+  /** Chuyên mục này thuộc cây của trang tin hay của diễn đàn. */
+  surface: z.enum(['portal', 'forum']).optional(),
 });
 
 export const categoryUpdateSchema = z.object({
@@ -93,6 +103,7 @@ export const categoryUpdateSchema = z.object({
   // distinguishes "not sent" from "sent as null".
   parent_id: z.string().uuid().nullish(),
   sort_order: z.number().int().min(0).max(9999).nullish(),
+  surface: z.enum(['portal', 'forum']).optional(),
 });
 
 export const commentCreateSchema = z.object({

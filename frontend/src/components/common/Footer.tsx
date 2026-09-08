@@ -6,7 +6,7 @@ import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
 import { rootsOf } from '../../lib/categoryTree';
 import SiteLink from './SiteLink';
-import { forumCategoryHref, forumHref, portalHref } from '../../lib/siteLinks';
+import { categoryHref, forumHref, portalHref } from '../../lib/siteLinks';
 import SiteAvatar from './SiteAvatar';
 
 /**
@@ -101,7 +101,7 @@ export const Footer: React.FC = () => {
                 {topCategories.map((cat) => (
                   <li key={cat.id}>
                     <SiteLink
-                      to={forumCategoryHref(cat.slug)}
+                      to={categoryHref(cat.slug)}
                       className="text-sm text-text-secondary hover:text-primary transition-colors line-clamp-1"
                     >
                       {cat.name}

@@ -8,6 +8,7 @@ import { parseBody } from '../lib/validate.js';
 import { sanitizePlainText, sanitizeRichText, stripHtmlAndTruncate } from '../lib/sanitize.js';
 import { deaccent, toSearchText } from '../lib/slugify.js';
 import { assessContent } from '../lib/spamGuard.js';
+import { asSurface, canPublishToPortal } from '../lib/surface.js';
 import {
   decodeCursor,
   encodeCursor,
@@ -62,6 +63,24 @@ postRoutes.post('/', requireAuth, async (c) => {
   const risk = assessContent({ title, content }, { createdAt: me.created_at, role: me.role });
   const status = trusted && !risk.forceReview ? ('approved' as const) : ('pending' as const);
 
+  /**
+   * Bài này thuộc trang tin hay diễn đàn.
+   *
+   * Client nói ra, vì chỉ nó biết: mỗi bản dựng là một trang, còn backend thì
+   * nhận request của cả hai qua cùng một proxy. Không nói gì thì là diễn đàn —
+   * nơi ai cũng viết được — chứ không phải trang tin.
+   *
+   * Trang tin đứng tên toà soạn: người đọc thấy một bài trên medicvn.com thì
+   * hiểu đó là nội dung đã qua biên tập. Nên chỉ admin, kiểm duyệt viên và bác
+   * sĩ đăng được vào đó; thành viên thường vẫn viết thoải mái, ở diễn đàn.
+   */
+  const surface = asSurface(body.surface) ?? 'forum';
+  if (surface === 'portal' && !canPublishToPortal(me.role)) {
+    throw forbidden(
+      'Chỉ ban biên tập mới đăng được bài lên trang tin. Bài của bạn thuộc về diễn đàn.',
+    );
+  }
+
   const inserted = await db
     .insert(posts)
     .values({
@@ -72,6 +91,7 @@ postRoutes.post('/', requireAuth, async (c) => {
       thumbnail: body.thumbnail ?? null,
       post_type: body.post_type,
       status,
+      surface,
       risk_score: risk.score,
       is_anonymous: body.is_anonymous ?? false,
       search_text: toSearchText(title, excerpt, content),
@@ -116,6 +136,16 @@ postRoutes.get('/', optionalAuth, async (c) => {
 
   const isAdminOrMod = !!me && (me.role === 'admin' || me.role === 'moderator');
   const isAuthorQuery = !!authorId && !!me && me.id === authorId;
+
+  /**
+   * Lọc theo trang gọi tới.
+   *
+   * Đây là thứ khiến medicvn.com và forums.medicvn.com thôi hiện y hệt nhau.
+   * Không truyền surface thì không lọc — trang quản trị cần nhìn cả hai bên
+   * trong cùng một bảng.
+   */
+  const listSurface = asSurface(q.surface);
+  if (listSurface) conditions.push(eq(posts.surface, listSurface));
 
   if (isAuthorQuery || isAdminOrMod) {
     const wanted = q.status?.toLowerCase();
@@ -323,6 +353,19 @@ postRoutes.put('/:id_or_slug', requireAuth, async (c) => {
 
   const body = await parseBody(c, postUpdateSchema);
   const patch: Partial<typeof posts.$inferInsert> = {};
+
+  /**
+   * Chuyển một bài giữa trang tin và diễn đàn.
+   *
+   * Chỉ ban quản trị: đây là lối duy nhất để một bài hay trên diễn đàn được
+   * đưa lên trang tin, và cũng là lối gỡ một bài đăng nhầm chỗ xuống. Tác giả
+   * tự đổi được thì "tin tức" không còn nghĩa gì.
+   */
+  const nextSurface = asSurface(body.surface);
+  if (nextSurface && nextSurface !== found.post.surface) {
+    if (!isStaff) throw forbidden('Chỉ ban quản trị mới chuyển bài giữa trang tin và diễn đàn');
+    patch.surface = nextSurface;
+  }
 
   if (body.title !== undefined && body.title !== null && body.title !== found.post.title) {
     patch.title = sanitizePlainText(body.title);

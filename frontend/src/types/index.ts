@@ -34,6 +34,9 @@ export interface TagWithCount extends Tag {
   post_count: number;
 }
 
+/** Trang tin ('portal') hay diễn đàn ('forum') — hai mặt của cùng hệ thống. */
+export type Surface = 'portal' | 'forum';
+
 export interface Category {
   id: string;
   name: string;
@@ -44,6 +47,8 @@ export interface Category {
   parent_id?: string | null;
   /** Thứ tự thủ công trong cùng một cấp; cùng số thì xếp theo tên. */
   sort_order?: number;
+  /** Chuyên mục này thuộc cây của trang tin hay của diễn đàn. */
+  surface?: Surface;
   created_at?: string;
   post_count?: number;
 }
@@ -71,6 +76,8 @@ export interface Post {
   post_type: PostType;
   type?: PostType; // Compatibility alias
   status?: PostStatus;
+  /** Bài này thuộc trang tin hay diễn đàn. */
+  surface?: Surface;
   rejection_reason?: string | null;
   view_count: number;
   helpful_count: number;
@@ -101,6 +108,8 @@ export interface PostCreateInput {
   tags?: string[];
   tag_names?: string[];
   is_anonymous?: boolean;
+  /** postService tự điền theo bản dựng; hiếm khi cần truyền tay. */
+  surface?: Surface;
 }
 
 export interface PostUpdateInput {
@@ -310,6 +319,7 @@ export interface CategoryCreateInput {
   slug?: string;
   icon?: string | null;
   description?: string | null;
+  surface?: Surface;
 }
 
 export interface CategoryUpdateInput {
@@ -317,6 +327,7 @@ export interface CategoryUpdateInput {
   slug?: string;
   icon?: string | null;
   description?: string | null;
+  surface?: Surface;
 }
 
 export interface PaginatedResponse<T> {
