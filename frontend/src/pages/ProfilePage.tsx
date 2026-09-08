@@ -108,7 +108,7 @@ export const ProfilePage: React.FC = () => {
   const displayName = user.full_name || user.username;
 
   return (
-    <div>
+    <div className="w-full max-w-[760px] mx-auto">
       <div className="flex items-center gap-1.5 text-xs text-text-secondary mb-3">
         <Link to="/" className="hover:text-primary">Trang chủ</Link>
         <ChevronRight size={12} aria-hidden="true" />

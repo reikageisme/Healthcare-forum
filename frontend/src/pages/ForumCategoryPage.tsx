@@ -89,7 +89,7 @@ export const ForumCategoryPage: React.FC = () => {
   ];
 
   return (
-    <div>
+    <div className="w-full max-w-[820px] mx-auto">
       <div className="flex items-center gap-1.5 text-xs text-text-secondary mb-3">
         <SiteLink to={portalHref('/')} className="hover:text-primary">Trang tin</SiteLink>
         <ChevronRight size={12} />
