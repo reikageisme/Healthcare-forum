@@ -13,6 +13,7 @@ import {
 } from '../db/schema.js';
 import { badRequest, notFound } from '../core/errors.js';
 import { readNetworkConfig, writeNetworkConfig } from '../lib/siteSettings.js';
+import { notify } from '../lib/notify.js';
 import { asUuid } from '../core/security.js';
 import { parseBody } from '../lib/validate.js';
 import { sanitizePlainText } from '../lib/sanitize.js';
@@ -262,13 +263,27 @@ async function approvePost(c: Context) {
   const id = asUuid(c.req.param('post_id'));
   if (!id) throw notFound('Post not found');
 
-  const rows = await db.select({ id: posts.id }).from(posts).where(eq(posts.id, id)).limit(1);
+  const rows = await db
+    .select({ id: posts.id, title: posts.title, author_id: posts.author_id })
+    .from(posts)
+    .where(eq(posts.id, id))
+    .limit(1);
   if (!rows[0]) throw notFound('Post not found');
 
   await db
     .update(posts)
     .set({ status: 'approved', rejection_reason: null, updated_at: new Date() })
     .where(eq(posts.id, id));
+
+  // Người viết đã chờ trong hàng duyệt; họ phải biết bài đã lên mà không cần
+  // vào lại trang cá nhân để tự kiểm tra.
+  await notify({
+    userId: rows[0].author_id,
+    type: 'post_approved',
+    title: 'Bài viết của bạn đã được duyệt',
+    body: rows[0].title,
+    link: `/posts/${id}`,
+  });
 
   return c.json({
     success: true,
@@ -291,13 +306,26 @@ async function rejectPost(c: Context) {
     reason = null;
   }
 
-  const rows = await db.select({ id: posts.id }).from(posts).where(eq(posts.id, id)).limit(1);
+  const rows = await db
+    .select({ id: posts.id, title: posts.title, author_id: posts.author_id })
+    .from(posts)
+    .where(eq(posts.id, id))
+    .limit(1);
   if (!rows[0]) throw notFound('Post not found');
 
   await db
     .update(posts)
     .set({ status: 'rejected', rejection_reason: reason, updated_at: new Date() })
     .where(eq(posts.id, id));
+
+  // Từ chối mà không nói lý do thì người viết sửa gì cũng chỉ là đoán.
+  await notify({
+    userId: rows[0].author_id,
+    type: 'post_rejected',
+    title: 'Bài viết của bạn chưa được duyệt',
+    body: reason ? `Lý do: ${reason}` : rows[0].title,
+    link: `/posts/${id}`,
+  });
 
   return c.json({
     success: true,

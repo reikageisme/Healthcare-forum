@@ -57,7 +57,18 @@ export function formatDate(dateInput: string | Date | undefined): string {
   }).format(date);
 }
 
-export function getAvatarUrl(user?: User | null, defaultName = 'User'): string {
+/**
+ * Chỉ cần đúng những trường hàm này thật sự đọc, không cần cả một User.
+ *
+ * Người gây ra một thông báo chỉ đi kèm bốn trường (id, tên, avatar) —
+ * bắt nơi gọi phải có cả email và vai trò thì hoặc là bịa thêm dữ liệu,
+ * hoặc là ép kiểu. Cả hai đều tệ hơn việc khai đúng thứ mình dùng.
+ */
+type AvatarSource = Partial<
+  Pick<User, 'avatar_url' | 'avatar' | 'full_name' | 'fullName' | 'username'>
+>;
+
+export function getAvatarUrl(user?: AvatarSource | null, defaultName = 'User'): string {
   if (!user) {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(defaultName)}&background=3B82F6&color=fff`;
   }

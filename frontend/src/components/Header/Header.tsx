@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Bell, Menu, UserCircle, LogOut, Plus, ShieldCheck, Newspaper } from 'lucide-react';
+import { Search, Menu, UserCircle, LogOut, Plus, ShieldCheck, Newspaper } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getAvatarUrl } from '../../lib/utils';
@@ -7,6 +7,7 @@ import api from '../../lib/api';
 import SiteLink from '../common/SiteLink';
 import { IS_FORUM, loginHref, portalHref } from '../../lib/siteLinks';
 import { canPostHere, writeElsewhereHref } from '../../lib/canPost';
+import NotificationBell from './NotificationBell';
 
 interface HeaderProps {
   toggleMobileMenu: () => void;
@@ -138,14 +139,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                 </a>
               )}
 
-              <button
-                type="button"
-                className="p-2 text-text-secondary hover:text-primary hover:bg-primary/5 rounded-full transition-colors relative"
-                title="Thông báo"
-              >
-                <Bell size={20} />
-                <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-danger ring-2 ring-surface" />
-              </button>
+              <NotificationBell />
 
               <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
 
