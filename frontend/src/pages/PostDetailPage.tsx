@@ -189,7 +189,7 @@ export const PostDetailPage: React.FC = () => {
   const statusNorm = post.status?.toLowerCase();
 
   return (
-    <div className="w-full max-w-[760px] mx-auto">
+    <div className="max-w-4xl mx-auto py-2">
       {/*
         Đường dẫn ngược, để trần bên trên thẻ.
 
