@@ -414,6 +414,37 @@ export type StoryRow = typeof stories.$inferSelect;
  * khoá có hình dạng riêng và chúng đổi vài lần một năm, không đáng để mỗi mẩu
  * một bảng với một bộ CRUD riêng.
  */
+/**
+ * Thông báo cho một người dùng.
+ *
+ * Câu chữ được chốt lại lúc tạo chứ không dựng lại lúc đọc: đổi tiêu đề bài
+ * về sau thì thông báo cũ vẫn kể đúng chuyện đã xảy ra hôm đó.
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Người gây ra thông báo; rỗng khi là hệ thống (bài được duyệt). */
+    actor_id: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    type: varchar('type', { length: 32 }).notNull(),
+    title: varchar('title', { length: 255 }).notNull(),
+    body: varchar('body', { length: 500 }),
+    /** Đường dẫn tương đối trong chính trang, ví dụ /posts/<id>#comments. */
+    link: varchar('link', { length: 500 }),
+    is_read: boolean('is_read').notNull().default(false),
+    created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userCreatedIdx: index('ix_notifications_user_created').on(t.user_id, t.created_at),
+    userUnreadIdx: index('ix_notifications_user_unread').on(t.user_id, t.is_read),
+  }),
+);
+
+export type NotificationRow = typeof notifications.$inferSelect;
+
 export const siteSettings = pgTable('site_settings', {
   key: varchar('key', { length: 64 }).primaryKey(),
   value: jsonb('value').notNull(),

@@ -4,6 +4,7 @@ import PortalApp from './apps/PortalApp';
 import ForumApp from './apps/ForumApp';
 import { IS_FORUM } from './lib/siteLinks';
 import useSilentLogin from './hooks/useSilentLogin';
+import UiOverlay from './components/common/UiOverlay';
 
 /**
  * Một mã nguồn, hai bản dựng.
@@ -23,6 +24,8 @@ function App() {
     <>
       <ErrorBoundary>{IS_FORUM ? <ForumApp /> : <PortalApp />}</ErrorBoundary>
       <ScrollToTop />
+      {/* Thông báo và hộp thoại xác nhận của riêng trang, gắn một lần. */}
+      <UiOverlay />
     </>
   );
 }

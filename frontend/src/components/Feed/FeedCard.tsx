@@ -20,6 +20,8 @@ import { formatRelativeTime, getAvatarUrl, getPostTypeInfo } from '../../lib/uti
 import { useAuthStore } from '../../stores/authStore';
 import { AnonymousBadge, VerifiedDoctorBadge, isVerifiedDoctor } from '../common/Badges';
 import { postService } from '../../services/postService';
+import PostModal from '../posts/PostModal';
+import { confirmDialog, toast } from '../../lib/ui';
 
 interface FeedCardProps {
   post: Post;
@@ -32,6 +34,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
   const currentUser = useAuthStore((state) => state.user);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showPostModal, setShowPostModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const author = post.author;
@@ -53,7 +56,13 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowOptionsMenu(false);
-    if (!window.confirm(`Xóa bài viết "${post.title}"? Thao tác này không thể hoàn tác.`)) return;
+    const ok = await confirmDialog({
+      title: 'Xóa bài viết?',
+      message: `"${post.title}" sẽ bị xóa vĩnh viễn cùng toàn bộ bình luận.`,
+      confirmLabel: 'Xóa bài',
+      danger: true,
+    });
+    if (!ok) return;
 
     try {
       setIsDeleting(true);
@@ -61,7 +70,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
       onDeleted?.(post.id);
     } catch (error) {
       console.error('Failed to delete post', error);
-      window.alert('Không xóa được bài viết. Vui lòng thử lại.');
+      toast.error('Không xóa được bài viết. Vui lòng thử lại.');
     } finally {
       setIsDeleting(false);
     }
@@ -72,7 +81,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
     const fullUrl = `${window.location.origin}${postUrl}`;
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(fullUrl);
-      alert('Đã sao chép liên kết bài viết vào clipboard!');
+      toast.success('Đã sao chép liên kết bài viết vào clipboard!');
     }
   };
 
@@ -96,7 +105,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
 
   return (
     <>
-      <article className="bg-surface rounded-2xl p-5 sm:p-6 shadow-sm border border-border mb-4 hover:border-blue-300 transition-all">
+      <article className="bg-surface rounded-xl p-4 sm:p-5 shadow-sm border border-border mb-3 hover:border-blue-300 transition-colors">
         {/* Author Header */}
         <div className="flex items-center justify-between mb-3.5">
           <div className="flex items-center gap-3">
@@ -258,15 +267,22 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
         />
 
         <div className="flex items-center gap-1">
-          {/* Comments link */}
-          <Link
-            to={`${postUrl}#comments`}
+          {/*
+            Bình luận mở ngay tại chỗ, không rời trang.
+
+            Rời trang là mất vị trí cuộn và mất cả danh sách vừa tải; quay lại
+            phải tải từ đầu. Tiêu đề bài vẫn là một link thật tới /posts/:id,
+            nên chia sẻ và Google vẫn có một trang để trỏ tới.
+          */}
+          <button
+            type="button"
+            onClick={() => setShowPostModal(true)}
             className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-text-secondary hover:text-primary hover:bg-primary/5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-colors"
           >
             <MessageCircle size={17} />
             <span>{post.comment_count ?? post.commentCount ?? 0}</span>
             <span className="hidden sm:inline">bình luận</span>
-          </Link>
+          </button>
 
           {/* Bookmark Button */}
           <BookmarkButton
@@ -288,6 +304,11 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
         </div>
       </div>
     </article>
+
+    {/* Popup xem bài + thảo luận, mở ngay tại chỗ đang lướt. */}
+    {showPostModal && (
+      <PostModal postId={post.id} preview={post} onClose={() => setShowPostModal(false)} />
+    )}
 
     {showReportModal && (
       <ReportModal

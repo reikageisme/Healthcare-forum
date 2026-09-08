@@ -100,7 +100,7 @@ export const BookmarksPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto xl:mx-0 xl:max-w-none">
+    <div className="w-full max-w-[700px] mx-auto">
       {/* Page Header */}
       <div className="bg-surface rounded-2xl p-6 shadow-sm border border-border mb-6">
         <div className="flex items-center gap-3">

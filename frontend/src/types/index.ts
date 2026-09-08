@@ -330,6 +330,20 @@ export interface CategoryUpdateInput {
   surface?: Surface;
 }
 
+export type NotificationType = 'comment' | 'reply' | 'post_approved' | 'post_rejected';
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType | string;
+  title: string;
+  body?: string | null;
+  /** Đường dẫn tương đối trong chính trang, ví dụ /posts/<id>#comments. */
+  link?: string | null;
+  is_read: boolean;
+  created_at: string;
+  actor?: Pick<User, 'id' | 'username' | 'full_name' | 'avatar_url'> | null;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;

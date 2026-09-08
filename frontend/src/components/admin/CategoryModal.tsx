@@ -10,6 +10,7 @@ import {
   flattenTree,
   indentLabel,
 } from '../../lib/categoryTree';
+import { toast } from '../../lib/ui';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -105,7 +106,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      alert('Vui lòng nhập tên chuyên mục.');
+      toast.info('Vui lòng nhập tên chuyên mục.');
       return;
     }
     await onSave({

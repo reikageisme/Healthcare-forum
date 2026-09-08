@@ -19,6 +19,7 @@ import { postService } from '../../services/postService';
 import { Category, Post } from '../../types';
 import { formatDate } from '../../lib/utils';
 import { flattenTree, indentLabel } from '../../lib/categoryTree';
+import { confirmDialog } from '../../lib/ui';
 
 const PAGE_SIZE = 20;
 
@@ -110,7 +111,13 @@ export const AdminPostsPage: React.FC = () => {
   };
 
   const handleDelete = async (post: Post) => {
-    if (!window.confirm(`Xóa vĩnh viễn "${post.title}"? Thao tác này không thể hoàn tác.`)) return;
+    const ok = await confirmDialog({
+      title: 'Xóa vĩnh viễn?',
+      message: `"${post.title}" sẽ bị xóa khỏi cơ sở dữ liệu cùng mọi bình luận. Không hoàn tác được.`,
+      confirmLabel: 'Xóa vĩnh viễn',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       setBusyId(post.id);
       await postService.deletePost(post.id);

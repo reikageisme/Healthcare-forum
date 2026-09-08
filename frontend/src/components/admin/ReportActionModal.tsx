@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Flag, CheckCircle, Trash2, ShieldAlert } from 'lucide-react';
 import { Report } from '../../types';
 import { formatDate } from '../../lib/utils';
+import { confirmDialog } from '../../lib/ui';
 
 interface ReportActionModalProps {
   isOpen: boolean;
@@ -31,11 +32,14 @@ export const ReportActionModal: React.FC<ReportActionModalProps> = ({
   };
 
   const handleDeleteContent = async () => {
-    if (
-      window.confirm(
-        'Bạn có chắc chắn muốn xóa nội dung vi phạm này không? Thao tác này sẽ gỡ bỏ nội dung và tự động đánh dấu báo cáo là đã giải quyết.'
-      )
-    ) {
+    const ok = await confirmDialog({
+      title: 'Xóa nội dung vi phạm?',
+      message:
+        'Nội dung sẽ bị gỡ bỏ và báo cáo tự động chuyển sang đã giải quyết. Thao tác này không hoàn tác được.',
+      confirmLabel: 'Xóa nội dung',
+      danger: true,
+    });
+    if (ok) {
       await onDeleteContent(report.id, String(report.target_type), report.target_id);
     }
   };

@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { ReportModal } from '../common/ReportModal';
 import { VerifiedDoctorBadge } from '../common/Badges';
 import { formatRelativeTime, getAvatarUrl } from '../../lib/utils';
+import { confirmDialog, toast } from '../../lib/ui';
 
 interface StoryViewerProps {
   groups: StoryGroup[];
@@ -104,14 +105,20 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   const canDelete = isOwn || role === 'ADMIN' || role === 'MODERATOR';
 
   const handleDelete = async () => {
-    if (!window.confirm('Xóa story này?')) return;
+    const ok = await confirmDialog({
+      title: 'Xóa story?',
+      message: 'Story sẽ biến mất khỏi thanh trên cùng ngay lập tức.',
+      confirmLabel: 'Xóa',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await storyService.deleteStory(story.id);
       onChanged();
       onClose();
     } catch (err) {
       console.error('Failed to delete story', err);
-      window.alert('Không xóa được story. Vui lòng thử lại.');
+      toast.error('Không xóa được story. Vui lòng thử lại.');
     }
   };
 

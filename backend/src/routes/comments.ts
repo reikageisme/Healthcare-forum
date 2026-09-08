@@ -10,6 +10,7 @@ import { sanitizeRichText } from '../lib/sanitize.js';
 import { commentCreateSchema, commentUpdateSchema } from '../schemas/requests.js';
 import { toCommentResponse, type CommentResponse } from '../schemas/responses.js';
 import { currentUser, optionalAuth, requireAuth } from '../middleware/auth.js';
+import { actorLabel, notify } from '../lib/notify.js';
 
 export const commentRoutes = new Hono();
 
@@ -20,9 +21,10 @@ commentRoutes.post('/posts/:post_id/comments', requireAuth, async (c) => {
   const post = await findPostOr404(c.req.param('post_id'));
   const body = await parseBody(c, commentCreateSchema);
 
+  let parentAuthorId: string | null = null;
   if (body.parent_id) {
     const parent = await db
-      .select({ id: comments.id, post_id: comments.post_id })
+      .select({ id: comments.id, post_id: comments.post_id, author_id: comments.author_id })
       .from(comments)
       .where(eq(comments.id, body.parent_id))
       .limit(1);
@@ -30,6 +32,7 @@ commentRoutes.post('/posts/:post_id/comments', requireAuth, async (c) => {
     if (parent[0].post_id !== post.id) {
       throw badRequest('Parent comment belongs to a different post');
     }
+    parentAuthorId = parent[0].author_id;
   }
 
   // Comment bodies are rendered as HTML too, so they go through the same
@@ -51,6 +54,39 @@ commentRoutes.post('/posts/:post_id/comments', requireAuth, async (c) => {
     .update(posts)
     .set({ comment_count: sql`${posts.comment_count} + 1` })
     .where(eq(posts.id, post.id));
+
+  /**
+   * Báo cho những người thật sự liên quan, và chỉ họ.
+   *
+   * Tác giả bài luôn muốn biết có người trả lời. Người viết bình luận cha
+   * cũng vậy — nhưng nếu họ CHÍNH LÀ tác giả bài thì chỉ báo một lần, không
+   * ai muốn hai dòng thông báo cho cùng một câu trả lời.
+   *
+   * notify() tự bỏ qua khi người nhận là chính người vừa hành động, nên tự
+   * trả lời bài của mình không làm chuông của mình đỏ lên.
+   */
+  const who = actorLabel(comment.is_anonymous, me);
+  const link = `/posts/${post.id}#comments`;
+
+  await notify({
+    userId: post.author_id,
+    actorId: me.id,
+    type: 'comment',
+    title: `${who} đã bình luận về bài của bạn`,
+    body: post.title,
+    link,
+  });
+
+  if (parentAuthorId && parentAuthorId !== post.author_id) {
+    await notify({
+      userId: parentAuthorId,
+      actorId: me.id,
+      type: 'reply',
+      title: `${who} đã trả lời bình luận của bạn`,
+      body: post.title,
+      link,
+    });
+  }
 
   return c.json(toCommentResponse(comment, me, [], { viewerId: me.id }), 201);
 });

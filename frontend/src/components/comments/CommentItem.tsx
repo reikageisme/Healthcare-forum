@@ -19,6 +19,7 @@ import {
   VerifiedDoctorBadge,
   isVerifiedDoctor,
 } from '../common/Badges';
+import { confirmDialog } from '../../lib/ui';
 
 interface CommentItemProps {
   comment: Comment;
@@ -57,9 +58,13 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   const handleDelete = async () => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
-      await onDelete(comment.id);
-    }
+    const ok = await confirmDialog({
+      title: 'Xóa bình luận?',
+      message: 'Bình luận này sẽ bị gỡ khỏi thớt.',
+      confirmLabel: 'Xóa',
+      danger: true,
+    });
+    if (ok) await onDelete(comment.id);
   };
 
   const hasReplies = comment.replies && comment.replies.length > 0;
