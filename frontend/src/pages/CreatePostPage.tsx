@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Send, X, Hash } from 'lucide-react';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { ImageUploader } from '../components/common/ImageUploader';
@@ -10,6 +10,8 @@ import { categoryService } from '../services/categoryService';
 import { tagService } from '../services/tagService';
 import { Category, TagWithCount, PostType } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { useRequireLogin } from '../hooks/useRequireLogin';
+import { useAuthStore } from '../stores/authStore';
 import { flattenTree, indentLabel } from '../lib/categoryTree';
 import { describeApiError } from '../lib/apiError';
 
@@ -22,9 +24,10 @@ const POST_TYPES: { type: PostType; label: string; desc: string }[] = [
 
 export const CreatePostPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
+  const requireLogin = useRequireLogin();
+  const authReady = useAuthStore((s) => s.authReady);
 
   // Form State
   const initialType = (searchParams.get('type') || 'ARTICLE').toUpperCase() as PostType;
@@ -44,10 +47,11 @@ export const CreatePostPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: location } });
+    // Chỉ kết luận "chưa đăng nhập" khi phiên từ cookie đã được hỏi xong.
+    if (authReady && !isAuthenticated) {
+      requireLogin({ replace: true });
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [authReady, isAuthenticated, requireLogin]);
 
   useEffect(() => {
     const loadCategoriesAndTags = async () => {
@@ -87,7 +91,7 @@ export const CreatePostPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: location } });
+      requireLogin();
       return;
     }
 
@@ -134,11 +138,11 @@ export const CreatePostPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-2">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 mb-6">
+      <div className="flex items-center justify-between gap-4 mb-4">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm font-medium text-text-secondary hover:text-primary transition-colors bg-white px-3 py-2 rounded-xl border border-border"
+          className="flex items-center gap-1.5 text-[13px] font-medium text-text-secondary hover:text-primary transition-colors bg-white px-3 py-1.5 rounded-lg border border-border"
         >
           <ArrowLeft size={18} />
           <span>Quay lại</span>
@@ -150,33 +154,33 @@ export const CreatePostPage: React.FC = () => {
       </div>
 
       {errorMsg && (
-        <div className="p-4 mb-6 bg-red-50 border border-red-200 text-danger rounded-xl text-sm font-medium">
+        <div className="p-3 mb-4 bg-red-50 border border-red-200 text-danger rounded-lg text-[13px] font-medium">
           {errorMsg}
         </div>
       )}
 
-      <MedicalDisclaimer className="mb-6" compact />
+      <MedicalDisclaimer className="mb-4" compact />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {/* Post Type Selector */}
-        <div className="bg-surface rounded-2xl p-5 border border-border shadow-sm">
-          <label className="block text-sm font-bold text-text mb-3">
+        <div className="bg-surface rounded-lg p-4 border border-border">
+          <label className="block text-[13px] font-bold text-text mb-2">
             Loại bài viết <span className="text-danger">*</span>
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {POST_TYPES.map((item) => (
               <button
                 key={item.type}
                 type="button"
                 onClick={() => setPostType(item.type)}
-                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                className={`px-3 py-2 rounded-lg border text-left transition-colors flex flex-col justify-between ${
                   postType === item.type
                     ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                     : 'border-border bg-slate-50 hover:bg-white hover:border-slate-300'
                 }`}
               >
                 <span
-                  className={`font-bold text-sm ${
+                  className={`font-bold text-[13px] ${
                     postType === item.type ? 'text-primary' : 'text-text'
                   }`}
                 >
@@ -191,9 +195,9 @@ export const CreatePostPage: React.FC = () => {
         </div>
 
         {/* Title & Category */}
-        <div className="bg-surface rounded-2xl p-5 border border-border shadow-sm space-y-4">
+        <div className="bg-surface rounded-lg p-4 border border-border space-y-4">
           <div>
-            <label className="block text-sm font-bold text-text mb-1.5">
+            <label className="block text-[13px] font-bold text-text mb-1">
               Tiêu đề bài viết <span className="text-danger">*</span>
             </label>
             <input
@@ -203,7 +207,7 @@ export const CreatePostPage: React.FC = () => {
               placeholder="Nhập tiêu đề rõ ràng, súc tích (vd: Hướng dẫn chăm sóc bé bị sốt xuất huyết tại nhà)..."
               maxLength={255}
               required
-              className="w-full px-4 py-3 rounded-xl border border-border bg-slate-50 focus:bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-base font-semibold transition-all"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-slate-50 focus:bg-white text-text focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary text-[15px] font-semibold transition-all"
             />
             <div className="flex justify-end mt-1 text-xs text-text-secondary">
               {title.length}/255 ký tự
@@ -211,14 +215,14 @@ export const CreatePostPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-text mb-1.5">
+            <label className="block text-[13px] font-bold text-text mb-1">
               Chuyên mục sức khỏe <span className="text-danger">*</span>
             </label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
               required
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-slate-50 focus:bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-sm transition-all cursor-pointer"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-slate-50 focus:bg-white text-text focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary text-[13px] transition-all cursor-pointer"
             >
               <option value="" disabled>
                 -- Chọn chuyên mục --
@@ -233,10 +237,10 @@ export const CreatePostPage: React.FC = () => {
         </div>
 
         {/* Thumbnail Image */}
-        <div className="bg-surface rounded-2xl p-5 border border-border shadow-sm">
+        <div className="bg-surface rounded-lg p-4 border border-border">
           <ImageUploader value={thumbnail} onChange={setThumbnail} />
 
-          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-slate-50/60 p-3.5 transition-colors hover:border-primary/40">
+          <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-slate-50/60 p-3 transition-colors hover:border-primary/40">
             <input
               type="checkbox"
               checked={isAnonymous}
@@ -254,21 +258,21 @@ export const CreatePostPage: React.FC = () => {
         </div>
 
         {/* Content Rich Text Editor */}
-        <div className="bg-surface rounded-2xl p-5 border border-border shadow-sm">
-          <label className="block text-sm font-bold text-text mb-2">
+        <div className="bg-surface rounded-lg p-4 border border-border">
+          <label className="block text-[13px] font-bold text-text mb-1.5">
             Nội dung chi tiết <span className="text-danger">*</span>
           </label>
           <RichTextEditor
             content={content}
             onChange={setContent}
             placeholder="Viết nội dung bài viết sức khỏe chi tiết, có thể chèn ảnh, đề mục, trích dẫn..."
-            minHeight="340px"
+            minHeight="260px"
           />
         </div>
 
         {/* Tags */}
-        <div className="bg-surface rounded-2xl p-5 border border-border shadow-sm">
-          <label className="block text-sm font-bold text-text mb-1.5">
+        <div className="bg-surface rounded-lg p-4 border border-border">
+          <label className="block text-[13px] font-bold text-text mb-1">
             Thẻ gắn (Tags)
           </label>
           <p className="text-xs text-text-secondary mb-3">
@@ -276,7 +280,7 @@ export const CreatePostPage: React.FC = () => {
             để thêm.
           </p>
 
-          <div className="flex flex-wrap items-center gap-2 p-2 border border-border rounded-xl bg-slate-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary transition-all">
+          <div className="flex flex-wrap items-center gap-1.5 p-1.5 border border-border rounded-lg bg-slate-50 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary/40 focus-within:border-primary transition-all">
             {tags.map((tag) => (
               <span
                 key={tag}

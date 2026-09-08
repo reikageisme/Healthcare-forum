@@ -19,6 +19,7 @@ import { toUserResponse, tokenResponseSchema } from '../schemas/responses.js';
 import { requireAuth, currentUser } from '../middleware/auth.js';
 import { loginRateLimit, registerRateLimit } from '../middleware/rateLimit.js';
 import { sanitizePlainText } from '../lib/sanitize.js';
+import { googleEnabled, googleStart, makeGoogleCallback } from './googleAuth.js';
 
 export const authRoutes = new Hono();
 
@@ -193,4 +194,19 @@ authRoutes.post('/logout', (c) => {
 authRoutes.get('/me', requireAuth, async (c) => {
   return c.json(toUserResponse(currentUser(c)));
 });
+
+/**
+ * Đăng nhập bằng Google.
+ *
+ * Cùng dùng issueTokens, nên phiên tạo ra từ Google giống hệt phiên tạo ra từ
+ * mật khẩu: cùng cookie refresh, cùng thời hạn, dùng chung được cho cả trang
+ * tin lẫn diễn đàn.
+ */
+export const googleCallback = makeGoogleCallback((c, id, role) => issueTokens(c, id, role));
+
+authRoutes.get('/google', googleStart);
+authRoutes.get('/google/callback', googleCallback);
+
+/** Frontend hỏi trước để biết có nên vẽ nút "Tiếp tục với Google" hay không. */
+authRoutes.get('/providers', (c) => c.json({ google: googleEnabled() }));
 

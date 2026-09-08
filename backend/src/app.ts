@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { settings } from './core/config.js';
 import { registerErrorHandlers } from './core/errors.js';
-import { authRoutes } from './routes/auth.js';
+import { authRoutes, googleCallback } from './routes/auth.js';
 import { userRoutes } from './routes/users.js';
 import { postRoutes } from './routes/posts.js';
 import { categoryRoutes } from './routes/categories.js';
@@ -80,6 +80,17 @@ export function createApp() {
   v1.route('/', uploadRoutes);
 
   app.route('/api/v1', v1);
+
+  /**
+   * Địa chỉ callback không mang /v1.
+   *
+   * Redirect URI đã khai ở Google Cloud Console là
+   * https://medicvn.com/api/auth/google/callback — Google từ chối mọi địa chỉ
+   * lệch một ký tự, nên thay vì bắt sửa lại bên console, cùng một handler
+   * được gắn thêm ở đây. Đổi GOOGLE_REDIRECT_URI sang bản có /v1 thì đường
+   * này chỉ nằm không, vô hại.
+   */
+  app.get('/api/auth/google/callback', googleCallback);
 
   // Served from the site root, not under /api — crawlers look for them there.
   app.route('/', sitemapRoutes);

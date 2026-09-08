@@ -1,17 +1,22 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bookmark, Loader2 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import FeedCard from '../components/Feed/FeedCard';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
 import { bookmarkService } from '../services/bookmarkService';
 import { Post } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { useRequireLogin } from '../hooks/useRequireLogin';
+import { useAuthStore } from '../stores/authStore';
 
 export const BookmarksPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const requireLogin = useRequireLogin();
   const { isAuthenticated } = useAuth();
+  // Ở diễn đàn, danh tính chỉ đến sau một vòng /auth/refresh. Đọc
+  // isAuthenticated trước lúc đó là đá nhầm người đang đăng nhập.
+  const authReady = useAuthStore((s) => s.authReady);
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -22,9 +27,13 @@ export const BookmarksPage: React.FC = () => {
   const observerTargetRef = useRef<HTMLDivElement | null>(null);
 
   const fetchBookmarks = useCallback(async () => {
+    if (!authReady) return;
     if (!isAuthenticated) {
       setIsLoadingInitial(false);
-      navigate('/login', { state: { from: location } });
+      // replace: lối chặn này người dùng không hề bấm, nên nó không đáng
+      // chiếm một ô lịch sử — nếu chiếm thì bấm Back sẽ rơi lại vào đây và
+      // bị đá đi lần nữa, đúng cái lỗi "nút lùi không dùng được".
+      requireLogin({ replace: true });
       return;
     }
 
@@ -39,7 +48,7 @@ export const BookmarksPage: React.FC = () => {
     } finally {
       setIsLoadingInitial(false);
     }
-  }, [isAuthenticated]);
+  }, [authReady, isAuthenticated, requireLogin]);
 
   useEffect(() => {
     fetchBookmarks();
@@ -119,7 +128,7 @@ export const BookmarksPage: React.FC = () => {
           title="Vui lòng đăng nhập"
           description="Đăng nhập để xem danh sách các bài viết bạn đã lưu và lưu trữ tài liệu sức khỏe hữu ích."
           actionText="Đăng nhập ngay"
-          onAction={() => navigate('/login', { state: { from: location } })}
+          onAction={() => requireLogin()}
         />
       ) : posts.length === 0 ? (
         <EmptyState 

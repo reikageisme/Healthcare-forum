@@ -3,7 +3,7 @@ import { Lightbulb, Heart, Info } from 'lucide-react';
 import { reactionService } from '../../services/reactionService';
 import { useAuth } from '../../hooks/useAuth';
 import { ReactionCounts } from '../../types';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRequireLogin } from '../../hooks/useRequireLogin';
 import { cn } from '../../lib/utils';
 
 interface ReactionButtonsProps {
@@ -22,8 +22,7 @@ export const ReactionButtons: React.FC<ReactionButtonsProps> = ({
   size = 'md',
 }) => {
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const requireLogin = useRequireLogin();
   const [counts, setCounts] = useState<ReactionCounts>(initialCounts);
   const [userReaction, setUserReaction] = useState<string | null>(
     initialUserReaction ? initialUserReaction.toLowerCase() : null
@@ -32,7 +31,7 @@ export const ReactionButtons: React.FC<ReactionButtonsProps> = ({
 
   const handleReact = async (type: 'helpful' | 'like' | 'informative') => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: location } });
+      requireLogin();
       return;
     }
 

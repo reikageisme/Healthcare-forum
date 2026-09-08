@@ -19,6 +19,27 @@
     --color-danger: #EF4444;
   }
 
+  /**
+   * Cỡ chữ gốc, và cũng là cỡ của toàn bộ khoảng cách.
+   *
+   * Tailwind đo mọi thứ bằng rem — text-sm, p-4, gap-6, h-16 — nên đổi một
+   * dòng này là cả trang thu lại cùng tỉ lệ: chữ nhỏ hơn, đệm hẹp hơn, nhiều
+   * thớt trên một màn hình hơn, mà không thẻ nào bị méo. 16px của Tailwind
+   * hợp với trang giới thiệu sản phẩm; một diễn đàn thì người ta vào để đọc
+   * cho nhanh và cho nhiều.
+   *
+   * Màn hình nhỏ giữ 15px: 14px trên điện thoại là đã sát ngưỡng khó đọc.
+   */
+  html {
+    font-size: 15px;
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
   body {
     @apply bg-bg text-text font-sans antialiased;
   }

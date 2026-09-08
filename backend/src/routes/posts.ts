@@ -126,6 +126,20 @@ postRoutes.get('/', optionalAuth, async (c) => {
     } else if (!isAuthorQuery && !q.status) {
       conditions.push(eq(posts.status, 'approved'));
     }
+  } else if (me) {
+    /**
+     * Bài chờ duyệt của chính mình vẫn phải nằm trong danh sách.
+     *
+     * Trước đây danh sách chỉ trả bài 'approved', nên vừa bấm Đăng là bài
+     * biến mất khỏi trang chủ — người viết không có cách nào biết nó đang
+     * trong hàng chờ hay đã bị nuốt mất. Thẻ bài đã sẵn có nhãn "Đang chờ
+     * duyệt"; thứ còn thiếu chỉ là để nó đi qua được câu truy vấn này.
+     *
+     * Bài của người khác thì vẫn phải duyệt xong mới hiện: điều kiện gắn chặt
+     * với author_id của chính người đang đăng nhập.
+     */
+    const ownOrApproved = or(eq(posts.status, 'approved'), eq(posts.author_id, me.id));
+    if (ownOrApproved) conditions.push(ownOrApproved);
   } else {
     conditions.push(eq(posts.status, 'approved'));
   }

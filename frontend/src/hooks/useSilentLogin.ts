@@ -13,6 +13,11 @@ import { useAuthStore } from '../stores/authStore';
  *
  * Thất bại là chuyện bình thường: khách chưa đăng nhập vẫn đọc được diễn đàn,
  * nên lỗi ở đây chỉ có nghĩa "chưa đăng nhập", không phải sự cố.
+ *
+ * Dù kết thúc thế nào cũng phải bật authReady. Trước đây không có cờ này:
+ * trong vài trăm mili giây chờ /auth/refresh, mọi trang chặn quyền đọc được
+ * isAuthenticated === false rồi đá người dùng sang /login — người đang đăng
+ * nhập đàng hoàng vẫn bị đá, và bấm Back thì bị đá lại lần nữa.
  */
 let attempted = false;
 
@@ -23,8 +28,11 @@ export function useSilentLogin() {
     if (attempted) return;
     attempted = true;
 
-    const { token, user } = useAuthStore.getState();
-    if (token && user) return;
+    const { token, user, markAuthReady } = useAuthStore.getState();
+    if (token && user) {
+      markAuthReady();
+      return;
+    }
 
     void (async () => {
       try {
@@ -39,6 +47,8 @@ export function useSilentLogin() {
         useAuthStore.getState().login(me.data, accessToken, null);
       } catch {
         // Chưa đăng nhập, hoặc cookie đã hết hạn.
+      } finally {
+        useAuthStore.getState().markAuthReady();
       }
     })();
   }, []);

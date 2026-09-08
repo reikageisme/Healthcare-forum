@@ -22,6 +22,7 @@ import { CommentTree } from '../components/comments/CommentTree';
 import { ReportModal } from '../components/common/ReportModal';
 import { PostDetailSkeleton } from '../components/common/LoadingSkeleton';
 import { useAuth } from '../hooks/useAuth';
+import { useAuthStore } from '../stores/authStore';
 import { formatDate, getAvatarUrl, getPostTypeInfo } from '../lib/utils';
 import {
   EmergencyBanner,
@@ -35,6 +36,7 @@ export const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const authReady = useAuthStore((s) => s.authReady);
 
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,21 +46,37 @@ export const PostDetailPage: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
+    /**
+     * Phải đợi authReady.
+     *
+     * Bài đang chờ duyệt chỉ tác giả và ban quản trị đọc được — backend trả
+     * 404 cho người lạ, cố ý, để không ai dò được hàng chờ. Nhưng nếu gọi API
+     * trước khi phiên từ cookie kịp dựng lại thì chính tác giả cũng là "người
+     * lạ": vừa đăng xong đã thấy "bài viết đã bị xóa", trong khi bài vẫn nằm
+     * nguyên trong hàng chờ.
+     */
+    if (!authReady) return;
+
     const fetchPost = async () => {
       try {
         setIsLoading(true);
+        setErrorMsg(null);
         const data = await postService.getPostById(id);
         setPost(data);
       } catch (err: any) {
         console.error('Failed to load post detail', err);
-        setErrorMsg('Không tìm thấy bài viết hoặc bài viết đã bị xóa.');
+        setErrorMsg(
+          err?.response?.status === 404
+            ? 'Bài viết không tồn tại, đã bị xóa, hoặc đang chờ duyệt nên chỉ tác giả xem được.'
+            : 'Không tải được bài viết. Vui lòng thử lại.',
+        );
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchPost();
-  }, [id]);
+  }, [id, authReady]);
 
   const handleDeletePost = async () => {
     if (!post) return;
@@ -123,7 +141,9 @@ export const PostDetailPage: React.FC = () => {
     return (
       <div className="max-w-xl mx-auto py-16 text-center bg-white rounded-2xl p-8 border border-border shadow-sm">
         <p className="text-danger font-bold text-lg mb-3">{errorMsg || 'Không tìm thấy bài viết.'}</p>
-        <p className="text-text-secondary text-sm mb-6">Bài viết có thể đã bị xóa hoặc không tồn tại.</p>
+        <p className="text-text-secondary text-sm mb-6">
+          Nếu đây là bài bạn vừa đăng, hãy thử đăng nhập lại — bài chờ duyệt chỉ hiện với tác giả.
+        </p>
         <Link
           to="/"
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary-dark transition-colors"

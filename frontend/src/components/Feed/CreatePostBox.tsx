@@ -1,17 +1,18 @@
 import React from 'react';
 import { PenLine, MessageCircle, Star } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useRequireLogin } from '../../hooks/useRequireLogin';
 import { getAvatarUrl } from '../../lib/utils';
 
 export const CreatePostBox: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  const requireLogin = useRequireLogin();
 
   const handleAction = (postType = 'ARTICLE') => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: location } });
+      requireLogin();
       return;
     }
     navigate(`/create-post?type=${postType}`);

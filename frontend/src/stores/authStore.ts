@@ -9,6 +9,9 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       refreshToken: null,
       isAuthenticated: false,
+      // Chỉ bật sau khi useSilentLogin chạy xong (thành công hay không).
+      // Không nằm trong partialize: mỗi lần tải trang phải hỏi lại từ đầu.
+      authReady: false,
       // Đăng nhập gọi login hai lần (một lần lấy hồ sơ thật), nên bỏ trống
       // refreshToken ở lần sau phải là "giữ nguyên", không phải "xoá".
       login: (user, token, refreshToken) =>
@@ -17,10 +20,19 @@ export const useAuthStore = create<AuthState>()(
           token,
           refreshToken: refreshToken === undefined ? state.refreshToken : refreshToken,
           isAuthenticated: true,
+          authReady: true,
         })),
       setTokens: (token, refreshToken) => set({ token, refreshToken }),
-      logout: () => set({ user: null, token: null, refreshToken: null, isAuthenticated: false }),
+      logout: () =>
+        set({
+          user: null,
+          token: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          authReady: true,
+        }),
       setUser: (user) => set({ user }),
+      markAuthReady: () => set({ authReady: true }),
     }),
     {
       name: 'auth-storage',

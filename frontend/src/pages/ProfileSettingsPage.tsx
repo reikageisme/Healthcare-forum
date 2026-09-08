@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, Camera, CheckCircle2, ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useAuthStore } from '../stores/authStore';
 import { userService } from '../services/userService';
 import { uploadService } from '../services/uploadService';
 import { getAvatarUrl } from '../lib/utils';
@@ -24,6 +25,7 @@ const BIO_LIMIT = 500;
 
 export const ProfileSettingsPage: React.FC = () => {
   const { user, setUser, isAuthenticated } = useAuth();
+  const authReady = useAuthStore((s) => s.authReady);
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -37,6 +39,12 @@ export const ProfileSettingsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  if (!authReady) {
+    return (
+      <div className="py-16 text-center text-sm text-text-secondary">Đang tải hồ sơ...</div>
+    );
+  }
 
   if (!isAuthenticated || !user) {
     return (

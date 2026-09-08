@@ -134,6 +134,22 @@ export const settings = {
    */
   COOKIE_DOMAIN: process.env.COOKIE_DOMAIN ?? '',
 
+  /**
+   * Đăng nhập bằng Google.
+   *
+   * Để trống cả ba thì nút "Tiếp tục với Google" tự biến mất và endpoint trả
+   * lỗi cấu hình — trang vẫn chạy bình thường bằng email + mật khẩu.
+   *
+   * GOOGLE_REDIRECT_URI phải trùng KÝ TỰ MỘT với một mục trong "Authorized
+   * redirect URIs" ở Google Cloud Console; lệch một dấu / là Google từ chối
+   * với redirect_uri_mismatch.
+   */
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
+  GOOGLE_REDIRECT_URI:
+    process.env.GOOGLE_REDIRECT_URI ??
+    `${(process.env.PORTAL_URL ?? process.env.SITE_URL ?? 'http://localhost:3000').replace(/\/+$/, '')}/api/auth/google/callback`,
+
   UPLOAD_DIR: process.env.UPLOAD_DIR ?? 'uploads',
   PORT: Number(process.env.PORT ?? 8000),
 

@@ -60,7 +60,12 @@ function forceLogout() {
   useAuthStore.getState().logout();
   // Trang đăng nhập nằm ở cổng tin tức. Đứng ở diễn đàn thì đây là một lần
   // rời tên miền, kèm `next` để quay lại đúng chỗ vừa đứng.
-  window.location.href = loginHref();
+  //
+  // replace chứ không href: người dùng không hề bấm đi đâu, phiên của họ hết
+  // hạn giữa chừng. Nếu đẩy /login vào lịch sử thì bấm Back rơi lại đúng
+  // trang vừa nhận 401, ăn thêm một lần đá nữa — vòng lặp mà chỉ sửa tay
+  // thanh địa chỉ mới thoát ra được.
+  window.location.replace(loginHref());
 }
 
 api.interceptors.response.use(

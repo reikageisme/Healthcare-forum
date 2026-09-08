@@ -55,6 +55,14 @@ export const users = pgTable(
     email: text('email').notNull(),
     username: text('username').notNull(),
     hashed_password: text('hashed_password').notNull(),
+    /**
+     * Định danh Google ("sub" trong id_token) khi tài khoản có liên kết
+     * Google. Khớp theo cột này chứ không theo email vì người dùng đổi được
+     * địa chỉ Gmail, sub thì không.
+     */
+    google_sub: varchar('google_sub', { length: 64 }),
+    /** Google đã xác nhận email này thuộc về họ. */
+    email_verified: boolean('email_verified').notNull().default(false),
     full_name: text('full_name'),
     avatar_url: text('avatar_url'),
     specialty: varchar('specialty', { length: 100 }),
@@ -71,6 +79,7 @@ export const users = pgTable(
   (t) => ({
     emailIdx: uniqueIndex('ix_users_email').on(t.email),
     usernameIdx: uniqueIndex('ix_users_username').on(t.username),
+    googleSubIdx: uniqueIndex('ix_users_google_sub').on(t.google_sub),
   }),
 );
 

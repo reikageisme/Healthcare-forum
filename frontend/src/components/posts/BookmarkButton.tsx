@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bookmark } from 'lucide-react';
 import { bookmarkService } from '../../services/bookmarkService';
 import { useAuth } from '../../hooks/useAuth';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRequireLogin } from '../../hooks/useRequireLogin';
 import { cn } from '../../lib/utils';
 
 interface BookmarkButtonProps {
@@ -23,8 +23,7 @@ export const BookmarkButton: React.FC<BookmarkButtonProps> = ({
   showLabel = false,
 }) => {
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const requireLogin = useRequireLogin();
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,7 +32,7 @@ export const BookmarkButton: React.FC<BookmarkButtonProps> = ({
     e.preventDefault();
 
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: location } });
+      requireLogin();
       return;
     }
 
