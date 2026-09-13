@@ -15,6 +15,7 @@ import { Post } from '../../types';
 import { ReactionButtons } from '../posts/ReactionButtons';
 import { BookmarkButton } from '../posts/BookmarkButton';
 import { PostGallery } from '../posts/PostGallery';
+import { CategoryCover } from '../posts/CategoryCover';
 import { ReportModal } from '../common/ReportModal';
 import { formatRelativeTime, getAvatarUrl, getPostTypeInfo } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
@@ -22,6 +23,7 @@ import { AnonymousBadge, VerifiedDoctorBadge, isVerifiedDoctor } from '../common
 import { postService } from '../../services/postService';
 import PostModal from '../posts/PostModal';
 import { confirmDialog, toast } from '../../lib/ui';
+import { IS_PORTAL } from '../../lib/siteLinks';
 
 interface FeedCardProps {
   post: Post;
@@ -95,6 +97,17 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
   // Bài cũ chỉ có thumbnail; bài mới trả về cả danh sách ảnh trong nội dung.
   const galleryImages =
     post.images && post.images.length > 0 ? post.images : post.thumbnail ? [post.thumbnail] : [];
+
+  /**
+   * Bài trang tin không ảnh thì dựng một bìa màu theo chuyên mục.
+   *
+   * Gần 600 bài nhập từ MedlinePlus là chữ thuần, và feed toàn thẻ chữ trắng
+   * nhìn nhạt, lướt nhanh không phân biệt được bài nào với bài nào. Chỉ áp
+   * dụng cho bài viết bên trang tin: một câu hỏi trên diễn đàn mà đội thêm
+   * ảnh bìa thì trông như quảng cáo.
+   */
+  const isArticle = String(post.post_type || post.type || '').toUpperCase() === 'ARTICLE';
+  const showCover = galleryImages.length === 0 && IS_PORTAL && isArticle;
 
   const reactionCounts = post.reaction_breakdown || {
     helpful: post.helpful_count || post.helpfulCount || 0,
@@ -240,6 +253,16 @@ export const FeedCard: React.FC<FeedCardProps> = ({ post, onBookmarkToggle, onDe
 
       {/* Ảnh bài viết — lưới nhiều ảnh kiểu Facebook */}
       <PostGallery images={galleryImages} alt={post.title} onOpen={() => navigate(postUrl)} />
+
+      {showCover && (
+        <Link to={postUrl} className="block mb-4">
+          <CategoryCover
+            title={post.title}
+            category={post.category?.name}
+            className="h-32 sm:h-36"
+          />
+        </Link>
+      )}
 
       {/* Tags */}
       {post.tags && post.tags.length > 0 && (
