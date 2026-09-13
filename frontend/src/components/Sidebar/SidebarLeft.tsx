@@ -205,7 +205,14 @@ export const SidebarLeft: React.FC = () => {
           onClick={() => setOpenSpecialties(!openSpecialties)}
           className="flex items-center justify-between w-full px-3 py-2 text-text-secondary hover:text-text uppercase text-xs tracking-wider font-bold mb-1"
         >
-          <span>Chuyên khoa</span>
+          {/*
+            Hai trang chia nội dung theo hai logic khác nhau, nên nhãn cũng
+            phải khác. Diễn đàn chia box theo chuyên khoa y (Nội, Ngoại,
+            Sản - Phụ - Nhi). Trang tin xếp theo chuyên trang toà soạn:
+            "Cẩm nang sức khỏe" hay "Chính sách - Bảo hiểm y tế" không phải
+            chuyên khoa nào cả.
+          */}
+          <span>{IS_FORUM ? 'Chuyên khoa' : 'Chuyên mục'}</span>
           {openSpecialties ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
         {openSpecialties && (
