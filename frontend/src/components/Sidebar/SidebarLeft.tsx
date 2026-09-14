@@ -69,9 +69,9 @@ function branchHasSlug(
 
 /**
  * One node of the category tree, rendered recursively so a third level works
- * the same as the first. A branch starts open at the top level or when the
- * category being viewed sits inside it — deeper branches stay folded, which
- * is what keeps a sidebar of forty specialties readable.
+ * the same as the first. Mọi nhánh mặc định đóng — chỉ nhánh chứa chuyên mục
+ * đang xem mới tự mở, để sidebar không bị xổ ra một danh sách dài ngay khi
+ * vào trang.
  */
 const CategoryBranch: React.FC<{
   node: Category;
@@ -80,10 +80,15 @@ const CategoryBranch: React.FC<{
   activeSlug: string | null;
 }> = ({ node, depth, tree, activeSlug }) => {
   const kids = tree.get(node.id) ?? [];
-  const [open, setOpen] = useState(
-    depth === 1 || kids.some((k) => branchHasSlug(k, activeSlug, tree)),
-  );
+  const hasActiveChild = kids.some((k) => branchHasSlug(k, activeSlug, tree));
+  const [open, setOpen] = useState(hasActiveChild);
   const isActive = node.slug === activeSlug;
+
+  // Điều hướng sang chuyên mục con khác trong lúc sidebar đang mở: mở nhánh
+  // chứa nó ra. Không tự đóng lại nhánh người dùng đã bấm mở.
+  useEffect(() => {
+    if (hasActiveChild) setOpen(true);
+  }, [hasActiveChild]);
 
   return (
     <div>

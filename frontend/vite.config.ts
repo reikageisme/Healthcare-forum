@@ -27,6 +27,17 @@ export default defineConfig({
   server: {
     port: 3000,
     allowedHosts: true,
+    /*
+      Mã nguồn nằm trên ổ Windows, bind-mount vào container Linux. Thay đổi
+      file trên host KHÔNG sinh ra sự kiện inotify bên trong container, nên
+      Vite không hề biết file đã đổi: nó cứ trả module đã transform từ lần
+      đầu, sửa xong refresh mấy cũng vẫn thấy bản cũ cho tới khi restart.
+      Hỏi vòng vòng thì tưởng lỗi code, thật ra là watcher điếc — bật polling.
+    */
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
     proxy: {
       '/api': 'http://backend:8000',
       '/uploads': 'http://backend:8000',
