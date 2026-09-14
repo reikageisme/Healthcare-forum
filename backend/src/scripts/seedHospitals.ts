@@ -9,16 +9,21 @@ import { slugify, toSearchText } from '../lib/slugify.js';
 /**
  * Nạp danh bạ bệnh viện vào một chuyên mục có sẵn, mỗi bệnh viện là một bài.
  *
- *   npm run seed:hospitals                                  # vào "Bệnh viện miền Nam"
- *   npm run seed:hospitals -- --category=benh-vien-mien-tay
- *   npm run seed:hospitals -- --author=admin --dry-run
+ *   npm run seed:hospitals                       # miền Nam (mặc định)
+ *   npm run seed:hospitals -- --mien=bac         # miền Bắc
+ *   npm run seed:hospitals -- --mien=trung       # miền Trung
+ *   npm run seed:hospitals -- --mien=bac --dry-run
+ *
+ * --mien chọn sẵn cặp file dữ liệu + chuyên mục; muốn tự chỉ định thì dùng
+ * --data=<tên file trong thư mục data> và --category=<slug chuyên mục>.
  *
  * Chạy lại bao nhiêu lần cũng được: đối chiếu theo slug, bài đã có thì cập
  * nhật lại nội dung và giữ nguyên tác giả, lượt xem, bình luận, ngày đăng.
  * Không xoá bài nào, kể cả bài không còn trong file dữ liệu.
  *
- * Nguồn dữ liệu: data/hospitals-mien-nam.json — gộp từ ba sheet của file
- * khảo sát (Danh sách BV + Miền Tây + Lịch sử BV), khử trùng theo tên.
+ * Nguồn dữ liệu: thư mục data/ — miền Nam gộp từ ba sheet của file khảo sát;
+ * miền Bắc và miền Trung khảo sát từ danh mục cơ sở KCB của Bộ Y tế
+ * (benhandientu.moh.gov.vn), quy đổi về địa giới 34 tỉnh/thành từ 2025.
  */
 
 interface Hospital {
@@ -38,8 +43,15 @@ interface Hospital {
   verification?: string;
 }
 
-const DATA_FILE = fileURLToPath(new URL('./data/hospitals-mien-nam.json', import.meta.url));
+const DEFAULT_DATA = 'hospitals-mien-nam.json';
 const DEFAULT_CATEGORY = 'benh-vien-mien-nam';
+
+/** Mỗi miền một file dữ liệu và một chuyên mục; truyền --mien là đủ. */
+const MIEN: Record<string, { data: string; category: string }> = {
+  nam: { data: 'hospitals-mien-nam.json', category: 'benh-vien-mien-nam' },
+  bac: { data: 'hospitals-mien-bac.json', category: 'benh-vien-mien-bac' },
+  trung: { data: 'hospitals-mien-trung.json', category: 'benh-vien-mien-trung' },
+};
 
 function argValue(flag: string): string | null {
   const hit = process.argv.slice(2).find((a) => a.startsWith(`${flag}=`));
@@ -143,7 +155,16 @@ async function resolveSlot(title: string, categoryId: string) {
 }
 
 async function main() {
-  const categorySlug = argValue('--category') ?? DEFAULT_CATEGORY;
+  const mienArg = argValue('--mien');
+  if (mienArg && !MIEN[mienArg]) {
+    console.error(`--mien chỉ nhận: ${Object.keys(MIEN).join(', ')}`);
+    process.exit(1);
+  }
+  const preset = mienArg ? MIEN[mienArg]! : null;
+
+  const categorySlug = argValue('--category') ?? preset?.category ?? DEFAULT_CATEGORY;
+  const dataName = argValue('--data') ?? preset?.data ?? DEFAULT_DATA;
+  const dataFile = fileURLToPath(new URL(`./data/${dataName}`, import.meta.url));
   const authorArg = argValue('--author');
   const dryRun = hasFlag('--dry-run');
 
@@ -182,7 +203,7 @@ async function main() {
     process.exit(1);
   }
 
-  const list = JSON.parse(readFileSync(DATA_FILE, 'utf8')) as Hospital[];
+  const list = JSON.parse(readFileSync(dataFile, 'utf8')) as Hospital[];
   console.log(
     `Nạp ${list.length} bệnh viện vào "${category.name}" (${category.surface}), đứng tên ${author.username}.` +
       (dryRun ? ' [dry-run — không ghi gì]' : ''),
