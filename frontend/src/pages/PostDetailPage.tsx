@@ -30,6 +30,7 @@ import {
   hasEmergencySignal,
 } from '../components/common/MedicalSafety';
 import { AnonymousBadge, VerifiedDoctorBadge, isVerifiedDoctor } from '../components/common/Badges';
+import ContentProvenance from '../components/common/ContentProvenance';
 import { articleStructuredData, useSeo } from '../lib/seo';
 import { confirmDialog, toast } from '../lib/ui';
 
@@ -341,6 +342,9 @@ export const PostDetailPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Nguồn gốc nội dung và mức độ duyệt chuyên môn */}
+        <ContentProvenance post={post} />
 
         {/* Featured Thumbnail */}
         {post.thumbnail && (

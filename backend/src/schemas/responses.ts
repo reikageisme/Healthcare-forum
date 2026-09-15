@@ -174,6 +174,11 @@ export const postSummarySchema = z
     helpful_count: z.number().int(),
     comment_count: z.number().int(),
     is_published: z.boolean(),
+    /** Nguồn gốc nội dung và mức độ duyệt chuyên môn. */
+    content_source: z.string().nullable(),
+    source_url: z.string().nullable(),
+    review_status: z.enum(['none', 'translated', 'reviewed']),
+    reviewed_at: z.string().nullable(),
     created_at: z.string(),
     updated_at: z.string(),
     author: userResponseSchema,
@@ -223,6 +228,19 @@ function authorFor(
  * blocks in admin.py, posts.py and bookmarks.py — each of which listed the
  * same twenty fields by hand.
  */
+const REVIEW_STATUSES = ['none', 'translated', 'reviewed'] as const;
+type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
+/**
+ * Một giá trị lạ lọt vào cột review_status không được phép làm hỏng cả trang.
+ * Zod sẽ ném lỗi nếu gặp chuỗi ngoài danh sách, nên chuẩn hóa trước khi parse.
+ */
+function normalizeReviewStatus(value: unknown): ReviewStatus {
+  return (REVIEW_STATUSES as readonly string[]).includes(value as string)
+    ? (value as ReviewStatus)
+    : 'none';
+}
+
 export function toPostSummary(post: PostRow, ctx: PostViewContext): PostSummaryResponse {
   return postSummarySchema.parse({
     id: post.id,
@@ -241,6 +259,10 @@ export function toPostSummary(post: PostRow, ctx: PostViewContext): PostSummaryR
     helpful_count: post.helpful_count,
     comment_count: post.comment_count,
     is_published: post.is_published,
+    content_source: post.content_source ?? null,
+    source_url: post.source_url ?? null,
+    review_status: normalizeReviewStatus(post.review_status),
+    reviewed_at: toIso(post.reviewed_at),
     created_at: toIsoRequired(post.created_at),
     updated_at: toIsoRequired(post.updated_at),
     author: authorFor(post.is_anonymous, ctx.author, ctx.viewerId, ctx.viewerIsStaff),

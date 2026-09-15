@@ -31,11 +31,39 @@ interface Article {
   tags?: string[];
 }
 
-const MUC: Record<string, { data: string; category: string }> = {
-  'dich-benh': { data: 'canh-bao-dich-benh.json', category: 'canh-bao-dich-benh' },
-  'nghien-cuu': { data: 'nghien-cuu-cong-nghe-y-te.json', category: 'nghien-cuu-cong-nghe-y-te' },
-  'chinh-sach': { data: 'chinh-sach-bao-hiem-y-te.json', category: 'chinh-sach-bao-hiem-y-te' },
-  'tin-y-te': { data: 'tin-y-te.json', category: 'tin-y-te' },
+interface Muc {
+  data: string;
+  category: string;
+  /** Ghi vào posts.content_source để trang bài nói rõ nội dung từ đâu ra. */
+  source: string;
+  sourceUrl: string;
+}
+
+const MUC: Record<string, Muc> = {
+  'dich-benh': {
+    data: 'canh-bao-dich-benh.json',
+    category: 'canh-bao-dich-benh',
+    source: 'CDC Hoa Kỳ',
+    sourceUrl: 'https://wwwnc.cdc.gov/travel/notices',
+  },
+  'nghien-cuu': {
+    data: 'nghien-cuu-cong-nghe-y-te.json',
+    category: 'nghien-cuu-cong-nghe-y-te',
+    source: 'NIH Hoa Kỳ',
+    sourceUrl: 'https://www.nih.gov/news-events/news-releases',
+  },
+  'chinh-sach': {
+    data: 'chinh-sach-bao-hiem-y-te.json',
+    category: 'chinh-sach-bao-hiem-y-te',
+    source: 'Văn bản quy phạm pháp luật Việt Nam',
+    sourceUrl: 'https://vanban.chinhphu.vn/',
+  },
+  'tin-y-te': {
+    data: 'tin-y-te.json',
+    category: 'tin-y-te',
+    source: 'FDA Hoa Kỳ',
+    sourceUrl: 'https://www.fda.gov/news-events/fda-newsroom/press-announcements',
+  },
 };
 
 function argValue(flag: string): string | null {
@@ -96,6 +124,8 @@ async function main() {
     process.exit(1);
   }
   const dataFile = fileURLToPath(new URL(`./data/${dataName}`, import.meta.url));
+  const contentSource = argValue('--source') ?? preset?.source ?? null;
+  const sourceUrl = argValue('--source-url') ?? preset?.sourceUrl ?? null;
   const authorArg = argValue('--author');
   const dryRun = hasFlag('--dry-run');
 
@@ -160,7 +190,19 @@ async function main() {
     if (existing) {
       await db
         .update(posts)
-        .set({ content, excerpt, search_text, updated_at: new Date() })
+        .set({
+          content,
+          excerpt,
+          search_text,
+          content_source: contentSource,
+          source_url: sourceUrl,
+          // Bài biên soạn lại từ nguồn thì mức duyệt quay về "chưa duyệt":
+          // chữ ký chuyên môn cũ không còn đúng với nội dung mới.
+          review_status: 'translated',
+          reviewed_by_id: null,
+          reviewed_at: null,
+          updated_at: new Date(),
+        })
         .where(eq(posts.id, existing.id));
       postId = existing.id;
       updated += 1;
@@ -177,6 +219,9 @@ async function main() {
           surface: category.surface,
           is_published: true,
           search_text,
+          content_source: contentSource,
+          source_url: sourceUrl,
+          review_status: 'translated',
           author_id: author.id,
           category_id: category.id,
         })

@@ -145,6 +145,20 @@ export const posts = pgTable(
     rejection_reason: varchar('rejection_reason', { length: 500 }),
     // Lowercase, diacritic-free copy of title + excerpt + content.
     search_text: text('search_text'),
+    /**
+     * Nội dung này từ đâu ra và đã có ai chịu trách nhiệm chuyên môn chưa.
+     *
+     * Một diễn đàn y tế mà mọi bài đều đứng tên một tài khoản quản trị, không
+     * ghi nguồn, không nói ai duyệt — người đọc có chuyên môn nhận ra trong
+     * ba mươi giây và sẽ không quay lại. Nói thẳng ra làm tăng uy tín chứ
+     * không giảm, kể cả khi câu trả lời là "chưa ai duyệt".
+     */
+    content_source: varchar('content_source', { length: 120 }),
+    source_url: varchar('source_url', { length: 500 }),
+    /** 'none' | 'translated' (biên soạn từ nguồn, chưa duyệt) | 'reviewed'. */
+    review_status: varchar('review_status', { length: 24 }).notNull().default('none'),
+    reviewed_by_id: uuid('reviewed_by_id'),
+    reviewed_at: timestamp('reviewed_at', { withTimezone: true }),
     // Only meaningful for post_type = 'question'.
     accepted_comment_id: uuid('accepted_comment_id'),
     is_anonymous: boolean('is_anonymous').notNull().default(false),
