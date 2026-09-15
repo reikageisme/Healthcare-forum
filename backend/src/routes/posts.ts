@@ -223,14 +223,50 @@ postRoutes.get('/', optionalAuth, async (c) => {
   }
 
   if (q.search && q.search.trim()) {
-    // search_text is stored lowercase and diacritic-free, so "tieu duong"
-    // matches "tiểu đường". Falls back to title/content for rows written
-    // before the column existed and not yet edited.
-    const needle = `%${deaccent(q.search.trim()).toLowerCase()}%`;
-    const raw = `%${q.search.trim()}%`;
-    conditions.push(
-      or(ilike(posts.search_text, needle), ilike(posts.title, raw), ilike(posts.content, raw))!,
-    );
+    /**
+     * Tìm theo từng từ, và ưu tiên tiêu đề trước khi hạ xuống toàn văn.
+     *
+     * Cách cũ ghép cả cụm thành một chuỗi rồi so bằng ILIKE '%...%', nên
+     * "bệnh viện đồng tháp" trượt sạch bài "Bệnh viện Đa khoa Đồng Tháp" chỉ
+     * vì giữa hai vế còn chữ "đa khoa" — gõ đúng tên bệnh viện mà ra 0 kết
+     * quả. Tách theo từ rồi AND lại là hết lỗi đó.
+     *
+     * Nhưng chỉ AND theo từ thì lại quá rộng: search_text chứa cả thân bài,
+     * nên một bài có chữ "thập niên 1980" cũng khớp từ "tháp". Vì vậy thử
+     * tầng hẹp trước — mọi từ khóa đều nằm trong tiêu đề — và chỉ khi tầng đó
+     * không ra gì mới nới ra toàn văn. Người gõ tên một bệnh viện thì nhận
+     * đúng bệnh viện đó; người gõ một triệu chứng nằm trong thân bài vẫn tìm
+     * ra. Phép thử là một truy vấn có chỉ mục, và cho kết quả như nhau ở mọi
+     * trang nên con trỏ phân trang không bị lệch.
+     *
+     * slug là bản không dấu của tiêu đề, nên gõ "dong thap" hay "Đồng Tháp"
+     * đều khớp. Cắt ở 8 từ để một câu dài không thành 8+ lần quét bảng.
+     */
+    const terms = q.search.trim().split(/\s+/).filter(Boolean).slice(0, 8);
+    if (terms.length > 0) {
+      const inTitle = terms.map(
+        (term) =>
+          or(
+            ilike(posts.title, `%${term}%`),
+            ilike(posts.slug, `%${deaccent(term).toLowerCase()}%`),
+          )!,
+      );
+      const inFullText = terms.map(
+        (term) =>
+          or(
+            ilike(posts.search_text, `%${deaccent(term).toLowerCase()}%`),
+            ilike(posts.title, `%${term}%`),
+          )!,
+      );
+
+      const titleHit = await db
+        .select({ id: posts.id })
+        .from(posts)
+        .where(and(...conditions, ...inTitle))
+        .limit(1);
+
+      conditions.push(...(titleHit.length > 0 ? inTitle : inFullText));
+    }
   }
 
   // Keyset pagination: strictly older than the cursor, tie-broken by id.

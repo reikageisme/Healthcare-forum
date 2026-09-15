@@ -43,6 +43,10 @@ interface Hospital {
   verification?: string;
 }
 
+/** Ghi vào posts.content_source để trang bài nói rõ dữ liệu từ đâu ra. */
+const SOURCE_NAME = 'Danh mục cơ sở KCB - Bộ Y tế';
+const SOURCE_URL = 'https://benhandientu.moh.gov.vn/danh-sach-benh-vien';
+
 const DEFAULT_DATA = 'hospitals-mien-nam.json';
 const DEFAULT_CATEGORY = 'benh-vien-mien-nam';
 
@@ -229,7 +233,15 @@ async function main() {
     if (existing) {
       await db
         .update(posts)
-        .set({ content, excerpt, search_text, updated_at: new Date() })
+        .set({
+          content,
+          excerpt,
+          search_text,
+          content_source: SOURCE_NAME,
+          source_url: SOURCE_URL,
+          review_status: 'translated',
+          updated_at: new Date(),
+        })
         .where(eq(posts.id, existing.id));
       updated += 1;
     } else {
@@ -243,6 +255,9 @@ async function main() {
         surface: category.surface,
         is_published: true,
         search_text,
+        content_source: SOURCE_NAME,
+        source_url: SOURCE_URL,
+        review_status: 'translated',
         author_id: author.id,
         category_id: category.id,
       });

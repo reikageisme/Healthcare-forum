@@ -18,6 +18,7 @@
     "seed:categories": "tsx src/scripts/seedCategories.ts",
     "seed:hospitals": "tsx src/scripts/seedHospitals.ts",
     "seed:articles": "tsx src/scripts/seedArticles.ts",
+    "backfill:search": "tsx src/scripts/backfillSearchText.ts",
     "fix:tag-names": "tsx src/scripts/fixTagNames.ts",
     "db:create": "tsx src/scripts/createDatabase.ts",
     "db:setup": "npm run db:create && npm run db:migrate && npm run create-admin"

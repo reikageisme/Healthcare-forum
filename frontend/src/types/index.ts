@@ -85,6 +85,11 @@ export interface Post {
   comment_count: number;
   commentCount?: number; // Compatibility alias
   is_published: boolean;
+  /** Nguồn gốc nội dung và mức độ duyệt chuyên môn. */
+  content_source?: string | null;
+  source_url?: string | null;
+  review_status?: 'none' | 'translated' | 'reviewed';
+  reviewed_at?: string | null;
   created_at: string;
   createdAt?: string; // Compatibility alias
   updated_at?: string;

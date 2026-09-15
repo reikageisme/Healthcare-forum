@@ -28,6 +28,10 @@ RUN npm config set registry https://registry.npmmirror.com
 RUN --mount=type=cache,target=/root/.npm \
     npm install --omit=dev --prefer-offline --no-audit --no-fund
 COPY --from=build /app/dist ./dist
+# tsc chỉ biên dịch .ts, không sao chép .json — nên dist/scripts/ thiếu hẳn
+# thư mục data và mọi script seed sẽ chết ở bước đọc file dữ liệu. Ảnh prod
+# lại không có src/ lẫn tsx (cài với --omit=dev), nên không có đường vòng.
+COPY src/scripts/data ./dist/scripts/data
 COPY drizzle ./drizzle
 COPY drizzle.config.ts ./
 COPY entrypoint.sh ./
