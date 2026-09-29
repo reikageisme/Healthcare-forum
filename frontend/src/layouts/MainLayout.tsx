@@ -9,6 +9,8 @@ import { useAuth } from '../hooks/useAuth';
 import SiteLink from '../components/common/SiteLink';
 import { forumHref, IS_FORUM, portalHref, registerHref } from '../lib/siteLinks';
 
+const JOIN_PROMPT_KEY = 'medicvn:community-prompt-dismissed:v2';
+
 const MainLayout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showJoinPrompt, setShowJoinPrompt] = useState(false);
@@ -18,17 +20,25 @@ const MainLayout: React.FC = () => {
   useEffect(() => setIsMobileMenuOpen(false), [location.pathname, location.search]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      setShowJoinPrompt(false);
-      return;
-    }
-    setShowJoinPrompt(sessionStorage.getItem('medicvn:join-prompt-dismissed') !== '1');
-  }, [isAuthenticated]);
+    setShowJoinPrompt(sessionStorage.getItem(JOIN_PROMPT_KEY) !== '1');
+  }, []);
 
   const dismissJoinPrompt = () => {
-    sessionStorage.setItem('medicvn:join-prompt-dismissed', '1');
+    sessionStorage.setItem(JOIN_PROMPT_KEY, '1');
     setShowJoinPrompt(false);
   };
+
+  const primaryJoinHref = isAuthenticated
+    ? IS_FORUM
+      ? forumHref('/create-post')
+      : forumHref()
+    : registerHref();
+  const primaryJoinLabel = isAuthenticated
+    ? IS_FORUM
+      ? 'Viết bài chia sẻ'
+      : 'Vào diễn đàn'
+    : 'Đăng nhập / Đăng ký';
+  const mobileJoinLabel = isAuthenticated ? (IS_FORUM ? 'Viết bài' : 'Diễn đàn') : 'Tham gia';
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">
@@ -97,31 +107,33 @@ const MainLayout: React.FC = () => {
             </div>
             <div className="min-w-0 flex-1">
               <h2 id="join-community-title" className="text-sm font-extrabold text-text lg:text-lg">
-                Tham gia cộng đồng Medic Việt Nam
+                {isAuthenticated ? 'Khám phá cộng đồng Medic Việt Nam' : 'Tham gia cộng đồng Medic Việt Nam'}
               </h2>
               <p id="join-community-description" className="mt-0.5 line-clamp-1 text-[11px] text-text-secondary sm:line-clamp-none sm:text-xs lg:text-sm">
-                Đặt câu hỏi, trao đổi kinh nghiệm và nhận phản hồi từ cộng đồng y khoa.
+                {IS_FORUM
+                  ? 'Đặt câu hỏi, trao đổi kinh nghiệm và chia sẻ kiến thức cùng cộng đồng y khoa.'
+                  : 'Ghé diễn đàn để đặt câu hỏi, trao đổi kinh nghiệm và kết nối cùng cộng đồng y khoa.'}
               </p>
               <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
                 <SiteLink
-                  to={registerHref()}
+                  to={primaryJoinHref}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
                 >
-                  Đăng nhập / Đăng ký
+                  {primaryJoinLabel}
                 </SiteLink>
                 <SiteLink
-                  to={IS_FORUM ? portalHref('/') : forumHref()}
+                  to={IS_FORUM ? portalHref('/') : forumHref('/create-post')}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary"
                 >
-                  {IS_FORUM ? 'Đọc tin y tế' : 'Xem diễn đàn'}
+                  {IS_FORUM ? 'Đọc tin y tế' : isAuthenticated ? 'Viết bài chia sẻ' : 'Xem diễn đàn'}
                 </SiteLink>
               </div>
             </div>
             <SiteLink
-              to={registerHref()}
+              to={primaryJoinHref}
               className="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-primary px-3.5 text-xs font-bold text-white transition-colors hover:bg-primary-dark sm:hidden"
             >
-              Tham gia
+              {mobileJoinLabel}
             </SiteLink>
             <button
               type="button"
