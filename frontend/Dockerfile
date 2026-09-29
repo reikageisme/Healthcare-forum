@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm config set registry https://registry.npmmirror.com
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --prefer-offline --no-audit --no-fund --maxsockets 5 --fetch-retries 5 --fetch-retry-mintimeout 20000 --fetch-retry-maxtimeout 120000
+    npm ci --prefer-offline --no-audit --no-fund --maxsockets 5 --fetch-retries 5 --fetch-retry-mintimeout 20000 --fetch-retry-maxtimeout 120000
 
 # Dev stage
 # VITE_APP đến từ `environment` của compose lúc chạy, nên một image dev dùng
@@ -23,9 +23,11 @@ FROM base AS build
 ARG VITE_APP=portal
 ARG VITE_PORTAL_URL=
 ARG VITE_FORUM_URL=
+ARG VITE_APP_VERSION=1.1.0
 ENV VITE_APP=${VITE_APP} \
     VITE_PORTAL_URL=${VITE_PORTAL_URL} \
-    VITE_FORUM_URL=${VITE_FORUM_URL}
+    VITE_FORUM_URL=${VITE_FORUM_URL} \
+    VITE_APP_VERSION=${VITE_APP_VERSION}
 COPY . .
 RUN npm run build
 

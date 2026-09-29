@@ -19,6 +19,7 @@ import {
   isEmojiIcon,
   resolveCategoryIcon,
 } from '../../lib/categoryIcon';
+import ThemeToggle from '../common/ThemeToggle';
 
 const CategoryGlyph: React.FC<{ icon?: string | null; size?: number }> = ({ icon, size = 16 }) => {
   if (isEmojiIcon(icon)) {
@@ -239,6 +240,14 @@ export const SidebarLeft: React.FC = () => {
             )}
           </div>
         )}
+      </div>
+
+      <div className="flex items-center justify-between rounded-xl border border-border bg-surface px-3.5 py-2.5 shadow-sm">
+        <div>
+          <p className="text-xs font-bold text-text">Chế độ hiển thị</p>
+          <p className="mt-0.5 text-[11px] font-normal text-text-secondary">Sáng hoặc tối</p>
+        </div>
+        <ThemeToggle />
       </div>
 
     </div>

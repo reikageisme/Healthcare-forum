@@ -74,7 +74,7 @@ function parseNetworkSites(raw: string | undefined): NetworkSite[] {
 
 export const settings = {
   PROJECT_NAME: process.env.PROJECT_NAME ?? 'Medic Việt Nam',
-  VERSION: '1.0.0',
+  VERSION: process.env.APP_VERSION ?? '1.1.0',
   NODE_ENV: process.env.NODE_ENV ?? 'development',
 
   DATABASE_URL: toPgUrl(

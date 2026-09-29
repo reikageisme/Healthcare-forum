@@ -73,6 +73,8 @@ export const users = pgTable(
     verified_at: timestamp('verified_at', { withTimezone: true }),
     workplace: varchar('workplace', { length: 255 }),
     is_active: boolean('is_active').notNull().default(true),
+    /** Incremented on logout so access/refresh tokens issued earlier stop working everywhere. */
+    session_version: integer('session_version').notNull().default(0),
     created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

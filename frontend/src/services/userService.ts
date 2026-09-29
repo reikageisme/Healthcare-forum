@@ -9,6 +9,13 @@ export interface ProfileUpdateInput {
   bio?: string;
 }
 
+export interface RankedMember extends User {
+  rank: number;
+  points: number;
+  post_count: number;
+  comment_count: number;
+}
+
 export const userService = {
   getUser: async (id: string): Promise<User> => {
     const response = await api.get<User>(`/users/${id}`);
@@ -17,6 +24,11 @@ export const userService = {
 
   updateProfile: async (id: string, data: ProfileUpdateInput): Promise<User> => {
     const response = await api.put<User>(`/users/${id}`, data);
+    return response.data;
+  },
+
+  getRanking: async (limit = 5): Promise<RankedMember[]> => {
+    const response = await api.get<RankedMember[]>('/users/ranking', { params: { limit } });
     return response.data;
   },
 };

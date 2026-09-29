@@ -80,6 +80,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
     : new Set<string>();
   const parentOptions = flattenTree(allCategories).filter(
     ({ item }) =>
+      item.surface === surface &&
       !blocked.has(item.id) &&
       depthOf(item.id, allCategories) + ownHeight <= MAX_CATEGORY_DEPTH,
   );
@@ -167,7 +168,11 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setSurface(value)}
+                  onClick={() => {
+                    setSurface(value);
+                    const selectedParent = allCategories.find((item) => item.id === parentId);
+                    if (selectedParent && selectedParent.surface !== value) setParentId('');
+                  }}
                   className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${
                     surface === value
                       ? 'border-primary bg-primary/5 text-primary'

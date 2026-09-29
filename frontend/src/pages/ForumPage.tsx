@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MessageSquare, Plus, ChevronRight } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { FileText, MessageSquare, Plus, ChevronRight } from 'lucide-react';
 import SiteLink from '../components/common/SiteLink';
 import { forumCategoryHref, portalHref } from '../lib/siteLinks';
 import { forumService, ForumCategory } from '../services/forumService';
@@ -9,6 +9,11 @@ import { FallbackCategoryIcon, isEmojiIcon, resolveCategoryIcon } from '../lib/c
 import { formatRelativeTime } from '../lib/utils';
 import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
+import CommunityHero from '../components/Forum/CommunityHero';
+import FeaturedPosts from '../components/Feed/FeaturedPosts';
+import PostTable from '../components/posts/PostTable';
+import { postService } from '../services/postService';
+import { Post } from '../types';
 
 /**
  * Trang chủ diễn đàn.
@@ -89,8 +94,12 @@ const BoxRow: React.FC<{ box: ForumCategory; subs: ForumCategory[] }> = ({ box, 
 );
 
 export const ForumPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const query = searchParams.get('search')?.trim() ?? '';
   const [categories, setCategories] = useState<ForumCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState<Post[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     forumService
@@ -99,6 +108,20 @@ export const ForumPage: React.FC = () => {
       .catch((err) => console.error('Failed to load forum index', err))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!query) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    postService
+      .getPosts({ search: query, limit: 30 })
+      .then((page) => setSearchResults(page.items))
+      .catch(() => setSearchResults([]))
+      .finally(() => setSearching(false));
+  }, [query]);
 
   const roots = rootsOf(categories) as ForumCategory[];
   const childrenOf = childrenMap(categories);
@@ -110,19 +133,59 @@ export const ForumPage: React.FC = () => {
     .filter((c) => !c.parent_id)
     .reduce((sum, c) => sum + c.reply_count, 0);
 
-  if (loading) return <PostCardSkeleton />;
-
-  if (roots.length === 0) {
+  if (loading) {
     return (
-      <EmptyState
-        title="Diễn đàn chưa có chuyên mục nào"
-        description="Quản trị viên cần tạo chuyên mục trong trang quản trị trước khi diễn đàn hoạt động."
-      />
+      <>
+        <CommunityHero query={query} />
+        <PostCardSkeleton />
+      </>
+    );
+  }
+
+  if (roots.length === 0 && !query) {
+    return (
+      <>
+        <CommunityHero />
+        <EmptyState
+          title="Diễn đàn chưa có chuyên mục nào"
+          description="Quản trị viên cần tạo chuyên mục trong trang quản trị trước khi diễn đàn hoạt động."
+        />
+      </>
     );
   }
 
   return (
     <div>
+      <CommunityHero query={query} />
+
+      {query ? (
+        <section className="mb-6" aria-labelledby="forum-search-title">
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <h2 id="forum-search-title" className="section-title">Kết quả tìm kiếm</h2>
+              <p className="mt-1 text-xs text-text-secondary">
+                {searching ? 'Đang tìm...' : `${searchResults.length} kết quả cho “${query}”`}
+              </p>
+            </div>
+            <Link to="/" className="text-xs font-bold text-primary hover:underline">Xóa tìm kiếm</Link>
+          </div>
+          {searching ? (
+            <PostCardSkeleton />
+          ) : searchResults.length > 0 ? (
+            <PostTable posts={searchResults} />
+          ) : (
+            <EmptyState
+              icon={FileText}
+              title="Không tìm thấy chủ đề phù hợp"
+              description="Thử từ khóa ngắn hơn hoặc đặt một câu hỏi mới cho cộng đồng."
+              actionText="Đặt câu hỏi"
+              actionHref="/create-post?type=QUESTION"
+            />
+          )}
+        </section>
+      ) : (
+        <>
+          <FeaturedPosts />
       <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
         <div>
           <h1 className="text-2xl sm:text-[26px] font-extrabold text-text tracking-tight">Diễn đàn Sức khỏe</h1>
@@ -140,6 +203,7 @@ export const ForumPage: React.FC = () => {
         </Link>
       </div>
 
+      <div id="forum-categories" className="scroll-mt-28">
       {roots.map((root) => {
         const kids = (childrenOf.get(root.id) ?? []) as ForumCategory[];
         // Nhóm rỗng thì chính nó là box, không thì các con là box.
@@ -176,6 +240,7 @@ export const ForumPage: React.FC = () => {
           </section>
         );
       })}
+      </div>
 
       <SiteLink
         to={portalHref('/')}
@@ -184,6 +249,8 @@ export const ForumPage: React.FC = () => {
         Về bảng tin
         <ChevronRight size={15} />
       </SiteLink>
+        </>
+      )}
     </div>
   );
 };

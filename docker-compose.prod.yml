@@ -18,6 +18,7 @@ services:
         VITE_APP: portal
         VITE_PORTAL_URL: ${VITE_PORTAL_URL:-}
         VITE_FORUM_URL: ${VITE_FORUM_URL:-}
+        VITE_APP_VERSION: ${VITE_APP_VERSION:-1.1.0}
         NGINX_CONF: nginx.conf
     volumes: []
     restart: always
@@ -30,9 +31,9 @@ services:
         VITE_APP: forum
         VITE_PORTAL_URL: ${VITE_PORTAL_URL:-}
         VITE_FORUM_URL: ${VITE_FORUM_URL:-}
+        VITE_APP_VERSION: ${VITE_APP_VERSION:-1.1.0}
         NGINX_CONF: nginx.forum.conf
     volumes: []
-    command: ["nginx", "-g", "daemon off;"]
     restart: always
 
   adminer:

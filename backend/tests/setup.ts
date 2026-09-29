@@ -1,4 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
+import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { sql } from 'drizzle-orm';
 import { setDatabase, schema } from '../src/db/index.js';
@@ -11,7 +12,7 @@ import { users } from '../src/db/schema.js';
 let client: PGlite | null = null;
 
 export async function freshDatabase() {
-  client = new PGlite();
+  client = new PGlite({ extensions: { pg_trgm } });
   const testDb = drizzle(client, { schema });
   setDatabase(testDb as never);
 

@@ -1,22 +1,24 @@
 import React, { useState } from 'react';
-import { Search, Menu, UserCircle, LogOut, Plus, ShieldCheck, Newspaper } from 'lucide-react';
+import { Search, Menu, UserCircle, LogOut, Plus, ShieldCheck, Newspaper, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getAvatarUrl } from '../../lib/utils';
-import api from '../../lib/api';
+import { logoutEverywhere } from '../../services/authService';
 import SiteLink from '../common/SiteLink';
 import { IS_FORUM, loginHref, portalHref } from '../../lib/siteLinks';
 import { canPostHere, writeElsewhereHref } from '../../lib/canPost';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from '../common/ThemeToggle';
 
 interface HeaderProps {
   toggleMobileMenu: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
-  const { isAuthenticated, user, logout, canModerate } = useAuth();
+  const { isAuthenticated, user, canModerate } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const navigate = useNavigate();
 
   /**
@@ -28,18 +30,14 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
    */
   const handleLogout = async () => {
     setShowUserDropdown(false);
-    try {
-      await api.post('/auth/logout');
-    } catch {
-      // Mất mạng thì vẫn phải thoát ở phía trình duyệt; cookie sẽ hết hạn.
-    }
-    logout();
+    await logoutEverywhere().catch(() => undefined);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
       navigate(`/?search=${encodeURIComponent(searchTerm.trim())}`);
+      setShowMobileSearch(false);
     } else {
       navigate('/');
     }
@@ -47,15 +45,16 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
 
   return (
     <>
-      <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-md border-b border-border shadow-sm">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-3">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-border bg-surface/90 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+        <div className="mx-auto max-w-[1480px] px-3 sm:px-6 lg:px-8">
+          <div className="flex h-[72px] items-center justify-between gap-2 sm:gap-4">
             {/* Left section: Mobile menu & Logo */}
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={toggleMobileMenu}
-                className="lg:hidden p-2 text-text-secondary hover:text-primary rounded-lg"
+                aria-label="Mở menu điều hướng"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-sidebar hover:text-primary lg:hidden"
               >
                 <Menu size={22} />
               </button>
@@ -70,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                   alt="Medic Việt Nam"
                   width={648}
                   height={132}
-                  className="h-9 sm:h-11 w-auto"
+                  className="h-9 w-auto sm:h-11"
                 />
               </Link>
 
@@ -87,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
             </div>
 
             {/* Center section: Search Bar */}
-            <div className="flex-1 max-w-2xl mx-4 hidden md:block">
+            <div className="mx-3 hidden max-w-2xl flex-1 md:block xl:mx-8">
               <form onSubmit={handleSearchSubmit} className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                   <Search className="h-4 w-4 text-text-secondary" />
@@ -96,7 +95,8 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-2 border border-border rounded-full bg-slate-50 focus:bg-white text-sm placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                  aria-label="Tìm kiếm trên Medic Việt Nam"
+                  className="block w-full rounded-full border border-border bg-bg py-2.5 pl-10 pr-4 text-sm text-text placeholder-text-secondary transition-all focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="Tìm kiếm bài viết, triệu chứng, thuốc, bác sĩ..."
                 />
               </form>
@@ -104,6 +104,15 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
 
             {/* Right section: Create post button & User auth */}
             <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => setShowMobileSearch((value) => !value)}
+                aria-label={showMobileSearch ? 'Đóng tìm kiếm' : 'Mở tìm kiếm'}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-text-secondary transition-colors hover:text-primary md:hidden"
+              >
+                {showMobileSearch ? <X size={18} /> : <Search size={18} />}
+              </button>
+
               {/* Lối quay về cổng tin tức — chỉ có ở bản diễn đàn. */}
               {IS_FORUM && (
                 <SiteLink
@@ -141,6 +150,8 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
 
               <NotificationBell />
 
+              <ThemeToggle className="hidden sm:inline-flex" />
+
               <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
 
               {isAuthenticated && user ? (
@@ -159,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
 
                   {/* Dropdown */}
                   {showUserDropdown && (
-                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-border py-2 z-50 animate-in fade-in zoom-in-95">
+                    <div className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-border bg-surface py-2 shadow-2xl animate-in fade-in zoom-in-95">
                       <div className="px-4 py-2 border-b border-border">
                         <p className="text-sm font-bold text-text truncate">
                           {user.full_name || user.username}
@@ -234,6 +245,23 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
               )}
             </div>
           </div>
+
+          {showMobileSearch && (
+            <div className="border-t border-border py-3 md:hidden">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
+                <input
+                  autoFocus
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  aria-label="Tìm kiếm trên Medic Việt Nam"
+                  placeholder="Tìm bài viết, triệu chứng, thuốc..."
+                  className="w-full rounded-xl border border-border bg-bg py-3 pl-10 pr-4 text-sm text-text placeholder-text-secondary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </form>
+            </div>
+          )}
         </div>
       </header>
     </>

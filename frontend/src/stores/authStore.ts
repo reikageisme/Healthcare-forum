@@ -36,22 +36,17 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      /**
-       * Refresh token cố ý KHÔNG được lưu xuống localStorage nữa.
-       *
-       * Nó sống trong cookie HttpOnly đặt ở tên miền cha, nên hai việc cùng
-       * đạt được: forums.medicvn.com nhận ra phiên đăng nhập mở từ
-       * medicvn.com (localStorage thì không, vì gắn chặt một origin), và một
-       * lỗ XSS cũng không đọc được tấm vé sống 7 ngày ấy.
-       *
-       * Vẫn giữ user + access token để mở lại tab là thấy giao diện đã đăng
-       * nhập ngay, không phải chờ một vòng gọi mạng.
-       */
+      version: 2,
+      /** Credentials stay in memory; the HttpOnly parent-domain cookie is the
+       * only persisted session. This prevents a sibling domain from looking
+       * logged in with a stale JWT after logout elsewhere. */
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
-        isAuthenticated: state.isAuthenticated,
       }),
+      migrate: (persisted) => {
+        const state = (persisted ?? {}) as Partial<AuthState>;
+        return { user: state.user ?? null };
+      },
     }
   )
 );

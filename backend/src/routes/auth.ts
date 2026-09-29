@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
-import { eq, or } from 'drizzle-orm';
+import { eq, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import {
@@ -16,7 +16,7 @@ import { parseBody } from '../lib/validate.js';
 import { userCreateSchema, userLoginSchema } from '../schemas/requests.js';
 import { settings } from '../core/config.js';
 import { toUserResponse, tokenResponseSchema } from '../schemas/responses.js';
-import { requireAuth, currentUser } from '../middleware/auth.js';
+import { requireAuth, currentUser, optionalAuth } from '../middleware/auth.js';
 import { loginRateLimit, registerRateLimit } from '../middleware/rateLimit.js';
 import { sanitizePlainText } from '../lib/sanitize.js';
 import { googleEnabled, googleStart, makeGoogleCallback } from './googleAuth.js';
@@ -67,9 +67,15 @@ function clearRefreshCookie(c: Context) {
 }
 
 async function issueTokens(c: Context, id: string, role: string) {
+  const rows = await db
+    .select({ session_version: users.session_version })
+    .from(users)
+    .where(eq(users.id, id))
+    .limit(1);
+  const sessionVersion = rows[0]?.session_version ?? 0;
   const [access_token, refresh_token] = await Promise.all([
-    createAccessToken(id, role),
-    createRefreshToken(id, role),
+    createAccessToken(id, role, sessionVersion),
+    createRefreshToken(id, role, sessionVersion),
   ]);
   setRefreshCookie(c, refresh_token);
   // Refresh token vẫn trả trong body: bản client cũ còn đọc nó, và trình
@@ -178,15 +184,36 @@ authRoutes.post('/refresh', async (c) => {
     clearRefreshCookie(c);
     throw forbidden('Account has been deactivated');
   }
+  if (user.session_version !== payload.sessionVersion) {
+    clearRefreshCookie(c);
+    throw unauthorized('Session has been revoked');
+  }
 
   return c.json(await issueTokens(c, user.id, user.role));
 });
 
 /**
- * Đăng xuất. Cookie nằm ở tên miền cha nên xoá một lần là thoát cả hai trang;
- * access token chỉ sống trong bộ nhớ tab nên tự mất.
+ * Đăng xuất ở một domain phải cắt được cả access token đang mở ở domain kia.
+ * Cookie xác định phiên ngay cả khi access token đã hết hạn; Authorization là
+ * đường dự phòng khi trình duyệt không nhận cookie.
  */
-authRoutes.post('/logout', (c) => {
+authRoutes.post('/logout', optionalAuth, async (c) => {
+  let userId = c.get('currentUser')?.id ?? null;
+  const refreshToken = getCookie(c, REFRESH_COOKIE);
+  if (refreshToken) {
+    const payload = await decodeToken(refreshToken, 'refresh');
+    if (payload) userId = payload.sub;
+  }
+
+  if (userId) {
+    await db
+      .update(users)
+      .set({
+        session_version: sql`${users.session_version} + 1`,
+        updated_at: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
   clearRefreshCookie(c);
   return c.body(null, 204);
 });
@@ -209,4 +236,3 @@ authRoutes.get('/google/callback', googleCallback);
 
 /** Frontend hỏi trước để biết có nên vẽ nút "Tiếp tục với Google" hay không. */
 authRoutes.get('/providers', (c) => c.json({ google: googleEnabled() }));
-

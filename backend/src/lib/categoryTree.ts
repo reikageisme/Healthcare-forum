@@ -85,13 +85,16 @@ async function heightOf(categoryId: string): Promise<number> {
  * root is fine; moving it under a child is not, because the grandchildren
  * would land on a fourth level.
  */
-export async function assertValidParent(parentId: string, selfId?: string): Promise<void> {
+export async function assertValidParent(
+  parentId: string,
+  selfId?: string,
+): Promise<{ id: string; parent_id: string | null; surface: string }> {
   if (selfId && parentId === selfId) {
     throw badRequest('Chuyên mục không thể là chuyên mục cha của chính nó');
   }
 
   const parent = await db
-    .select({ id: categories.id, parent_id: categories.parent_id })
+    .select({ id: categories.id, parent_id: categories.parent_id, surface: categories.surface })
     .from(categories)
     .where(eq(categories.id, parentId))
     .limit(1);
@@ -124,4 +127,6 @@ export async function assertValidParent(parentId: string, selfId?: string): Prom
         : `Cây chuyên mục chỉ sâu tối đa ${MAX_CATEGORY_DEPTH} cấp`,
     );
   }
+
+  return parent[0];
 }

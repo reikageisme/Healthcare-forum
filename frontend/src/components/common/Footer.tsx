@@ -6,7 +6,7 @@ import { categoryService } from '../../services/categoryService';
 import { Category } from '../../types';
 import { rootsOf } from '../../lib/categoryTree';
 import SiteLink from './SiteLink';
-import { categoryHref, forumHref, portalHref } from '../../lib/siteLinks';
+import { APP_VERSION, categoryHref, forumHref, portalHref } from '../../lib/siteLinks';
 import SiteAvatar from './SiteAvatar';
 
 /**
@@ -167,7 +167,7 @@ export const Footer: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-8 pt-6 border-t border-border">
           <p className="text-xs text-text-secondary">
-            © {year} Medic Việt Nam. Giữ toàn bộ bản quyền.
+            © {year} Medic Việt Nam · v{APP_VERSION}. Giữ toàn bộ bản quyền.
           </p>
           <span className="flex-1" />
           {legal.map((link) =>

@@ -23,6 +23,9 @@ export const IS_PORTAL = !IS_FORUM;
  */
 export const SURFACE = APP_KIND;
 
+/** Human-readable release shown in the footer and supplied by CI when set. */
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.1.0';
+
 /** Bỏ dấu / cuối để nối chuỗi không sinh ra "//". */
 const trim = (value: string) => value.replace(/\/+$/, '');
 

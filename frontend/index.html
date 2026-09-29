@@ -11,6 +11,19 @@
     />
     <meta name="theme-color" content="#2D6DD1" />
 
+    <script>
+      // Apply the saved/system theme before CSS and React render to avoid a
+      // bright flash when a dark-theme visitor opens the site.
+      (function () {
+        try {
+          var saved = localStorage.getItem('medicvn-theme');
+          var dark = saved === 'dark' || (!saved && matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch (_) {}
+      })();
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=2" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
@@ -63,6 +76,8 @@
         z-index: 9999;
         font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
       }
+      .dark #app-splash { background: #0a1220; }
+      .dark #app-splash .msg { color: #ebf1f9; }
       /*
         Bông sen tự vẽ nằm trong chính file SVG (có <style> riêng), nạp bằng
         <img>. Nhúng thẳng vào đây thì index.html phồng thêm ~8KB mà mỗi lượt

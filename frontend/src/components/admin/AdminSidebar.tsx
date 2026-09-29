@@ -18,6 +18,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { adminService } from '../../services/adminService';
 import { cn } from '../../lib/utils';
+import { logoutEverywhere } from '../../services/authService';
 
 interface AdminSidebarProps {
   isOpen?: boolean;
@@ -25,7 +26,7 @@ interface AdminSidebarProps {
 }
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [openReportsCount, setOpenReportsCount] = useState<number | null>(null);
 
@@ -233,9 +234,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
           </Link>
           <button
             type="button"
-            onClick={() => {
-              logout();
-              window.location.href = '/';
+            onClick={async () => {
+              await logoutEverywhere().catch(() => undefined);
+              window.location.assign('/');
             }}
             className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-danger hover:bg-red-50 transition-colors"
           >

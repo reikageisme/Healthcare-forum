@@ -34,13 +34,23 @@ postRoutes.post('/', requireAuth, async (c) => {
   const me = currentUser(c);
   const body = await parseBody(c, postCreateSchema);
 
+  const surface = asSurface(body.surface) ?? 'forum';
+  if (surface === 'portal' && !canPublishToPortal(me.role)) {
+    throw forbidden(
+      'Chỉ ban biên tập mới đăng được bài lên trang tin. Bài của bạn thuộc về diễn đàn.',
+    );
+  }
+
   if (body.category_id) {
     const cat = await db
-      .select({ id: categories.id })
+      .select({ id: categories.id, surface: categories.surface })
       .from(categories)
       .where(eq(categories.id, body.category_id))
       .limit(1);
     if (cat.length === 0) throw notFound('Category not found');
+    if (cat[0]!.surface !== surface) {
+      throw badRequest('Bài viết và chuyên mục phải thuộc cùng một khu vực');
+    }
   }
 
   // Bodies are TipTap HTML and end up in dangerouslySetInnerHTML on the
@@ -74,13 +84,6 @@ postRoutes.post('/', requireAuth, async (c) => {
    * hiểu đó là nội dung đã qua biên tập. Nên chỉ admin, kiểm duyệt viên và bác
    * sĩ đăng được vào đó; thành viên thường vẫn viết thoải mái, ở diễn đàn.
    */
-  const surface = asSurface(body.surface) ?? 'forum';
-  if (surface === 'portal' && !canPublishToPortal(me.role)) {
-    throw forbidden(
-      'Chỉ ban biên tập mới đăng được bài lên trang tin. Bài của bạn thuộc về diễn đàn.',
-    );
-  }
-
   const inserted = await db
     .insert(posts)
     .values({
@@ -403,6 +406,21 @@ postRoutes.put('/:id_or_slug', requireAuth, async (c) => {
     patch.surface = nextSurface;
   }
 
+  const effectiveSurface = nextSurface ?? found.post.surface;
+  const effectiveCategoryId =
+    body.category_id === undefined ? found.post.category_id : body.category_id;
+  if (effectiveCategoryId) {
+    const cat = await db
+      .select({ id: categories.id, surface: categories.surface })
+      .from(categories)
+      .where(eq(categories.id, effectiveCategoryId))
+      .limit(1);
+    if (cat.length === 0) throw notFound('Category not found');
+    if (cat[0]!.surface !== effectiveSurface) {
+      throw badRequest('Bài viết và chuyên mục phải thuộc cùng một khu vực');
+    }
+  }
+
   if (body.title !== undefined && body.title !== null && body.title !== found.post.title) {
     patch.title = sanitizePlainText(body.title);
     patch.slug = await generateUniqueSlug(patch.title, found.post.id);
@@ -423,13 +441,7 @@ postRoutes.put('/:id_or_slug', requireAuth, async (c) => {
   if (body.post_type !== undefined && body.post_type !== null) {
     patch.post_type = body.post_type;
   }
-  if (body.category_id !== undefined && body.category_id !== null) {
-    const cat = await db
-      .select({ id: categories.id })
-      .from(categories)
-      .where(eq(categories.id, body.category_id))
-      .limit(1);
-    if (cat.length === 0) throw notFound('Category not found');
+  if (body.category_id !== undefined) {
     patch.category_id = body.category_id;
   }
 
@@ -558,4 +570,3 @@ postRoutes.delete('/:id_or_slug', requireAuth, async (c) => {
   await db.delete(posts).where(eq(posts.id, post.id));
   return c.body(null, 204);
 });
-

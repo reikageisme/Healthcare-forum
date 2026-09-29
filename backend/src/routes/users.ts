@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { comments, posts, users } from '../db/schema.js';
 import { asUuid } from '../core/security.js';
@@ -11,6 +11,54 @@ import { currentUser, optionalAuth, requireAuth, requireRole } from '../middlewa
 import { sanitizePlainText } from '../lib/sanitize.js';
 
 export const userRoutes = new Hono();
+
+/**
+ * Public community leaderboard. Scores deliberately use existing, auditable
+ * activity instead of a new mutable points column: approved posts = 5,
+ * non-deleted replies = 2, helpful votes received = 3.
+ */
+userRoutes.get('/ranking', async (c) => {
+  const limit = Math.min(20, Math.max(1, Number(c.req.query('limit') ?? 5) || 5));
+  const approvedPosts = sql<number>`(
+    select count(*)::int from "posts" p
+    where p.author_id = "users"."id"
+      and p.status = 'approved'
+      and p.is_published = true
+      and p.is_anonymous = false
+  )`;
+  const visibleComments = sql<number>`(
+    select count(*)::int from "comments" c
+    where c.author_id = "users"."id"
+      and c.is_deleted = false
+      and c.is_anonymous = false
+  )`;
+  const helpfulReceived = sql<number>`(
+    select coalesce(sum(p.helpful_count), 0)::int from "posts" p
+    where p.author_id = "users"."id"
+      and p.status = 'approved'
+      and p.is_published = true
+      and p.is_anonymous = false
+  )`;
+  const points = sql<number>`(${approvedPosts} * 5 + ${visibleComments} * 2 + ${helpfulReceived} * 3)`;
+
+  const rows = await db
+    .select({ user: users, post_count: approvedPosts, comment_count: visibleComments, points })
+    .from(users)
+    .where(eq(users.is_active, true))
+    .orderBy(desc(points), users.created_at)
+    .limit(limit);
+
+  return c.json(
+    rows.map((row, index) => ({
+      ...toUserResponse(row.user, {
+        post_count: Number(row.post_count),
+        comment_count: Number(row.comment_count),
+      }),
+      rank: index + 1,
+      points: Number(row.points),
+    })),
+  );
+});
 
 /**
  * Every handler here returns toUserResponse(row), never the row itself.

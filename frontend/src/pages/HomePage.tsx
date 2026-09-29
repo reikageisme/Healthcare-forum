@@ -10,6 +10,7 @@ import { PostCardSkeleton } from '../components/common/LoadingSkeleton';
 import { EmptyState } from '../components/common/EmptyState';
 import { postService } from '../services/postService';
 import { Post } from '../types';
+import FeaturedPosts from '../components/Feed/FeaturedPosts';
 
 /**
  * Trang chủ của CỔNG TIN TỨC.
@@ -132,6 +133,8 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto xl:mx-0 xl:max-w-none">
+      <FeaturedPosts />
+
       {/* Top Stories */}
       <StoriesCarousel />
 

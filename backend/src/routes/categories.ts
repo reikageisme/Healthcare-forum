@@ -102,7 +102,12 @@ categoryRoutes.post('/', requireAuth, requireRole('admin', 'moderator'), async (
     throw badRequest('Category with this name or slug already exists');
   }
 
-  if (body.parent_id) await assertValidParent(body.parent_id);
+  const requestedSurface = asSurface(body.surface) ?? 'forum';
+  const parent = body.parent_id ? await assertValidParent(body.parent_id) : null;
+  const surface = parent?.surface ?? requestedSurface;
+  if (parent && body.surface && parent.surface !== requestedSurface) {
+    throw badRequest('Chuyên mục con phải cùng khu vực với chuyên mục cha');
+  }
 
   const inserted = await db
     .insert(categories)
@@ -113,9 +118,7 @@ categoryRoutes.post('/', requireAuth, requireRole('admin', 'moderator'), async (
       description: body.description ? sanitizePlainText(body.description) : null,
       parent_id: body.parent_id ?? null,
       sort_order: body.sort_order ?? 0,
-      // Mục con luôn thuộc cùng cây với cha nó; không thì trang tin có một
-      // nhánh treo dưới một chuyên khoa của diễn đàn.
-      surface: asSurface(body.surface) ?? 'forum',
+      surface,
     })
     .returning();
   const category = inserted[0];
@@ -188,32 +191,46 @@ categoryRoutes.put('/:id_or_slug', requireAuth, requireRole('admin', 'moderator'
   }
 
   // Sent as null means "detach from parent"; omitted means "leave alone".
+  const effectiveParentId = body.parent_id === undefined ? category.parent_id : body.parent_id;
+  const effectiveSurface = nextSurface ?? category.surface;
+  const nextParent = effectiveParentId
+    ? await assertValidParent(effectiveParentId, category.id)
+    : null;
+  if (nextParent && nextParent.surface !== effectiveSurface) {
+    throw badRequest('Chuyên mục con phải cùng khu vực với chuyên mục cha');
+  }
+
   if (body.parent_id !== undefined) {
     if (body.parent_id === null) {
       patch.parent_id = null;
     } else {
-      await assertValidParent(body.parent_id, category.id);
       patch.parent_id = body.parent_id;
     }
   }
 
   let updated = category;
   if (Object.keys(patch).length > 0) {
-    const rows = await db
-      .update(categories)
-      .set({ ...patch, updated_at: new Date() })
-      .where(eq(categories.id, category.id))
-      .returning();
-    updated = rows[0] ?? category;
-
-    // Cả nhánh đi theo cha. Một mục con ở lại cây cũ nghĩa là bấm vào nó rơi
-    // sang trang bên kia — đúng kiểu "hai trang dính vào nhau" cần bỏ.
-    if (patch.surface) {
-      await db
+    const branchIds = patch.surface ? await descendantIds(category.id) : [];
+    updated = await db.transaction(async (tx) => {
+      const rows = await tx
         .update(categories)
-        .set({ surface: patch.surface, updated_at: new Date() })
-        .where(inArray(categories.id, await descendantIds(category.id)));
-    }
+        .set({ ...patch, updated_at: new Date() })
+        .where(eq(categories.id, category.id))
+        .returning();
+      const result = rows[0] ?? category;
+
+      if (patch.surface && branchIds.length > 0) {
+        await tx
+          .update(categories)
+          .set({ surface: patch.surface, updated_at: new Date() })
+          .where(inArray(categories.id, branchIds));
+        await tx
+          .update(posts)
+          .set({ surface: patch.surface, updated_at: new Date() })
+          .where(inArray(posts.category_id, branchIds));
+      }
+      return result;
+    });
   }
 
   const counted = await db

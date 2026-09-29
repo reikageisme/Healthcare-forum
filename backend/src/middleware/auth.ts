@@ -29,7 +29,9 @@ async function loadUser(token: string): Promise<UserRow | null> {
   const payload = await decodeToken(token, 'access');
   if (!payload) return null;
   const rows = await db.select().from(users).where(eq(users.id, payload.sub)).limit(1);
-  return rows[0] ?? null;
+  const user = rows[0];
+  if (!user || user.session_version !== payload.sessionVersion) return null;
+  return user;
 }
 
 /**

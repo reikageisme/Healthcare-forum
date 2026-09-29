@@ -10,6 +10,10 @@ import { statsService, CommunityStats, FeaturedDoctor } from '../../services/sta
 import { getAvatarUrl } from '../../lib/utils';
 import { VerifiedDoctorBadge } from '../common/Badges';
 import NetworkCard from './NetworkCard';
+import { ArrowRight, Trophy, Users } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { loginHref } from '../../lib/siteLinks';
+import { RankedMember, userService } from '../../services/userService';
 
 /** 12543 -> "12.5K". Ô thống kê chỉ có chỗ cho vài ký tự. */
 const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
@@ -24,10 +28,12 @@ const fallbackTags: TagWithCount[] = [
 ];
 
 export const SidebarRight: React.FC = () => {
+  const { isAuthenticated } = useAuth();
   const [tags, setTags] = useState<TagWithCount[]>(fallbackTags);
   const [stats, setStats] = useState<CommunityStats | null>(null);
   const [doctors, setDoctors] = useState<FeaturedDoctor[]>([]);
   const [hotThreads, setHotThreads] = useState<HotThread[]>([]);
+  const [ranking, setRanking] = useState<RankedMember[]>([]);
 
   useEffect(() => {
     statsService
@@ -39,6 +45,11 @@ export const SidebarRight: React.FC = () => {
       .getFeaturedDoctors(3)
       .then(setDoctors)
       .catch((err) => console.error('Failed to load featured doctors', err));
+
+    userService
+      .getRanking(5)
+      .then(setRanking)
+      .catch((err) => console.error('Failed to load member ranking', err));
   }, []);
 
   /**
@@ -72,6 +83,69 @@ export const SidebarRight: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6">
+      {!isAuthenticated && (
+        <section className="app-card overflow-hidden p-5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Users size={22} aria-hidden="true" />
+          </div>
+          <h2 className="mt-4 text-lg font-extrabold text-text">Tham gia cộng đồng</h2>
+          <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">
+            Đăng nhập để đặt câu hỏi, bình luận, lưu bài và nhận phản hồi từ cộng đồng y khoa.
+          </p>
+          <SiteLink
+            to={loginHref()}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
+          >
+            Tham gia ngay <ArrowRight size={15} aria-hidden="true" />
+          </SiteLink>
+        </section>
+      )}
+
+      {ranking.length > 0 && (
+        <section className="app-card p-5" aria-labelledby="member-ranking-title">
+          <div className="mb-4 flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300">
+              <Trophy size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <h2 id="member-ranking-title" className="font-extrabold text-text">Bảng xếp hạng</h2>
+              <p className="text-[11px] text-text-secondary">Thành viên đóng góp tích cực</p>
+            </div>
+          </div>
+          <ol className="space-y-2.5">
+            {ranking.map((member) => (
+              <li key={member.id}>
+                <Link
+                  to={`/users/${member.id}`}
+                  className="group flex items-center gap-2.5 rounded-xl p-1.5 transition-colors hover:bg-sidebar"
+                >
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-extrabold ${
+                    member.rank === 1
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300'
+                      : member.rank === 2
+                        ? 'bg-slate-200 text-slate-700'
+                        : member.rank === 3
+                          ? 'bg-orange-100 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300'
+                          : 'bg-sidebar text-text-secondary'
+                  }`}>{member.rank}</span>
+                  <img
+                    src={getAvatarUrl(member, member.full_name || member.username)}
+                    alt=""
+                    className="h-9 w-9 rounded-full border border-border object-cover"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-bold text-text group-hover:text-primary">
+                      {member.full_name || member.username}
+                    </span>
+                    <span className="text-[10px] text-text-secondary">{member.points} điểm</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
       {/* Trending Topics */}
       <div className="bg-surface rounded-2xl p-5 shadow-sm border border-border">
         <h3 className="font-bold text-text mb-4 flex items-center gap-2">

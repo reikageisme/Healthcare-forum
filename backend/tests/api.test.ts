@@ -831,6 +831,6 @@ describe('health', () => {
   it('answers on the same path the Python app used', async () => {
     const res = await request('/health', { headers: nextIp() });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ status: 'ok', version: '1.0.0' });
+    expect(await res.json()).toEqual({ status: 'ok', version: '1.1.0' });
   });
 });

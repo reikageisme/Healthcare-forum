@@ -133,6 +133,32 @@ describe('SSO cookie giữa trang tin và diễn đàn', () => {
     expect(setCookie).toContain('Max-Age=0');
     expect(cookieAttr(setCookie!, 'Path')).toBe('/api/v1/auth');
   });
+
+  it('đăng xuất vô hiệu cả access token và refresh token đã cấp cho domain khác', async () => {
+    const { body, setCookie } = await login();
+    const sessionCookie = setCookie.split(';')[0]!;
+
+    const logout = await request('/auth/logout', {
+      method: 'POST',
+      headers: {
+        ...nextIp(),
+        cookie: sessionCookie,
+        authorization: `Bearer ${body.access_token}`,
+      },
+    });
+    expect(logout.status).toBe(204);
+
+    const me = await request('/auth/me', {
+      headers: { ...nextIp(), authorization: `Bearer ${body.access_token}` },
+    });
+    expect(me.status).toBe(401);
+
+    const refresh = await request('/auth/refresh', {
+      method: 'POST',
+      headers: { ...nextIp(), cookie: sessionCookie },
+    });
+    expect(refresh.status).toBe(401);
+  });
 });
 
 

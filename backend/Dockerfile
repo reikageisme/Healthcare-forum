@@ -6,7 +6,7 @@ COPY package*.json ./
 # the VPS this deploys to.
 RUN npm config set registry https://registry.npmmirror.com
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --prefer-offline --no-audit --no-fund --maxsockets 5 \
+    npm ci --prefer-offline --no-audit --no-fund --maxsockets 5 \
       --fetch-retries 5 --fetch-retry-mintimeout 20000 --fetch-retry-maxtimeout 120000
 
 FROM base AS dev
@@ -26,7 +26,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm config set registry https://registry.npmmirror.com
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --omit=dev --prefer-offline --no-audit --no-fund
+    npm ci --omit=dev --prefer-offline --no-audit --no-fund
 COPY --from=build /app/dist ./dist
 # tsc chỉ biên dịch .ts, không sao chép .json — nên dist/scripts/ thiếu hẳn
 # thư mục data và mọi script seed sẽ chết ở bước đọc file dữ liệu. Ảnh prod

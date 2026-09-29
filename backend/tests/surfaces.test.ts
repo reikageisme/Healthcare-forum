@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, like } from 'drizzle-orm';
 import { closeDatabase, freshDatabase, json, request, seedUser } from './setup.js';
 import { db } from '../src/db/index.js';
-import { categories } from '../src/db/schema.js';
+import { categories, posts } from '../src/db/schema.js';
 
 /**
  * Trang tin là trang tin, diễn đàn là diễn đàn.
@@ -142,6 +142,60 @@ describe('hai cây chuyên mục', () => {
   it('trang chủ diễn đàn chỉ liệt kê box của diễn đàn', async () => {
     const body = await (await request('/forum', { headers: nextIp() })).json();
     expect(body.every((c: { surface: string }) => c.surface === 'forum')).toBe(true);
+  });
+
+  it('không cho đặt chuyên mục con dưới một cây khác surface', async () => {
+    const admin = await seedUser('admin');
+    const parentRes = await request('/categories', {
+      method: 'POST',
+      token: admin.token,
+      headers: nextIp(),
+      body: json({ name: 'Portal parent test', surface: 'portal' }),
+    });
+    const parent = await parentRes.json();
+
+    const childRes = await request('/categories', {
+      method: 'POST',
+      token: admin.token,
+      headers: nextIp(),
+      body: json({ name: 'Forum child test', surface: 'forum', parent_id: parent.id }),
+    });
+    expect(childRes.status).toBe(400);
+  });
+
+  it('bài và chuyên mục luôn chuyển surface cùng nhau', async () => {
+    const admin = await seedUser('admin');
+    const categoryRes = await request('/categories', {
+      method: 'POST',
+      token: admin.token,
+      headers: nextIp(),
+      body: json({ name: 'Surface cascade test', surface: 'forum' }),
+    });
+    const category = await categoryRes.json();
+    const posted = await createPost(admin.token, 'Bài kiểm tra cascade surface', {
+      surface: 'forum',
+      category_id: category.id,
+    });
+    expect(posted.status).toBe(201);
+
+    const mismatched = await request(`/posts/${posted.body.id}`, {
+      method: 'PUT',
+      token: admin.token,
+      headers: nextIp(),
+      body: json({ surface: 'portal' }),
+    });
+    expect(mismatched.status).toBe(400);
+
+    const moved = await request(`/categories/${category.id}`, {
+      method: 'PUT',
+      token: admin.token,
+      headers: nextIp(),
+      body: json({ surface: 'portal' }),
+    });
+    expect(moved.status).toBe(200);
+
+    const rows = await db.select().from(posts).where(eq(posts.id, posted.body.id)).limit(1);
+    expect(rows[0]?.surface).toBe('portal');
   });
 });
 

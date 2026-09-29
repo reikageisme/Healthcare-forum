@@ -10,6 +10,8 @@ export type TokenKind = 'access' | 'refresh';
 export interface TokenPayload {
   sub: string;
   role: string;
+  /** Server-side generation used to revoke every token on logout. */
+  sessionVersion: number;
   /** Untyped legacy sessions must sign in again. */
   type: TokenKind;
   exp: number;
@@ -42,8 +44,14 @@ export async function verifyPassword(plain: string, hashed: string): Promise<boo
   }
 }
 
-async function sign(sub: string, role: string, type: TokenKind, expiresIn: string) {
-  return new SignJWT({ role, type })
+async function sign(
+  sub: string,
+  role: string,
+  type: TokenKind,
+  expiresIn: string,
+  sessionVersion = 0,
+) {
+  return new SignJWT({ role, type, ver: sessionVersion })
     .setProtectedHeader({ alg: settings.JWT_ALGORITHM })
     .setSubject(String(sub))
     .setIssuedAt()
@@ -53,12 +61,12 @@ async function sign(sub: string, role: string, type: TokenKind, expiresIn: strin
     .sign(secretKey);
 }
 
-export function createAccessToken(sub: string, role: string) {
-  return sign(sub, role, 'access', `${settings.ACCESS_TOKEN_EXPIRE_MINUTES}m`);
+export function createAccessToken(sub: string, role: string, sessionVersion = 0) {
+  return sign(sub, role, 'access', `${settings.ACCESS_TOKEN_EXPIRE_MINUTES}m`, sessionVersion);
 }
 
-export function createRefreshToken(sub: string, role: string) {
-  return sign(sub, role, 'refresh', `${settings.REFRESH_TOKEN_EXPIRE_DAYS}d`);
+export function createRefreshToken(sub: string, role: string, sessionVersion = 0) {
+  return sign(sub, role, 'refresh', `${settings.REFRESH_TOKEN_EXPIRE_DAYS}d`, sessionVersion);
 }
 
 /** Verify the kind, expiry and UUID before any user lookup; invalid tokens return null. */
@@ -73,6 +81,8 @@ export async function decodeToken(token: string, expectedType: TokenKind): Promi
     return {
       sub,
       role: typeof payload.role === 'string' ? payload.role : '',
+      // Tokens issued before migration 0009 belong to generation zero.
+      sessionVersion: typeof payload.ver === 'number' ? payload.ver : 0,
       type: expectedType,
       exp: payload.exp,
     };
