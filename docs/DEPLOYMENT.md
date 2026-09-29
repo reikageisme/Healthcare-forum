@@ -1,6 +1,6 @@
 # CI/CD Medic Việt Nam
 
-CI chạy trên self-hosted runner cho mọi push lên `main` hoặc `dev/**`:
+CI chạy trên self-hosted runner cho mọi push lên `main`:
 
 - backend typecheck + toàn bộ Vitest;
 - frontend ESLint + typecheck + build riêng `portal` và `forum`;
@@ -11,10 +11,10 @@ CI chạy trên self-hosted runner cho mọi push lên `main` hoặc `dev/**`:
 Runner production cần có đủ ba label mặc định: `self-hosted`, `Linux`, `X64`.
 Service account chạy runner phải đọc được checkout, sử dụng được Docker Compose
 và có quyền cập nhật các container của ứng dụng. Không gắn runner production
-vào workflow pull request chạy mã chưa được duyệt; vì vậy workflow hiện chỉ
-nhận sự kiện `push`. Nếu sau này cần kiểm tra PR từ contributor, hãy dùng một
-runner cách ly không giữ secret production hoặc sửa xong billing của
-GitHub-hosted runner.
+vào workflow pull request hoặc nhánh phát triển chạy mã chưa được duyệt; vì vậy
+workflow hiện chỉ nhận sự kiện `push` của `main`. Nếu sau này cần kiểm tra PR
+từ contributor, hãy dùng một runner cách ly không giữ secret production hoặc
+sửa xong billing của GitHub-hosted runner.
 
 Trong GitHub repository:
 
