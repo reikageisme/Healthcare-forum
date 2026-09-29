@@ -16,17 +16,18 @@ concurrency:
 jobs:
   deploy:
     if: >-
-      ${{ vars.CD_ENABLED == 'true' &&
-          (github.event_name == 'workflow_dispatch' ||
-           (github.event.workflow_run.conclusion == 'success' &&
-            github.event.workflow_run.head_branch == 'main')) }}
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main') }}
     runs-on: [self-hosted, Linux, X64]
     environment: production
     steps:
       - name: Pull, migrate and restart services
         env:
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/root/Healthcare-forum' }}
         run: |
+          test -d "$DEPLOY_PATH/.git"
+          test -f "$DEPLOY_PATH/.env"
           cd "$DEPLOY_PATH"
           git fetch origin main
           git checkout main
@@ -34,4 +35,8 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
 
       - name: Smoke test
-        run: curl --fail --show-error --retry 8 --retry-delay 5 https://medicvn.com/api/v1/health
+        run: |
+          curl --fail --show-error --retry 8 --retry-delay 5 --retry-connrefused http://127.0.0.1:3000/ --output /dev/null
+          curl --fail --show-error --retry 8 --retry-delay 5 --retry-connrefused http://127.0.0.1:4000/ --output /dev/null
+          curl --fail --show-error --retry 8 --retry-delay 5 https://medicvn.com/api/v1/health
+          curl --fail --show-error --retry 8 --retry-delay 5 https://forums.medicvn.com/api/v1/health
