@@ -34,6 +34,8 @@ services:
         VITE_APP_VERSION: ${VITE_APP_VERSION:-1.1.0}
         NGINX_CONF: nginx.forum.conf
     volumes: []
+    # Ghi đè lệnh Vite của compose dev; image prod chỉ chứa nginx, không có npm.
+    command: ["nginx", "-g", "daemon off;"]
     restart: always
 
   adminer:
