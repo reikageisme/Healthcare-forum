@@ -3,8 +3,6 @@ name: CI
 on:
   push:
     branches: [main, 'dev/**']
-  pull_request:
-    branches: [main]
 
 permissions:
   contents: read
@@ -16,7 +14,7 @@ concurrency:
 jobs:
   backend:
     name: Backend checks
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     defaults:
       run:
         working-directory: backend
@@ -33,7 +31,7 @@ jobs:
 
   frontend:
     name: Frontend checks and dual build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     defaults:
       run:
         working-directory: frontend
@@ -64,7 +62,7 @@ jobs:
 
   compose:
     name: Production compose validation
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - run: docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet
