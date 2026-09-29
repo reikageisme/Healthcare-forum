@@ -122,7 +122,7 @@ const MainLayout: React.FC = () => {
                   {primaryJoinLabel}
                 </SiteLink>
                 <SiteLink
-                  to={IS_FORUM ? portalHref('/') : forumHref('/create-post')}
+                  to={IS_FORUM ? portalHref('/') : isAuthenticated ? forumHref('/create-post') : forumHref()}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary"
                 >
                   {IS_FORUM ? 'Đọc tin y tế' : isAuthenticated ? 'Viết bài chia sẻ' : 'Xem diễn đàn'}
