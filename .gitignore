@@ -48,3 +48,6 @@ logs/
 
 # Stale git lock files this environment cannot delete
 .gitstale/
+
+# GitHub self-hosted runner may be installed beside the application checkout
+actions-runner/
