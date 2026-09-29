@@ -35,11 +35,25 @@ export interface NetworkConfig {
   sites: SiteLink[];
   footer_links: SiteLink[];
   contact_email: string;
+  facebook_url: string;
 }
 
 export const NETWORK_KEY = 'network';
 
-function cleanLinks(raw: unknown, limit: number): SiteLink[] {
+function cleanUrl(raw: unknown, allowInternal = false): string {
+  if (typeof raw !== 'string') return '';
+  const value = raw.trim().slice(0, 500);
+  if (allowInternal && value.startsWith('/') && !value.startsWith('//')) return value;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? value : '';
+  } catch {
+    return '';
+  }
+}
+
+function cleanLinks(raw: unknown, limit: number, allowInternal = false): SiteLink[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter(
@@ -48,9 +62,9 @@ function cleanLinks(raw: unknown, limit: number): SiteLink[] {
     )
     .map((x) => ({
       name: String(x.name).trim().slice(0, 120),
-      url: String(x.url).trim().slice(0, 500),
+      url: cleanUrl(x.url, allowInternal),
       description: x.description ? String(x.description).trim().slice(0, 300) : undefined,
-      icon_url: x.icon_url ? String(x.icon_url).trim().slice(0, 500) : undefined,
+      icon_url: cleanUrl(x.icon_url, true) || undefined,
     }))
     .filter((link) => link.name && link.url)
     .slice(0, limit);
@@ -64,6 +78,7 @@ function fromEnv(): NetworkConfig {
     sites: settings.NETWORK_SITES,
     footer_links: settings.FOOTER_LINKS,
     contact_email: settings.CONTACT_EMAIL,
+    facebook_url: '',
   };
 }
 
@@ -73,9 +88,10 @@ export function normalizeNetwork(raw: unknown): NetworkConfig {
     name: typeof obj.name === 'string' ? obj.name.trim().slice(0, 120) : '',
     tagline: typeof obj.tagline === 'string' ? obj.tagline.trim().slice(0, 300) : '',
     sites: cleanLinks(obj.sites, 20),
-    footer_links: cleanLinks(obj.footer_links, 12),
+    footer_links: cleanLinks(obj.footer_links, 12, true),
     contact_email:
       typeof obj.contact_email === 'string' ? obj.contact_email.trim().slice(0, 255) : '',
+    facebook_url: cleanUrl(obj.facebook_url),
   };
 }
 

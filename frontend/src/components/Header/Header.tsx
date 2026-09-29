@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { getAvatarUrl } from '../../lib/utils';
 import { logoutEverywhere } from '../../services/authService';
 import SiteLink from '../common/SiteLink';
-import { IS_FORUM, loginHref, portalHref } from '../../lib/siteLinks';
+import { IS_FORUM, loginHref, portalHref, registerHref } from '../../lib/siteLinks';
 import { canPostHere, writeElsewhereHref } from '../../lib/canPost';
 import NotificationBell from './NotificationBell';
 import ThemeToggle from '../common/ThemeToggle';
@@ -235,13 +235,22 @@ export const Header: React.FC<HeaderProps> = ({ toggleMobileMenu }) => {
                   )}
                 </div>
               ) : (
-                <SiteLink
-                  to={loginHref()}
-                  className="flex items-center gap-1.5 bg-primary text-white px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold hover:bg-primary-dark shadow-sm transition-colors"
-                >
-                  <UserCircle size={18} />
-                  <span>Đăng nhập</span>
-                </SiteLink>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <SiteLink
+                    to={loginHref()}
+                    className="hidden h-11 items-center rounded-xl px-3 text-sm font-semibold text-text-secondary transition-colors hover:bg-sidebar hover:text-primary sm:inline-flex"
+                  >
+                    Đăng nhập
+                  </SiteLink>
+                  <SiteLink
+                    to={registerHref()}
+                    className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-primary-dark sm:px-4 sm:text-sm"
+                  >
+                    <UserCircle size={18} aria-hidden="true" className="sm:hidden" />
+                    <span className="hidden sm:inline">Đăng ký</span>
+                    <span className="sm:hidden">Tham gia</span>
+                  </SiteLink>
+                </div>
               )}
             </div>
           </div>

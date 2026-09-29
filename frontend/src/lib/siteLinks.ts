@@ -113,6 +113,14 @@ export function loginHref(next?: string): string {
   return `${base}?next=${encodeURIComponent(target)}`;
 }
 
+/** Mở thẳng tab đăng ký nhưng vẫn quay lại diễn đàn sau khi hoàn tất. */
+export function registerHref(next?: string): string {
+  const target = next ?? (typeof window !== 'undefined' ? window.location.href : '/');
+  const base = portalHref('/login');
+  if (IS_PORTAL && !isCrossSite(base)) return `${base}?mode=register`;
+  return `${base}?mode=register&next=${encodeURIComponent(target)}`;
+}
+
 /**
  * Chỉ chấp nhận quay về hai tên miền của chính mình.
  *

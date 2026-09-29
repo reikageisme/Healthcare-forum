@@ -57,6 +57,7 @@ export interface NetworkInfo {
   sites: NetworkSite[];
   footer_links: FooterLink[];
   contact_email: string;
+  facebook_url: string;
 }
 
 export const networkService = {
@@ -72,6 +73,7 @@ export interface NetworkConfigInput {
   sites: { name: string; url: string; description?: string; icon_url?: string }[];
   footer_links: { name: string; url: string }[];
   contact_email: string;
+  facebook_url: string;
 }
 
 export const adminNetworkService = {

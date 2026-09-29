@@ -1,19 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TagWithCount } from '../../types';
+import { Post, TagWithCount } from '../../types';
 import { tagService } from '../../services/tagService';
 import { forumService, HotThread } from '../../services/forumService';
 import SiteLink from '../common/SiteLink';
-import { IS_PORTAL, forumHref } from '../../lib/siteLinks';
+import { IS_FORUM, IS_PORTAL, forumHref, portalHref } from '../../lib/siteLinks';
 import { formatRelativeTime } from '../../lib/utils';
 import { statsService, CommunityStats, FeaturedDoctor } from '../../services/statsService';
 import { getAvatarUrl } from '../../lib/utils';
 import { VerifiedDoctorBadge } from '../common/Badges';
 import NetworkCard from './NetworkCard';
-import { ArrowRight, Trophy, Users } from 'lucide-react';
+import { ArrowRight, BookOpenCheck, Eye, Trophy, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { loginHref } from '../../lib/siteLinks';
 import { RankedMember, userService } from '../../services/userService';
+import { postService } from '../../services/postService';
 
 /** 12543 -> "12.5K". Ô thống kê chỉ có chỗ cho vài ký tự. */
 const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
@@ -34,6 +35,7 @@ export const SidebarRight: React.FC = () => {
   const [doctors, setDoctors] = useState<FeaturedDoctor[]>([]);
   const [hotThreads, setHotThreads] = useState<HotThread[]>([]);
   const [ranking, setRanking] = useState<RankedMember[]>([]);
+  const [newsPosts, setNewsPosts] = useState<Post[]>([]);
 
   useEffect(() => {
     statsService
@@ -68,6 +70,14 @@ export const SidebarRight: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!IS_FORUM) return;
+    postService
+      .getPosts({ surface: 'portal', sort_by: 'newest', limit: 4 })
+      .then((page) => setNewsPosts(page.items))
+      .catch((err) => console.error('Failed to load portal news', err));
+  }, []);
+
+  useEffect(() => {
     const fetchHotTags = async () => {
       try {
         const data = await tagService.getHotTags(8);
@@ -98,6 +108,61 @@ export const SidebarRight: React.FC = () => {
           >
             Tham gia ngay <ArrowRight size={15} aria-hidden="true" />
           </SiteLink>
+        </section>
+      )}
+
+      {newsPosts.length > 0 && (
+        <section className="app-card p-5" aria-labelledby="sidebar-news-title">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300">
+                <BookOpenCheck size={18} aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <h2 id="sidebar-news-title" className="truncate font-extrabold text-text">
+                  Tin tức &amp; nghiên cứu
+                </h2>
+                <p className="text-[11px] text-text-secondary">Mới từ cổng Medic Việt Nam</p>
+              </div>
+            </div>
+            <SiteLink
+              to={portalHref('/')}
+              className="shrink-0 text-xs font-bold text-primary hover:text-primary-dark"
+            >
+              Xem tất cả
+            </SiteLink>
+          </div>
+          <div className="space-y-3">
+            {newsPosts.map((post, index) => (
+              <article key={post.id} className={index ? 'border-t border-border pt-3' : undefined}>
+                <SiteLink to={portalHref(`/posts/${post.slug || post.id}`)} className="group flex gap-3">
+                  {post.thumbnail ? (
+                    <img
+                      src={post.thumbnail}
+                      alt=""
+                      loading="lazy"
+                      className="h-12 w-12 shrink-0 rounded-xl border border-border object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <BookOpenCheck size={18} aria-hidden="true" />
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="line-clamp-2 text-xs font-bold leading-snug text-text transition-colors group-hover:text-primary">
+                      {post.title}
+                    </span>
+                    <span className="mt-1 flex items-center gap-1.5 text-[10px] text-text-secondary">
+                      <span>{formatRelativeTime(post.created_at)}</span>
+                      <span aria-hidden="true">·</span>
+                      <Eye size={11} aria-hidden="true" />
+                      <span>{post.view_count ?? 0}</span>
+                    </span>
+                  </span>
+                </SiteLink>
+              </article>
+            ))}
+          </div>
         </section>
       )}
 

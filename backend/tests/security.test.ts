@@ -131,6 +131,42 @@ describe('stored content is sanitised on write', () => {
   });
 });
 
+describe('network settings authorization', () => {
+  it('keeps external links admin-only and strips unsafe schemes before public read', async () => {
+    const moderator = await seedUser('moderator');
+    const admin = await seedUser('admin');
+    const payload = {
+      name: 'Medic Việt Nam',
+      sites: [{ name: 'Bad', url: 'javascript:alert(1)' }],
+      footer_links: [{ name: 'Điều khoản', url: '/dieu-khoan' }],
+      facebook_url: 'https://facebook.com/medicvn',
+    };
+
+    const forbidden = await request('/admin/network', {
+      method: 'PUT',
+      token: moderator.token,
+      headers: nextIp(),
+      body: json(payload),
+    });
+    expect(forbidden.status).toBe(403);
+
+    const saved = await request('/admin/network', {
+      method: 'PUT',
+      token: admin.token,
+      headers: nextIp(),
+      body: json(payload),
+    });
+    expect(saved.status).toBe(200);
+    expect((await saved.json()).sites).toEqual([]);
+
+    const publicResponse = await request('/network', { headers: nextIp() });
+    expect(publicResponse.status).toBe(200);
+    const body = await publicResponse.json();
+    expect(body.facebook_url).toBe('https://facebook.com/medicvn');
+    expect(body.footer_links).toHaveLength(1);
+  });
+});
+
 describe('token separation', () => {
   it('refuses an access token at /auth/refresh', async () => {
     const user = await seedUser('user');

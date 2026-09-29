@@ -19,6 +19,7 @@ const EMPTY: NetworkConfigInput = {
   sites: [],
   footer_links: [],
   contact_email: '',
+  facebook_url: '',
 };
 
 const inputClass =
@@ -205,6 +206,22 @@ export const AdminNetworkPage: React.FC = () => {
               placeholder="Hệ thống thông tin y tế — mỗi chuyên khoa một cộng đồng."
               className={inputClass}
             />
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor="net-facebook" className="block text-xs font-bold text-slate-700 mb-1.5">
+              Fanpage Facebook
+            </label>
+            <input
+              id="net-facebook"
+              type="url"
+              value={config.facebook_url}
+              onChange={(e) => patch({ facebook_url: e.target.value })}
+              placeholder="https://facebook.com/medicvn"
+              className={inputClass}
+            />
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              Bỏ trống để ẩn biểu tượng Facebook ở chân trang.
+            </p>
           </div>
         </div>
       </section>

@@ -44,6 +44,7 @@ export const Footer: React.FC = () => {
   const topCategories = rootsOf(categories).slice(0, 6);
   const legal = network?.footer_links ?? [];
   const email = network?.contact_email ?? '';
+  const facebook = network?.facebook_url ?? '';
   const year = new Date().getFullYear();
 
   return (
@@ -63,6 +64,19 @@ export const Footer: React.FC = () => {
               <p className="text-xs text-text-secondary mt-3">
                 Thuộc <span className="font-semibold text-text">{network.name}</span>
               </p>
+            )}
+            {facebook && (
+              <a
+                href={facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook Medic Việt Nam (mở tab mới)"
+                className="mt-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#1877F2] text-white shadow-sm transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
+                  <path d="M13.7 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5H17V3.9c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1V10H8v3h2.6v8h3.1Z" />
+                </svg>
+              </a>
             )}
           </div>
 

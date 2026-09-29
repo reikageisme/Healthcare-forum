@@ -241,5 +241,6 @@ statsRoutes.get('/network', async (c) => {
     })),
     footer_links: config.footer_links,
     contact_email: config.contact_email,
+    facebook_url: config.facebook_url,
   });
 });

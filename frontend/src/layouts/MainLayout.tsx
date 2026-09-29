@@ -4,20 +4,34 @@ import Header from '../components/Header/Header';
 import SidebarLeft from '../components/Sidebar/SidebarLeft';
 import SidebarRight from '../components/Sidebar/SidebarRight';
 import Footer from '../components/common/Footer';
-import { Users } from 'lucide-react';
+import { Users, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import SiteLink from '../components/common/SiteLink';
-import { loginHref } from '../lib/siteLinks';
+import { forumHref, IS_FORUM, portalHref, registerHref } from '../lib/siteLinks';
 
 const MainLayout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showJoinPrompt, setShowJoinPrompt] = useState(false);
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
   useEffect(() => setIsMobileMenuOpen(false), [location.pathname, location.search]);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      setShowJoinPrompt(false);
+      return;
+    }
+    setShowJoinPrompt(sessionStorage.getItem('medicvn:join-prompt-dismissed') !== '1');
+  }, [isAuthenticated]);
+
+  const dismissJoinPrompt = () => {
+    sessionStorage.setItem('medicvn:join-prompt-dismissed', '1');
+    setShowJoinPrompt(false);
+  };
+
   return (
-    <div className="flex min-h-screen flex-col bg-bg pb-20 lg:pb-0">
+    <div className="flex min-h-screen flex-col bg-bg">
       <a
         href="#main-content"
         className="sr-only fixed left-4 top-4 z-[100] rounded-lg bg-primary px-4 py-2 text-white focus:not-sr-only"
@@ -62,29 +76,63 @@ const MainLayout: React.FC = () => {
         </main>
 
         {/* Right Sidebar */}
-        <aside className="hidden xl:block w-80 2xl:w-[22rem] shrink-0 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
+        <aside className="sticky top-24 hidden w-80 shrink-0 self-start 2xl:w-[22rem] xl:block">
           <SidebarRight />
         </aside>
       </div>
 
       <Footer />
 
-      {!isAuthenticated && !isMobileMenuOpen && (
-        <div className="fixed inset-x-3 bottom-3 z-40 flex items-center gap-3 rounded-2xl border border-border bg-surface/95 p-3 shadow-2xl backdrop-blur-lg lg:hidden">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Users size={19} aria-hidden="true" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-text">Tham gia cộng đồng</p>
-            <p className="truncate text-[11px] text-text-secondary">Đặt câu hỏi và kết nối cùng bác sĩ.</p>
-          </div>
-          <SiteLink
-            to={loginHref()}
-            className="shrink-0 rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-white hover:bg-primary-dark"
+      {showJoinPrompt && !isMobileMenuOpen && (
+        <>
+          <div className="h-24 lg:h-36" aria-hidden="true" />
+          <section
+            role="dialog"
+            aria-labelledby="join-community-title"
+            aria-describedby="join-community-description"
+            className="fixed inset-x-3 bottom-3 z-[60] mx-auto flex max-w-3xl items-center gap-3 rounded-2xl border border-primary/20 bg-surface/95 p-3 shadow-2xl backdrop-blur-xl sm:p-4 lg:bottom-5 lg:gap-5 lg:px-6 lg:py-5"
           >
-            Tham gia
-          </SiteLink>
-        </div>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary lg:h-14 lg:w-14">
+              <Users size={24} aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 id="join-community-title" className="text-sm font-extrabold text-text lg:text-lg">
+                Tham gia cộng đồng Medic Việt Nam
+              </h2>
+              <p id="join-community-description" className="mt-0.5 line-clamp-1 text-[11px] text-text-secondary sm:line-clamp-none sm:text-xs lg:text-sm">
+                Đặt câu hỏi, trao đổi kinh nghiệm và nhận phản hồi từ cộng đồng y khoa.
+              </p>
+              <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
+                <SiteLink
+                  to={registerHref()}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
+                >
+                  Đăng nhập / Đăng ký
+                </SiteLink>
+                <SiteLink
+                  to={IS_FORUM ? portalHref('/') : forumHref()}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold text-text transition-colors hover:border-primary/30 hover:text-primary"
+                >
+                  {IS_FORUM ? 'Đọc tin y tế' : 'Xem diễn đàn'}
+                </SiteLink>
+              </div>
+            </div>
+            <SiteLink
+              to={registerHref()}
+              className="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-primary px-3.5 text-xs font-bold text-white transition-colors hover:bg-primary-dark sm:hidden"
+            >
+              Tham gia
+            </SiteLink>
+            <button
+              type="button"
+              onClick={dismissJoinPrompt}
+              aria-label="Đóng lời mời tham gia cộng đồng"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-sidebar hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </section>
+        </>
       )}
     </div>
   );

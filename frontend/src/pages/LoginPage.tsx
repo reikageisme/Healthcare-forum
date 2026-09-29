@@ -19,7 +19,9 @@ const OAUTH_ERRORS: Record<string, string> = {
 };
 
 export const LoginPage: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const [isLogin, setIsLogin] = useState(params.get('mode') !== 'register');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -28,12 +30,9 @@ export const LoginPage: React.FC = () => {
   const [hasGoogle, setHasGoogle] = useState(false);
 
   const navigate = useNavigate();
-  const location = useLocation();
   const login = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const authReady = useAuthStore((state) => state.authReady);
-
-  const params = new URLSearchParams(location.search);
 
   /**
    * Nơi quay về sau khi đăng nhập.
