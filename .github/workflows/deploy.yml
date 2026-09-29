@@ -34,9 +34,35 @@ jobs:
           git pull --ff-only origin main
           docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
 
-      - name: Smoke test
+      - name: Smoke test portal container
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/root/Healthcare-forum' }}
         run: |
-          curl --fail --show-error --retry 8 --retry-delay 5 --retry-connrefused http://127.0.0.1:3000/ --output /dev/null
-          curl --fail --show-error --retry 8 --retry-delay 5 --retry-connrefused http://127.0.0.1:4000/ --output /dev/null
+          cd "$DEPLOY_PATH"
+          if ! curl --fail --show-error --retry 8 --retry-delay 5 --retry-connrefused http://127.0.0.1:3000/ --output /dev/null; then
+            details="$(docker compose -f docker-compose.yml -f docker-compose.prod.yml ps frontend 2>&1 | tr '\n' ' ')"
+            details="${details//'%'/'%25'}"
+            details="${details//$'\r'/'%0D'}"
+            details="${details//$'\n'/'%0A'}"
+            echo "::error title=Portal container unavailable::$details"
+            exit 1
+          fi
+
+      - name: Smoke test forum container
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/root/Healthcare-forum' }}
+        run: |
+          cd "$DEPLOY_PATH"
+          if ! curl --fail --show-error --retry 8 --retry-delay 5 --retry-connrefused http://127.0.0.1:4000/ --output /dev/null; then
+            details="$(docker compose -f docker-compose.yml -f docker-compose.prod.yml ps frontend-forum 2>&1; docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --no-color --tail=20 frontend-forum 2>&1)"
+            details="${details//'%'/'%25'}"
+            details="${details//$'\r'/'%0D'}"
+            details="${details//$'\n'/'%0A'}"
+            echo "::error title=Forum container unavailable::$details"
+            exit 1
+          fi
+
+      - name: Smoke test public domains
+        run: |
           curl --fail --show-error --retry 8 --retry-delay 5 https://medicvn.com/api/v1/health
           curl --fail --show-error --retry 8 --retry-delay 5 https://forums.medicvn.com/api/v1/health
